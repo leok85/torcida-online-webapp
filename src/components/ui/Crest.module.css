@@ -1,0 +1,31 @@
+/* Escudo placeholder — o escudo real virá da API. */
+.crest {
+  flex: none;
+  border-style: solid;
+  border-width: 1.5px;
+}
+
+.dark {
+  --a: rgba(255, 255, 255, 0.22);
+  --b: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.darkAway {
+  --a: rgba(255, 255, 255, 0.13);
+  --b: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+.lightHome {
+  --a: var(--blue-soft-2);
+  --b: var(--blue-soft);
+  border-color: var(--blue-line);
+}
+
+.light {
+  --a: var(--soft);
+  --b: var(--bg);
+  border-color: var(--line-3);
+  border-width: 1px;
+}

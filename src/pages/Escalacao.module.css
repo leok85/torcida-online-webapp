@@ -1,0 +1,261 @@
+.page {
+  composes: page from '../styles/ui.module.css';
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formations {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.formation {
+  height: 40px;
+  padding: 0 15px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.formation.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 82px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.shirt {
+  width: 50px;
+  height: 50px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 21px;
+  color: var(--ink);
+}
+
+.slot.active .shirt {
+  background: #ffc53d;
+  box-shadow: 0 0 0 4px rgba(255, 197, 61, 0.45);
+}
+
+.name {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.pos {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pickHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-bottom: 14px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  border-radius: 11px;
+  color: var(--ink);
+  text-align: left;
+}
+
+.num {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink-2);
+}
+
+.option.here {
+  border-color: var(--primary);
+  background: var(--blue-soft);
+  color: var(--primary);
+}
+
+.option.here .num {
+  background: var(--primary);
+  color: #fff;
+}
+
+.optionName {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.optionMeta {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.guessTitle {
+  composes: title from '../styles/ui.module.css';
+  margin-bottom: 16px;
+}
+
+.guess {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.step {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepUp {
+  composes: step;
+  border-color: var(--primary);
+  background: var(--blue-soft);
+  color: var(--primary);
+}
+
+.step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.goals {
+  composes: score from '../styles/ui.module.css';
+  font-size: 34px;
+  line-height: 1;
+  min-width: 26px;
+  text-align: center;
+}
+
+.times {
+  align-self: flex-end;
+  padding-bottom: 6px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--line-3);
+}
+
+.reward {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.reward strong {
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.rewardFirst {
+  composes: reward;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.rewardFirst strong {
+  color: var(--green-dark);
+}
+
+.confirm {
+  composes: btnGreen from '../styles/ui.module.css';
+  width: 100%;
+  height: 50px;
+  margin-top: 16px;
+  font-size: 14.5px;
+}
+
+.confirmed {
+  background: var(--green-dark);
+}

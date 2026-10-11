@@ -1,0 +1,281 @@
+.page {
+  composes: page from '../styles/ui.module.css';
+}
+
+.balance {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 15px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-dark);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tabs {
+  width: 340px;
+  margin-bottom: 18px;
+}
+
+.products {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.product {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.productBody {
+  padding: 14px;
+}
+
+.productName {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.price {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold-dark);
+}
+
+.lock {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
+.money {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.box {
+  composes: card from '../styles/ui.module.css';
+  padding: 22px;
+}
+
+.boxTitle {
+  composes: titleLg from '../styles/ui.module.css';
+  margin-bottom: 8px;
+}
+
+.boxText {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-bottom: 16px;
+}
+
+.convert {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.convertSide {
+  flex: 1;
+  text-align: center;
+}
+
+.convertValue {
+  composes: score from '../styles/ui.module.css';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.convertMoney {
+  composes: convertValue;
+  color: var(--green-dark);
+}
+
+.convertLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.minimum {
+  composes: noteGold from '../styles/ui.module.css';
+  gap: 9px;
+  margin-top: 16px;
+  border-radius: 11px;
+  line-height: 1.4;
+}
+
+.withdraw {
+  composes: btn from '../styles/ui.module.css';
+  width: 100%;
+  height: 48px;
+  margin-top: 16px;
+  background: var(--soft);
+  color: var(--muted);
+}
+
+.withdraw:disabled {
+  cursor: not-allowed;
+}
+
+.keyTitle {
+  composes: titleLg from '../styles/ui.module.css';
+  margin-bottom: 14px;
+}
+
+.key {
+  width: 100%;
+  height: 48px;
+  border: 1.5px solid var(--line);
+  border-radius: 11px;
+  padding: 0 15px;
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+}
+
+.key:focus {
+  border-color: var(--primary);
+}
+
+.keyHint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.pack {
+  composes: cardDark from '../styles/ui.module.css';
+  text-align: center;
+}
+
+.packLabel {
+  composes: eyebrow from '../styles/ui.module.css';
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 16px;
+}
+
+.packIcon {
+  width: 110px;
+  height: 110px;
+  margin: 0 auto;
+  border-radius: 22px;
+  background: var(--silver);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 10px rgba(199, 208, 219, 0.1);
+}
+
+.packName {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  text-transform: uppercase;
+  margin-top: 16px;
+}
+
+.packText {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.packBtn {
+  composes: btnGreen from '../styles/ui.module.css';
+  width: 100%;
+  height: 48px;
+  margin-top: 18px;
+  font-size: 14.5px;
+}
+
+.unlockTitle {
+  composes: title from '../styles/ui.module.css';
+  margin-bottom: 12px;
+}
+
+.unlock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.unlockIcon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 11px;
+  background: var(--blue-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unlockName {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.unlockMeta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}

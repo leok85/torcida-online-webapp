@@ -1,0 +1,185 @@
+.page {
+  composes: page from '../styles/ui.module.css';
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mission {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 14px;
+}
+
+.mission.done {
+  background: var(--green-soft-2);
+  border-color: var(--green-line);
+}
+
+.mission.locked {
+  background: var(--bg);
+}
+
+.badge {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--blue-soft);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.done .badge {
+  background: var(--green);
+  color: #fff;
+}
+
+.locked .badge {
+  background: var(--soft);
+  color: var(--muted);
+}
+
+.body {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bar {
+  margin-top: 9px;
+}
+
+.right {
+  flex: none;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.xp {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.weekHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 11px;
+}
+
+.weekLabel {
+  composes: eyebrow from '../styles/ui.module.css';
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.weekValue {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.pack {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.packIcon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--silver);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.packText {
+  flex: 1;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.packText strong {
+  font-weight: 800;
+  color: #fff;
+}
+
+.open {
+  composes: btn from '../styles/ui.module.css';
+  width: 100%;
+  margin-top: 16px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.streakHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+}
+
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.days {
+  display: flex;
+  gap: 7px;
+}
+
+.day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
+.dayBox {
+  width: 100%;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

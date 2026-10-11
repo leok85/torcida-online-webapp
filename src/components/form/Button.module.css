@@ -1,0 +1,93 @@
+/* Sem `composes` do ui.btn: a ordem do CSS entre módulos não é garantida e as variantes sobrescrevem cor e borda. */
+.base {
+  height: 46px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.block {
+  width: 100%;
+}
+
+.base:disabled {
+  cursor: not-allowed;
+}
+
+.base:focus-visible {
+  outline: 3px solid var(--blue-soft-2);
+  outline-offset: 2px;
+}
+
+.primary {
+  composes: base;
+  background: var(--primary);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.success {
+  composes: base;
+  background: var(--green);
+}
+
+.success:hover:not(:disabled) {
+  background: var(--green-dark);
+}
+
+.primary:disabled:not([aria-busy]),
+.success:disabled:not([aria-busy]) {
+  background: var(--line-3);
+}
+
+.base[aria-busy] {
+  opacity: 0.85;
+  cursor: progress;
+}
+
+.neutral {
+  composes: base;
+  background: var(--surface);
+  border: 1.5px solid var(--line-2);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.neutral:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.neutral:disabled {
+  color: var(--muted-2);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 999px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: girar 0.7s linear infinite;
+}
+
+.neutral .spinner {
+  border-color: var(--line-2);
+  border-top-color: var(--primary);
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

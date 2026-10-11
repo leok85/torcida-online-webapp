@@ -1,0 +1,12 @@
+node_modules
+dist
+*.local
+.DS_Store
+*.tsbuildinfo
+.playwright-mcp
+
+# Testes
+coverage
+test-results
+playwright-report
+blob-report

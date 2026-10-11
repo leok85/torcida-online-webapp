@@ -1,0 +1,37 @@
+<!--
+  Supabase → Authentication → Emails → "Reset password"
+  Assunto: {{ .Token }} é seu código para redefinir a senha
+  O web app pede o código de 6 dígitos ({{ .Token }}); não há link no e-mail.
+-->
+<!doctype html>
+<html lang="pt-BR">
+  <body style="margin:0;padding:0;background:#f4f7fa;font-family:Manrope,Arial,Helvetica,sans-serif;color:#091d37;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7fa;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e1e7ef;border-radius:16px;">
+            <tr>
+              <td style="background:#091d37;border-radius:16px 16px 0 0;padding:22px 28px;color:#ffffff;font-size:18px;font-weight:800;letter-spacing:0.02em;text-transform:uppercase;">
+                Torcida Online
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px;">
+                <p style="margin:0 0 6px;font-size:20px;font-weight:800;">Redefinir senha</p>
+                <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#33425c;">
+                  Recebemos um pedido para trocar a senha da conta {{ .Email }}. Digite este código na tela de recuperação:
+                </p>
+                <p style="margin:0 0 22px;padding:16px 0;background:#eef4fd;border:1.5px dashed #8fb2e4;border-radius:12px;text-align:center;font-family:'JetBrains Mono',Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:0.3em;color:#00419b;">
+                  {{ .Token }}
+                </p>
+                <p style="margin:0;font-size:12.5px;line-height:1.5;color:#6e7c93;">
+                  O código vale por 1 hora. Se não foi você que pediu, ignore este e-mail: sua senha continua a mesma.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

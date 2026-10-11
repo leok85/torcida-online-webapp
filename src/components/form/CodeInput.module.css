@@ -1,0 +1,46 @@
+.cells {
+  position: relative;
+  display: flex;
+  gap: 10px;
+}
+
+.cell {
+  flex: 1;
+  height: 62px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.filled {
+  border-color: var(--line-3);
+}
+
+.active {
+  border-color: var(--primary);
+  background: var(--blue-soft);
+}
+
+.error {
+  border-color: var(--red-dark);
+  background: var(--surface);
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  border: 0;
+  cursor: text;
+  caret-color: transparent;
+  font-size: 16px;
+}

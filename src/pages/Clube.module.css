@@ -1,0 +1,179 @@
+.page {
+  composes: page from '../styles/ui.module.css';
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero {
+  composes: cardDark from '../styles/ui.module.css';
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.clubName {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 32px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.fans {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fansValue {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.rank {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 5px;
+}
+
+.next {
+  background: #fff;
+  border: 1.5px solid var(--primary);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: var(--shadow-focus);
+}
+
+.nextLabel {
+  composes: eyebrow from '../styles/ui.module.css';
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+
+.nextItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.nextIcon {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 13px;
+  background: var(--blue-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nextName {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 23px;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.nextMeta {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.invite {
+  composes: btnBlue from '../styles/ui.module.css';
+  height: 52px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  gap: 9px;
+}
+
+.note {
+  composes: noteGold from '../styles/ui.module.css';
+  gap: 11px;
+  padding: 15px 17px;
+  border-radius: 14px;
+  font-size: 12.5px;
+}
+
+.trail {
+  composes: card from '../styles/ui.module.css';
+  padding: 22px 24px;
+}
+
+.trailTitle {
+  composes: title from '../styles/ui.module.css';
+  font-size: 19px;
+  margin-bottom: 4px;
+}
+
+.trailText {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.step {
+  display: flex;
+  gap: 15px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.step:last-child {
+  border-bottom: 0;
+}
+
+.locked {
+  opacity: 0.6;
+}
+
+.stepIcon {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepName {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stepSub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  margin-top: 4px;
+}

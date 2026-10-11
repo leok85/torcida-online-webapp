@@ -1,0 +1,247 @@
+// Supabase falso para o Playwright: intercepta /auth/v1 e /rest/v1 no navegador e guarda tudo em memória.
+// Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
+// datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
+import type { BrowserContext, Route } from '@playwright/test';
+
+type Perfil = {
+  id: string;
+  nome: string;
+  apelido: string | null;
+  pais: string | null;
+  time_id: string | null;
+  nascimento: string | null;
+  cidade: string | null;
+  quer_avisos: boolean;
+  quer_novidades: boolean;
+  termos_aceitos_em: string | null;
+  onboarding_concluido_em: string | null;
+  criado_em: string;
+  atualizado_em: string;
+};
+
+type Usuario = { id: string; email: string; senha: string; confirmado: boolean; metadata: Record<string, unknown>; criado_em: string };
+type Email = { para: string; tipo: 'signup' | 'recovery'; codigo: string };
+
+const APELIDO_VALIDO = /^[A-Za-z0-9._]{3,20}$/;
+const COLUNAS_EDITAVEIS = ['nome', 'apelido', 'pais', 'time_id', 'nascimento', 'cidade', 'quer_avisos', 'quer_novidades', 'termos_aceitos_em', 'onboarding_concluido_em'];
+
+const base64url = (obj: object) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+const agora = () => new Date().toISOString();
+
+export class BackendFalso {
+  readonly usuarios = new Map<string, Usuario>();
+  readonly perfis = new Map<string, Perfil>();
+  readonly emails: Email[] = [];
+  private readonly codigos = new Map<string, { codigo: string; tipo: Email['tipo'] }>();
+  private readonly tokens = new Map<string, string>();
+  private sequencia = 0;
+  /** Provedores sociais ligados (resposta de /auth/v1/settings). */
+  provedores: Record<string, boolean> = { email: true, google: false };
+
+  async instalar(contexto: BrowserContext) {
+    await contexto.route('**/auth/v1/**', (rota) => this.auth(rota));
+    await contexto.route('**/rest/v1/**', (rota) => this.rest(rota));
+  }
+
+  // ---------- Atalhos para montar cenários ----------
+
+  /** Usuário com e-mail confirmado. Com `perfil`, já passa pelo onboarding. */
+  criarUsuario(email: string, senha: string, dados: { nome?: string; apelido?: string } = {}, perfil: Partial<Perfil> = {}) {
+    const usuario = this.novoUsuario(email, senha, { nome: dados.nome ?? 'Torcedor de Teste', apelido: dados.apelido, aceitou_termos: true });
+    usuario.confirmado = true;
+    Object.assign(this.perfis.get(usuario.id)!, perfil);
+    return usuario;
+  }
+
+  ultimoCodigo(email: string, tipo: Email['tipo']) {
+    const email_ = [...this.emails].reverse().find((e) => e.para === email && e.tipo === tipo);
+    if (!email_) throw new Error(`Nenhum e-mail de ${tipo} para ${email}`);
+    return email_.codigo;
+  }
+
+  perfilDe(email: string) {
+    const usuario = [...this.usuarios.values()].find((u) => u.email === email);
+    return usuario && this.perfis.get(usuario.id);
+  }
+
+  // ---------- Regras do "banco" ----------
+
+  private apelidoEmUso(apelido: string, excetoId?: string) {
+    return [...this.perfis.values()].some((p) => p.id !== excetoId && p.apelido?.toLowerCase() === apelido.trim().toLowerCase());
+  }
+
+  private novoUsuario(email: string, senha: string, metadata: Record<string, unknown>) {
+    const id = `00000000-0000-4000-8000-${String(++this.sequencia).padStart(12, '0')}`;
+    const usuario: Usuario = { id, email, senha, confirmado: false, metadata, criado_em: agora() };
+    this.usuarios.set(id, usuario);
+    // Mesmo comportamento do trigger criar_perfil_do_usuario.
+    let apelido = typeof metadata.apelido === 'string' ? metadata.apelido.trim() : null;
+    if (!apelido || !APELIDO_VALIDO.test(apelido) || this.apelidoEmUso(apelido)) apelido = null;
+    this.perfis.set(id, {
+      id,
+      nome: String(metadata.nome ?? metadata.full_name ?? '').slice(0, 80),
+      apelido,
+      pais: null,
+      time_id: null,
+      nascimento: null,
+      cidade: null,
+      quer_avisos: true,
+      quer_novidades: metadata.quer_novidades === true,
+      termos_aceitos_em: metadata.aceitou_termos === true ? agora() : null,
+      onboarding_concluido_em: null,
+      criado_em: agora(),
+      atualizado_em: agora(),
+    });
+    return usuario;
+  }
+
+  private enviarCodigo(email: string, tipo: Email['tipo']) {
+    const codigo = String(Math.floor(100000 + Math.random() * 900000));
+    this.codigos.set(email, { codigo, tipo });
+    this.emails.push({ para: email, tipo, codigo });
+  }
+
+  private sessao(usuario: Usuario) {
+    const token = `${base64url({ alg: 'HS256', typ: 'JWT' })}.${base64url({ sub: usuario.id, email: usuario.email, role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })}.assinatura`;
+    this.tokens.set(token, usuario.id);
+    return { access_token: token, token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: `refresh-${usuario.id}`, user: this.usuarioPublico(usuario) };
+  }
+
+  private usuarioPublico(u: Usuario) {
+    return {
+      id: u.id,
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: u.email,
+      email_confirmed_at: u.confirmado ? u.criado_em : null,
+      user_metadata: u.metadata,
+      app_metadata: { provider: 'email', providers: ['email'] },
+      identities: [{ id: u.id, provider: 'email', identity_data: { email: u.email } }],
+      created_at: u.criado_em,
+    };
+  }
+
+  private usuarioDoToken(rota: Route) {
+    const token = rota.request().headers()['authorization']?.replace('Bearer ', '');
+    const id = token && this.tokens.get(token);
+    return id ? this.usuarios.get(id) : undefined;
+  }
+
+  private porEmail(email: string) {
+    return [...this.usuarios.values()].find((u) => u.email === email.toLowerCase());
+  }
+
+  // ---------- /auth/v1 ----------
+
+  private async auth(rota: Route) {
+    const req = rota.request();
+    const url = new URL(req.url());
+    const caminho = url.pathname.replace(/^.*\/auth\/v1/, '');
+    const corpo = req.postDataJSON?.() ?? {};
+    const json = (status: number, dados: unknown) => rota.fulfill({ status, contentType: 'application/json', body: JSON.stringify(dados) });
+    const erro = (status: number, codigo: string, msg: string) => json(status, { code: status, error_code: codigo, msg });
+
+    if (caminho === '/settings') return json(200, { external: this.provedores, disable_signup: false, mailer_autoconfirm: false });
+
+    if (caminho === '/token' && url.searchParams.get('grant_type') === 'password') {
+      const usuario = this.porEmail(corpo.email);
+      if (!usuario || usuario.senha !== corpo.password) return erro(400, 'invalid_credentials', 'Invalid login credentials');
+      if (!usuario.confirmado) return erro(400, 'email_not_confirmed', 'Email not confirmed');
+      return json(200, this.sessao(usuario));
+    }
+
+    if (caminho === '/signup') {
+      const existente = this.porEmail(corpo.email);
+      if (existente?.confirmado) {
+        // O Supabase não revela que o e-mail existe: devolve um usuário falso sem identidades.
+        return json(200, { ...this.usuarioPublico(existente), id: crypto.randomUUID(), identities: [] });
+      }
+      const usuario = existente ?? this.novoUsuario(corpo.email.toLowerCase(), corpo.password, corpo.data ?? {});
+      this.enviarCodigo(usuario.email, 'signup');
+      return json(200, this.usuarioPublico(usuario));
+    }
+
+    if (caminho === '/resend') {
+      const usuario = this.porEmail(corpo.email);
+      if (usuario && !usuario.confirmado) this.enviarCodigo(usuario.email, 'signup');
+      return json(200, {});
+    }
+
+    if (caminho === '/recover') {
+      const usuario = this.porEmail(corpo.email);
+      if (usuario) this.enviarCodigo(usuario.email, 'recovery');
+      return json(200, {});
+    }
+
+    if (caminho === '/verify') {
+      const usuario = this.porEmail(corpo.email);
+      const pendente = usuario && this.codigos.get(usuario.email);
+      const tipoOk = pendente && (corpo.type === 'email' || corpo.type === pendente.tipo);
+      if (!usuario || !pendente || !tipoOk || pendente.codigo !== corpo.token) return erro(403, 'otp_expired', 'Token has expired or is invalid');
+      this.codigos.delete(usuario.email);
+      usuario.confirmado = true;
+      return json(200, this.sessao(usuario));
+    }
+
+    if (caminho === '/user') {
+      const usuario = this.usuarioDoToken(rota);
+      if (!usuario) return erro(401, 'no_authorization', 'Missing token');
+      if (req.method() === 'PUT' && corpo.password) {
+        if (corpo.password === usuario.senha) return erro(422, 'same_password', 'New password should be different from the old password.');
+        usuario.senha = corpo.password;
+      }
+      return json(200, this.usuarioPublico(usuario));
+    }
+
+    if (caminho === '/logout') return rota.fulfill({ status: 204 });
+
+    return erro(404, 'not_found', `Rota falsa não implementada: ${req.method()} ${caminho}`);
+  }
+
+  // ---------- /rest/v1 ----------
+
+  private async rest(rota: Route) {
+    const req = rota.request();
+    const url = new URL(req.url());
+    const caminho = url.pathname.replace(/^.*\/rest\/v1/, '');
+    const usuario = this.usuarioDoToken(rota);
+    const json = (status: number, dados: unknown) => rota.fulfill({ status, contentType: 'application/json', body: JSON.stringify(dados) });
+
+    if (caminho === '/rpc/apelido_disponivel') {
+      const { apelido } = req.postDataJSON();
+      return json(200, !this.apelidoEmUso(apelido, usuario?.id));
+    }
+
+    if (caminho === '/perfis') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for table perfis' });
+      const id = url.searchParams.get('id')?.replace(/^eq\./, '');
+      // RLS: cada um só enxerga e edita o próprio perfil.
+      const perfil = id === usuario.id ? this.perfis.get(id) : undefined;
+      const umObjeto = req.headers()['accept']?.includes('vnd.pgrst.object');
+
+      if (req.method() === 'PATCH') {
+        if (!perfil) return json(406, { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' });
+        const campos = req.postDataJSON() as Partial<Perfil>;
+        const proibido = Object.keys(campos).find((c) => !COLUNAS_EDITAVEIS.includes(c));
+        if (proibido) return json(403, { code: '42501', message: `permission denied for column ${proibido}` });
+        if (campos.apelido && this.apelidoEmUso(campos.apelido, perfil.id)) {
+          return json(409, { code: '23505', message: 'duplicate key value violates unique constraint "perfis_apelido_unico"' });
+        }
+        // Trigger perfis_antes_de_atualizar: datas só podem ser marcadas uma vez e com o horário do servidor.
+        const novo = { ...perfil, ...campos, atualizado_em: agora() };
+        novo.termos_aceitos_em = perfil.termos_aceitos_em ?? (campos.termos_aceitos_em ? agora() : null);
+        novo.onboarding_concluido_em = perfil.onboarding_concluido_em ?? (campos.onboarding_concluido_em ? agora() : null);
+        if (novo.onboarding_concluido_em && !(novo.apelido && novo.pais && novo.time_id && novo.termos_aceitos_em)) {
+          return json(400, { code: '23514', message: 'new row violates check constraint "perfis_onboarding_completo"' });
+        }
+        this.perfis.set(perfil.id, novo);
+        return json(200, umObjeto ? novo : [novo]);
+      }
+
+      const linhas = perfil ? [perfil] : [];
+      return json(200, umObjeto ? linhas[0] : linhas);
+    }
+
+    return json(404, { message: `Rota falsa não implementada: ${req.method()} ${caminho}` });
+  }
+}

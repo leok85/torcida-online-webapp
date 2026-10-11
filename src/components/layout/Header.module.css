@@ -1,0 +1,163 @@
+.header {
+  flex: none;
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 28px;
+}
+
+.club {
+  flex: none;
+}
+
+.clubName {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.clubMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.flag {
+  width: 16px;
+  height: 12px;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+}
+
+.search {
+  flex: 1;
+  min-width: 250px;
+  max-width: 420px;
+  height: 40px;
+  margin-left: 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 13px;
+  color: var(--muted);
+}
+
+.search:focus-within {
+  border-color: var(--primary);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.searchInput::placeholder {
+  color: var(--muted);
+}
+
+.chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.coins {
+  composes: chip;
+  gap: 6px;
+  margin-left: auto;
+  background: var(--gold-soft);
+  color: var(--gold-dark);
+  font-size: 13px;
+}
+
+.level {
+  composes: chip;
+  gap: 7px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12.5px;
+}
+
+.bell {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-2);
+}
+
+.bell:hover,
+.account:hover,
+.open {
+  background: var(--bg);
+}
+
+.unread {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--red);
+  border: 1.5px solid #fff;
+}
+
+.account {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 10px 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+}
+
+.nick {
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.rank {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}

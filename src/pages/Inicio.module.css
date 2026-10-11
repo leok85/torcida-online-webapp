@@ -1,0 +1,342 @@
+.page {
+  composes: page from '../styles/ui.module.css';
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.top {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.bottom {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* placar ao vivo */
+.live {
+  border-radius: 16px;
+  background: var(--ink);
+  color: #fff;
+  padding: 26px 28px;
+}
+
+.liveMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.livePill {
+  composes: livePill from '../styles/ui.module.css';
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 10.5px;
+}
+
+.livePill > span {
+  width: 6px;
+  height: 6px;
+}
+
+.liveInfo {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+}
+
+.team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  text-transform: uppercase;
+}
+
+.away {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.center {
+  text-align: center;
+}
+
+.score {
+  composes: score from '../styles/ui.module.css';
+  font-size: 64px;
+}
+
+.scorer {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 6px;
+}
+
+.liveFoot {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.guess {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.07);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.guessText {
+  flex: 1;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.guessText strong {
+  font-weight: 800;
+  color: #fff;
+}
+
+.guessXp {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green-light);
+}
+
+.chatBtn {
+  composes: btnGreen from '../styles/ui.module.css';
+  flex: none;
+  padding: 0 22px;
+}
+
+/* nível */
+.level {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ring {
+  width: 76px;
+  height: 76px;
+  flex: none;
+  border-radius: 999px;
+  background: conic-gradient(var(--green) 0turn 0.62turn, var(--soft) 0.62turn 1turn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringInner {
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringValue {
+  composes: score from '../styles/ui.module.css';
+  font-size: 26px;
+}
+
+.ringLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--muted);
+}
+
+.levelInfo {
+  flex: 1;
+}
+
+.levelXp {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 9px;
+}
+
+.levelNext {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 7px;
+}
+
+/* cards */
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+}
+
+.cardHead a {
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.cardTitle {
+  composes: title from '../styles/ui.module.css';
+  margin-bottom: 14px;
+}
+
+.missions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.mission {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.missionBody {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.missionBar {
+  margin-top: 6px;
+}
+
+.frac {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.news {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.newsTitle {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.when {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.rankRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rankRow.me {
+  background: var(--blue-soft);
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.rankPos {
+  width: 26px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.rankName {
+  flex: 1;
+}
+
+.rankXp {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.event {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+}
+
+.eventTitle {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.eventSub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.eventBlue {
+  composes: event;
+  border-color: var(--blue-soft-2);
+  background: var(--blue-soft);
+}
+
+.eventBlue .eventSub {
+  color: var(--primary);
+}
+
+.eventGold {
+  composes: event;
+  border-color: var(--gold-line);
+  background: var(--gold-cream);
+}
+
+.eventGold .eventSub {
+  color: var(--gold-dark);
+}
