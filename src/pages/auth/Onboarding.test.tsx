@@ -1,12 +1,12 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { renderApp } from '../../test/renderApp';
 import { perfilDeTeste, perfilNovo, supabaseFalso } from '../../test/supabaseFalso';
 
-async function ateDados(user: ReturnType<typeof renderApp>['user'], pais = 'Brasil', clube = 'Clube B') {
+async function ateDados(user: ReturnType<typeof renderApp>['user'], pais = 'Brasil', clube = 'Palmeiras') {
   await user.click(await screen.findByRole('button', { name: pais }));
   await user.click(screen.getByRole('button', { name: /Continuar/ }));
-  await user.click(screen.getByRole('button', { name: clube }));
+  await user.click(await screen.findByRole('button', { name: clube }));
   await esperarChecagemDoApelido();
   await user.click(screen.getByRole('button', { name: /Continuar/ }));
 }
@@ -36,7 +36,7 @@ describe('Onboarding', () => {
   it('salva país, clube e dados e libera o app', async () => {
     supabaseFalso.logar(perfilNovo({ apelido: 'Novo_Torcedor', nome: 'Novo' }));
     const { user, local } = renderApp('/onboarding');
-    await ateDados(user, 'Argentina', 'Clube Rio');
+    await ateDados(user, 'Argentina', 'Boca Juniors');
 
     expect(screen.getByLabelText('Nome completo')).toHaveValue('Novo');
     expect(screen.getByLabelText('Apelido na torcida')).toHaveValue('Novo_Torcedor');
@@ -48,13 +48,13 @@ describe('Onboarding', () => {
     await waitFor(() => expect(local()).toBe('/'));
     expect(supabaseFalso.perfil('usuario-1')).toMatchObject({
       pais: 'AR',
-      time_id: 'ar-1',
+      time_id: 9001,
       nascimento: '1994-03-14',
       cidade: 'Curitiba',
       quer_avisos: false,
       onboarding_concluido_em: expect.any(String),
     });
-    expect(await screen.findByRole('banner')).toHaveTextContent('Clube Rio');
+    expect(await screen.findByRole('banner')).toHaveTextContent('Boca Juniors');
   });
 
   it('trocar de país desfaz a escolha de um clube de outro país', async () => {
@@ -62,13 +62,52 @@ describe('Onboarding', () => {
     const { user } = renderApp('/onboarding');
     await user.click(await screen.findByRole('button', { name: 'Brasil' }));
     await user.click(screen.getByRole('button', { name: /Continuar/ }));
-    await user.click(screen.getByRole('button', { name: 'Clube B' }));
+    await user.click(await screen.findByRole('button', { name: 'Palmeiras' }));
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
     await user.click(screen.getByRole('button', { name: 'Espanha' }));
     await user.click(screen.getByRole('button', { name: /Continuar/ }));
 
-    expect(screen.getByRole('button', { name: 'Clube Sol' })).toHaveAttribute('aria-pressed', 'false');
+    expect(await screen.findByRole('button', { name: 'Real Madrid' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: 'Palmeiras' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Continuar/ })).toBeDisabled();
+  });
+
+  it('lista os países do catálogo e os clubes do país separados por liga', async () => {
+    supabaseFalso.logar(perfilNovo());
+    const { user } = renderApp('/onboarding');
+    expect(await screen.findByRole('button', { name: 'Argentina' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Brasil' }));
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+
+    const serieA = await screen.findByRole('region', { name: 'Brasileirão Série A' });
+    expect(within(serieA).getByRole('button', { name: 'Flamengo' })).toBeInTheDocument();
+    const serieB = screen.getByRole('region', { name: 'Brasileirão Série B' });
+    expect(within(serieB).getByRole('button', { name: 'Goiás' })).toBeInTheDocument();
+    // A primeira divisão vem antes.
+    expect(serieA.compareDocumentPosition(serieB) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await user.type(screen.getByRole('textbox', { name: 'Buscar clube' }), 'goi');
+    expect(screen.queryByRole('region', { name: 'Brasileirão Série A' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Goiás' })).toBeInTheDocument();
+  });
+
+  it('se a lista de clubes não carregar, avisa e deixa tentar de novo', async () => {
+    supabaseFalso.logar(perfilNovo());
+    const { from } = supabaseFalso.cliente;
+    const padrao = from.getMockImplementation()!;
+    let falhas = 1;
+    from.mockImplementation((tabela: string) => {
+      if (tabela !== 'clubes' || falhas-- <= 0) return padrao(tabela);
+      const falha = { select: () => falha, eq: () => falha, order: () => Promise.resolve({ data: null, error: { message: 'Failed to fetch' } }) };
+      return falha;
+    });
+    const { user } = renderApp('/onboarding');
+    await user.click(await screen.findByRole('button', { name: 'Brasil' }));
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+
+    expect(await screen.findByText(/Não deu para carregar a lista agora/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+    expect(await screen.findByRole('button', { name: 'Palmeiras' })).toBeInTheDocument();
   });
 
   it('não aceita menor de 18 anos pela data de nascimento', async () => {

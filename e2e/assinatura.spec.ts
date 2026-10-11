@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 
-const ONBOARDING_FEITO = { pais: 'BR', time_id: 'clube-b', onboarding_concluido_em: '2026-10-01T12:00:00Z' };
+const ONBOARDING_FEITO = { pais: 'BR', time_id: 162, onboarding_concluido_em: '2026-10-01T12:00:00Z' };
 
 async function entrar(page: import('@playwright/test').Page) {
   await page.getByLabel('E-mail').fill('rafa@example.com');

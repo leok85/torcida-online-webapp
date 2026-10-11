@@ -2,13 +2,14 @@
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
 import type { BrowserContext, Route } from '@playwright/test';
+import { clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
   id: string;
   nome: string;
   apelido: string | null;
   pais: string | null;
-  time_id: string | null;
+  time_id: number | null;
   nascimento: string | null;
   cidade: string | null;
   quer_avisos: boolean;
@@ -287,6 +288,10 @@ export class BackendFalso {
       return json(200, umObjeto ? linhas[0] ?? null : linhas.slice(0, limite));
     }
 
+    // Catálogo: leitura pública, sem sessão.
+    if (caminho === '/paises') return json(200, PAISES_DE_TESTE);
+    if (caminho === '/clubes') return json(200, clubesDoPais(url.searchParams.get('pais')?.replace(/^eq\./, '') ?? ''));
+
     if (caminho === '/perfis') {
       if (!usuario) return json(401, { code: '42501', message: 'permission denied for table perfis' });
       const id = url.searchParams.get('id')?.replace(/^eq\./, '');
@@ -306,14 +311,18 @@ export class BackendFalso {
         const novo = { ...perfil, ...campos, atualizado_em: agora() };
         novo.termos_aceitos_em = perfil.termos_aceitos_em ?? (campos.termos_aceitos_em ? agora() : null);
         novo.onboarding_concluido_em = perfil.onboarding_concluido_em ?? (campos.onboarding_concluido_em ? agora() : null);
+        if (novo.time_id !== null && !CLUBES_DE_TESTE.some((c) => c.id === novo.time_id)) {
+          return json(409, { code: '23503', message: 'insert or update on table "perfis" violates foreign key constraint "perfis_time_id_fkey"' });
+        }
         if (novo.onboarding_concluido_em && !(novo.apelido && novo.pais && novo.time_id && novo.termos_aceitos_em)) {
           return json(400, { code: '23514', message: 'new row violates check constraint "perfis_onboarding_completo"' });
         }
         this.perfis.set(perfil.id, novo);
-        return json(200, umObjeto ? novo : [novo]);
+        return json(200, umObjeto ? comCatalogo(novo) : [comCatalogo(novo)]);
       }
 
-      const linhas = perfil ? [perfil] : [];
+      // O app pede o perfil com o clube e o país embutidos (select=*,clube:clubes(...),pais_dados:paises(...)).
+      const linhas = perfil ? [comCatalogo(perfil)] : [];
       return json(200, umObjeto ? linhas[0] : linhas);
     }
 

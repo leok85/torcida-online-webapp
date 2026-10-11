@@ -1,5 +1,4 @@
 import { useAuth } from '../../auth/AuthContext';
-import { clubePorId, paisPorCodigo } from '../../data/clubes';
 import { Avatar } from '../ui/Avatar';
 import { Crest } from '../ui/Crest';
 import { Icon } from '../ui/Icon';
@@ -15,8 +14,8 @@ type HeaderProps = {
 
 export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount }: HeaderProps) {
   const { perfil } = useAuth();
-  const clube = clubePorId(perfil?.time_id);
-  const pais = paisPorCodigo(perfil?.pais);
+  const clube = perfil?.clube;
+  const pais = perfil?.pais_dados;
   return (
     <header className={styles.header}>
       <Crest width={34} height={38} tone="lightHome" />

@@ -1,13 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { PostgrestError, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import type { Perfil, PerfilUpdate } from '../lib/database.types';
+import type { ClubeRow, Pais, Perfil, PerfilUpdate } from '../lib/database.types';
+
+/** O perfil com o clube e o país já resolvidos no catálogo (embed do PostgREST). */
+export type PerfilCompleto = Perfil & {
+  clube: Pick<ClubeRow, 'id' | 'nome' | 'nome_curto'> | null;
+  pais_dados: Pick<Pais, 'nome' | 'bandeira'> | null;
+};
+
+const COLUNAS_PERFIL = '*, clube:clubes(id, nome, nome_curto), pais_dados:paises(nome, bandeira)';
 
 type Auth = {
   /** Enquanto a sessão salva é lida ou o perfil do usuário logado é buscado. */
   carregando: boolean;
   sessao: Session | null;
-  perfil: Perfil | null;
+  perfil: PerfilCompleto | null;
   /** Assinatura válida em qualquer origem (web, App Store ou Google Play), segundo `sou_assinante()`. */
   assinante: boolean;
   erroPerfil: boolean;
@@ -18,7 +26,7 @@ type Auth = {
   sair: () => Promise<void>;
 };
 
-type PerfilCarregado = { de: string; perfil: Perfil | null; assinante: boolean };
+type PerfilCarregado = { de: string; perfil: PerfilCompleto | null; assinante: boolean };
 
 const AuthContext = createContext<Auth | null>(null);
 
@@ -44,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let ativo = true;
     // Se a checagem da assinatura falhar, o torcedor entra como não assinante e vê o bloqueio com "Ver planos".
     Promise.all([
-      supabase.from('perfis').select('*').eq('id', userId).maybeSingle(),
+      supabase.from('perfis').select(COLUNAS_PERFIL).eq('id', userId).maybeSingle(),
       supabase.rpc('sou_assinante'),
     ]).then(([{ data }, { data: assinante }]) => {
       if (ativo) setCarregado({ de: userId, perfil: data, assinante: assinante === true });
@@ -70,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const atualizarPerfil = useCallback(
     async (campos: PerfilUpdate) => {
       if (!userId) return null;
-      const { data, error } = await supabase.from('perfis').update(campos).eq('id', userId).select().single();
+      const { data, error } = await supabase.from('perfis').update(campos).eq('id', userId).select(COLUNAS_PERFIL).single();
       if (data) setCarregado((atual) => ({ de: userId, perfil: data, assinante: atual?.de === userId && atual.assinante }));
       return error;
     },

@@ -2,7 +2,6 @@ import { useAuth } from '../auth/AuthContext';
 import { Crest } from '../components/ui/Crest';
 import { Icon } from '../components/ui/Icon';
 import { Progress } from '../components/ui/Progress';
-import { clubePorId } from '../data/clubes';
 import ui from '../styles/ui.module.css';
 import styles from './Perfil.module.css';
 
@@ -54,7 +53,7 @@ export function Perfil() {
                 <h2 className={styles.nick}>{perfil?.apelido}</h2>
                 <div className={styles.club}>
                   <Crest width={24} height={27} tone="dark" />
-                  {clubePorId(perfil?.time_id)?.nome} · desde {perfil && new Date(perfil.criado_em).getFullYear()}
+                  {perfil?.clube?.nome} · desde {perfil && new Date(perfil.criado_em).getFullYear()}
                 </div>
                 <Progress value="62%" height={9} track="rgba(255,255,255,.14)" fill="var(--xp-gradient-green)" />
                 <div className={styles.xpScale}>

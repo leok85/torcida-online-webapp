@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 
-const ONBOARDING_FEITO = { pais: 'BR', time_id: 'clube-b', onboarding_concluido_em: '2026-10-01T12:00:00Z' };
+const ONBOARDING_FEITO = { pais: 'BR', time_id: 162, onboarding_concluido_em: '2026-10-01T12:00:00Z' };
 
 test('login leva de volta à página pedida e sair encerra a sessão', async ({ page, backend }) => {
   backend.criarUsuario('rafa@example.com', 'Senha#2026', { apelido: 'Rafa_9' }, ONBOARDING_FEITO);

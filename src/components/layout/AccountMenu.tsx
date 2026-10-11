@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
-import { clubePorId } from '../../data/clubes';
 import { Avatar } from '../ui/Avatar';
 import { Icon } from '../ui/Icon';
 import { Progress } from '../ui/Progress';
@@ -37,7 +36,7 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
         <Avatar size={46} iconSize={25} level={24} />
         <div className={styles.info}>
           <div className={styles.nick}>{perfil?.apelido}</div>
-          <div className={styles.meta}>{clubePorId(perfil?.time_id)?.nome} · 12º na temporada</div>
+          <div className={styles.meta}>{perfil?.clube?.nome} · 12º na temporada</div>
           <Progress value="62%" height={6} />
         </div>
       </div>

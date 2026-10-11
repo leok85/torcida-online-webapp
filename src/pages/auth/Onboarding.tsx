@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { useApelido } from '../../auth/validacao';
@@ -8,7 +8,7 @@ import { Checkbox } from '../../components/form/Checkbox';
 import { TextField } from '../../components/form/TextField';
 import { Crest } from '../../components/ui/Crest';
 import { Icon } from '../../components/ui/Icon';
-import { CLUBES, clubePorId, PAISES } from '../../data/clubes';
+import { listarClubes, listarPaises, type Clube } from '../../data/clubes';
 import { FLAG, SITE } from '../../data/common';
 import ui from '../../styles/ui.module.css';
 import styles from './Onboarding.module.css';
@@ -30,6 +30,51 @@ function dataLimite() {
   return d.toISOString().slice(0, 10);
 }
 
+/** Carrega dados do catálogo e guarda de qual chave eles são, para nunca mostrar os clubes de outro país. */
+function useCarga<T>(chave: string | null, carregar: (chave: string) => Promise<T>) {
+  const [estado, setEstado] = useState<{ chave: string; dados?: T; erro?: boolean } | null>(null);
+  const [tentativa, setTentativa] = useState(0);
+
+  useEffect(() => {
+    if (!chave) return;
+    let ativo = true;
+    carregar(chave).then(
+      (dados) => ativo && setEstado({ chave, dados }),
+      () => ativo && setEstado({ chave, erro: true }),
+    );
+    return () => {
+      ativo = false;
+    };
+    // carregar é uma função do módulo: não muda entre renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave, tentativa]);
+
+  const atual = chave && estado?.chave === chave ? estado : null;
+  return { dados: atual?.dados, erro: !!atual?.erro, tentarDeNovo: () => setTentativa((t) => t + 1) };
+}
+
+/** Agrupa os clubes (já ordenados por divisão) pela liga, mantendo a ordem. */
+function porLiga(clubes: Clube[]) {
+  const grupos: { liga: string; clubes: Clube[] }[] = [];
+  for (const c of clubes) {
+    const liga = c.liga?.nome ?? 'Outros clubes';
+    const grupo = grupos.at(-1)?.liga === liga ? grupos.at(-1)! : (grupos.push({ liga, clubes: [] }), grupos.at(-1)!);
+    grupo.clubes.push(c);
+  }
+  return grupos;
+}
+
+function ErroDeCarga({ onTentarDeNovo }: { onTentarDeNovo: () => void }) {
+  return (
+    <div className={styles.empty}>
+      <p>Não deu para carregar a lista agora. Verifique sua conexão.</p>
+      <Button variant="neutral" fullWidth={false} onClick={onTentarDeNovo}>
+        Tentar de novo
+      </Button>
+    </div>
+  );
+}
+
 export function Onboarding() {
   const { perfil, sessao, atualizarPerfil, sair } = useAuth();
   const [etapa, setEtapa] = useState<Etapa>(1);
@@ -46,6 +91,8 @@ export function Onboarding() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const apelido = useApelido(apelidoDigitado);
+  const paises = useCarga('paises', listarPaises);
+  const clubes = useCarga(pais, listarClubes);
 
   // Ao concluir, o perfil atualizado no contexto cai aqui e leva para o app.
   if (!perfil || perfil.onboarding_concluido_em) return <Navigate to="/" replace />;
@@ -53,14 +100,14 @@ export function Onboarding() {
   // Quem entrou pelo Google ainda não passou pelos aceites do cadastro por e-mail.
   const precisaAceites = !perfil.termos_aceitos_em;
   const termoBusca = busca.trim().toLowerCase();
-  const clubes = CLUBES.filter((c) => c.pais === pais && (!termoBusca || c.nome.toLowerCase().includes(termoBusca)));
+  const encontrados = clubes.dados?.filter((c) => !termoBusca || c.nome.toLowerCase().includes(termoBusca)) ?? [];
   const nascimentoErro = nascimento && idade(nascimento) < IDADE_MINIMA ? `Você precisa ter ${IDADE_MINIMA} anos ou mais.` : null;
   const dadosOk = !!nome.trim() && apelido.ok && !nascimentoErro && (!precisaAceites || (maiorDeIdade && aceitouTermos));
   const podeAvancar = etapa === 1 ? !!pais : etapa === 2 ? !!timeId : dadosOk;
 
   function escolherPais(codigo: string) {
+    if (codigo !== pais) setTimeId(null);
     setPais(codigo);
-    if (clubePorId(timeId)?.pais !== codigo) setTimeId(null);
   }
 
   async function concluir(e?: FormEvent) {
@@ -116,8 +163,10 @@ export function Onboarding() {
             <>
               <h1 className={styles.title}>De qual país você torce?</h1>
               <p className={styles.lead}>Isso define a lista de clubes do próximo passo.</p>
+              {paises.erro && <ErroDeCarga onTentarDeNovo={paises.tentarDeNovo} />}
+              {!paises.dados && !paises.erro && <div className={styles.carregando} aria-busy="true" aria-label="Carregando países" />}
               <div className={styles.countries}>
-                {PAISES.map((p) => {
+                {paises.dados?.map((p) => {
                   const sel = p.codigo === pais;
                   return (
                     <button
@@ -146,28 +195,32 @@ export function Onboarding() {
               <div className={styles.search}>
                 <TextField icon="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar clube" aria-label="Buscar clube" autoFocus />
               </div>
-              {clubes.length === 0 ? (
-                <div className={styles.empty}>Nenhum clube encontrado com “{busca.trim()}”.</div>
-              ) : (
-                <div className={styles.clubs}>
-                  {clubes.map((c) => {
-                    const sel = c.id === timeId;
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={sel ? `${styles.option} ${styles.club} ${styles.selected}` : `${styles.option} ${styles.club}`}
-                        aria-pressed={sel}
-                        onClick={() => setTimeId(c.id)}
-                      >
-                        <Crest width={44} height={50} tone={sel ? 'lightHome' : 'light'} />
-                        <span className={styles.optionName}>{c.nome}</span>
-                        {sel && <Icon name="check_circle" size={19} color="var(--primary)" filled className={styles.check} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              {clubes.erro && <ErroDeCarga onTentarDeNovo={clubes.tentarDeNovo} />}
+              {!clubes.dados && !clubes.erro && <div className={styles.carregando} aria-busy="true" aria-label="Carregando clubes" />}
+              {clubes.dados && encontrados.length === 0 && <div className={styles.empty}>Nenhum clube encontrado com “{busca.trim()}”.</div>}
+              {porLiga(encontrados).map((grupo) => (
+                <section key={grupo.liga} className={styles.liga} aria-label={grupo.liga}>
+                  <h2 className={styles.ligaNome}>{grupo.liga}</h2>
+                  <div className={styles.clubs}>
+                    {grupo.clubes.map((c) => {
+                      const sel = c.id === timeId;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={sel ? `${styles.option} ${styles.club} ${styles.selected}` : `${styles.option} ${styles.club}`}
+                          aria-pressed={sel}
+                          onClick={() => setTimeId(c.id)}
+                        >
+                          <Crest width={44} height={50} tone={sel ? 'lightHome' : 'light'} />
+                          <span className={styles.optionName}>{c.nome}</span>
+                          {sel && <Icon name="check_circle" size={19} color="var(--primary)" filled className={styles.check} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
               <div className={styles.warn}>
                 <Icon name="warning" size={19} color="var(--gold)" />
                 <div>
