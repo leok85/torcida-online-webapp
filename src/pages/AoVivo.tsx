@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { BloqueioPainel } from '../assinatura/Bloqueio';
+import { useAuth } from '../auth/AuthContext';
 import { Avatar, LevelTag } from '../components/ui/Avatar';
 import { Crest } from '../components/ui/Crest';
 import { Icon } from '../components/ui/Icon';
@@ -61,6 +63,7 @@ const INITIAL_CHAT: ChatMessage[] = [
 ];
 
 export function AoVivo() {
+  const { assinante } = useAuth();
   const [source, setSource] = useState<Source>('oficial');
   const [vote, setVote] = useState<string | null>(null);
   const [chat, setChat] = useState(INITIAL_CHAT);
@@ -214,42 +217,48 @@ export function AoVivo() {
             <div className={styles.chatTitle}>Chat da torcida</div>
             <div className={styles.online}>4.812 online</div>
           </div>
-          <div ref={listRef} className={styles.messages}>
-            {chat.map((m) =>
-              m.event ? (
-                <div key={m.id} className={styles.msg}>
-                  <div className={styles.goal}>
-                    <div>
-                      <Icon name="sports_soccer" size={15} color="var(--green-light)" />
-                      {m.text}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div key={m.id} className={m.mine ? `${styles.msg} ${styles.mine}` : styles.msg}>
-                  {!m.mine && <Avatar size={30} iconSize={17} />}
-                  <div>
-                    {!m.mine && (
-                      <div className={styles.author} style={{ color: m.color ?? 'var(--primary)' }}>
-                        {m.author}
-                        <LevelTag level={m.level} />
+          {assinante ? (
+            <>
+              <div ref={listRef} className={styles.messages}>
+                {chat.map((m) =>
+                  m.event ? (
+                    <div key={m.id} className={styles.msg}>
+                      <div className={styles.goal}>
+                        <div>
+                          <Icon name="sports_soccer" size={15} color="var(--green-light)" />
+                          {m.text}
+                        </div>
                       </div>
-                    )}
-                    <div className={styles.bubble}>{m.text}</div>
-                  </div>
-                </div>
-              ),
-            )}
-          </div>
-          <form className={styles.composer} onSubmit={send}>
-            <button type="button" className={styles.iconBtn} aria-label="Enviar foto">
-              <Icon name="add_a_photo" size={21} />
-            </button>
-            <input className={styles.input} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Manda a real pra torcida" />
-            <button type="submit" className={styles.sendBtn} aria-label="Enviar">
-              <Icon name="send" size={21} />
-            </button>
-          </form>
+                    </div>
+                  ) : (
+                    <div key={m.id} className={m.mine ? `${styles.msg} ${styles.mine}` : styles.msg}>
+                      {!m.mine && <Avatar size={30} iconSize={17} />}
+                      <div>
+                        {!m.mine && (
+                          <div className={styles.author} style={{ color: m.color ?? 'var(--primary)' }}>
+                            {m.author}
+                            <LevelTag level={m.level} />
+                          </div>
+                        )}
+                        <div className={styles.bubble}>{m.text}</div>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+              <form className={styles.composer} onSubmit={send}>
+                <button type="button" className={styles.iconBtn} aria-label="Enviar foto">
+                  <Icon name="add_a_photo" size={21} />
+                </button>
+                <input className={styles.input} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Manda a real pra torcida" />
+                <button type="submit" className={styles.sendBtn} aria-label="Enviar">
+                  <Icon name="send" size={21} />
+                </button>
+              </form>
+            </>
+          ) : (
+            <BloqueioPainel texto="O chat da torcida é para membros. O placar continua liberado para todo mundo." />
+          )}
         </div>
       </div>
     </div>

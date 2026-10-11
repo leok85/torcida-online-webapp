@@ -1,0 +1,319 @@
+.page {
+  composes: page from '../../styles/ui.module.css';
+  max-width: 720px;
+}
+
+/* etapas */
+.passos {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -6px 0 20px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.passo,
+.passoAtivo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-2);
+}
+
+.passoAtivo {
+  color: var(--ink);
+}
+
+.passo + .passo::before,
+.passoAtivo + .passo::before,
+.passoAtivo + .passoAtivo::before {
+  content: '';
+  width: 48px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line-2);
+}
+
+.passoAtivo + .passoAtivo::before {
+  background: var(--green);
+}
+
+.passoNumero {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--line);
+  color: var(--muted);
+}
+
+.passoAtivo .passoNumero {
+  background: var(--primary);
+  color: #fff;
+}
+
+.passoAtivo .passoFeito {
+  background: var(--green);
+}
+
+/* planos */
+.planos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.plano {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+}
+
+.plano:hover {
+  border-color: var(--blue-line);
+}
+
+.marcado,
+.marcado:hover {
+  border: 2px solid var(--primary);
+  padding: 17px;
+  background: var(--blue-soft);
+}
+
+.nomeLinha {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.radio {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid var(--line-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.marcado .radio {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.nome {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.tag {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.preco {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.porMes {
+  margin-left: 4px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.detalhe {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* benefícios */
+.liberam {
+  composes: card from '../../styles/ui.module.css';
+  margin-top: 16px;
+}
+
+.beneficios {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 22px;
+  margin-top: 14px;
+}
+
+.beneficios li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.beneficio {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.beneficioTexto {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* barra de continuar */
+.barra {
+  composes: card from '../../styles/ui.module.css';
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.barraTexto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+}
+
+.barraTexto span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agoraNao {
+  border: 0;
+  background: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+  padding: 0 6px;
+}
+
+/* avisos e estados */
+.aviso {
+  composes: card from '../../styles/ui.module.css';
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.aviso p {
+  margin: 6px 0 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.link {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.carregando {
+  height: 160px;
+  border-radius: 16px;
+  background: var(--soft);
+  animation: livepulse 1.4s ease-in-out infinite;
+}
+
+/* minha assinatura */
+.detalhes {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cartaoPlano {
+  composes: card from '../../styles/ui.module.css';
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.statusOk {
+  color: var(--green-dark);
+}
+
+.statusAlerta {
+  color: var(--gold-dark);
+}
+
+.statusFim {
+  color: var(--muted);
+}
+
+.nomePlano {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.validade {
+  margin: 6px 0 4px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.nota {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .planos,
+  .beneficios {
+    grid-template-columns: 1fr;
+  }
+
+  .barra {
+    flex-wrap: wrap;
+  }
+
+  .barraTexto {
+    flex-basis: 100%;
+  }
+}

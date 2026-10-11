@@ -2,7 +2,7 @@
 // em todos os testes, então nada aqui fala com a rede.
 import { vi, type Mock } from 'vitest';
 import type { Session, User } from '@supabase/supabase-js';
-import type { Perfil } from '../lib/database.types';
+import type { Assinatura, Perfil } from '../lib/database.types';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
 type Ouvinte = (evento: Evento, sessao: Session | null) => void;
@@ -34,6 +34,25 @@ export function perfilDeTeste(campos: Partial<Perfil> = {}): Perfil {
 export const perfilNovo = (campos: Partial<Perfil> = {}) =>
   perfilDeTeste({ pais: null, time_id: null, onboarding_concluido_em: null, ...campos });
 
+/** Assinatura anual do web app, válida até 2027. Sobrescreva status, origem ou datas para outros cenários. */
+export function assinaturaDeTeste(campos: Partial<Assinatura> = {}): Assinatura {
+  return {
+    id: 'assinatura-1',
+    usuario_id: 'usuario-1',
+    origem: 'web',
+    id_externo: 'sub_teste',
+    plano: 'anual',
+    status: 'ativa',
+    expira_em: '2027-10-11T12:00:00Z',
+    criado_em: '2026-10-11T12:00:00Z',
+    atualizado_em: '2026-10-11T12:00:00Z',
+    ...campos,
+  };
+}
+
+/** Mesma regra da função sou_assinante() da migration. */
+const daAcesso = (a: Assinatura) => ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date();
+
 function sessaoPara(perfil: Perfil, email: string): Session {
   const user = { id: perfil.id, email, aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: perfil.criado_em } as User;
   return { access_token: 'token-de-teste', refresh_token: 'refresh-de-teste', expires_in: 3600, token_type: 'bearer', user };
@@ -44,6 +63,9 @@ const ok = (data: unknown) => ({ data, error: null });
 function criar() {
   let sessao: Session | null = null;
   const perfis = new Map<string, Perfil>();
+  const assinaturas: Assinatura[] = [];
+  // RLS: o torcedor só enxerga as próprias assinaturas.
+  const minhas = () => assinaturas.filter((a) => a.usuario_id === sessao?.user.id);
   const ouvintes = new Set<Ouvinte>();
   const emitir = (evento: Evento) => ouvintes.forEach((o) => o(evento, sessao));
 
@@ -70,6 +92,17 @@ function criar() {
         perfis.set(atual.id, novo);
         return ok(novo);
       },
+    };
+    return consulta;
+  }
+
+  // Imita select().order().limit().maybeSingle(), a consulta de Minha assinatura.
+  function consultaAssinaturas() {
+    const consulta = {
+      select: () => consulta,
+      order: () => consulta,
+      limit: () => consulta,
+      maybeSingle: async () => ok([...minhas()].sort((a, b) => b.criado_em.localeCompare(a.criado_em))[0] ?? null),
     };
     return consulta;
   }
@@ -105,8 +138,11 @@ function criar() {
     perfis.clear();
     ouvintes.clear();
     for (const [k, impl] of Object.entries(padroes)) auth[k as keyof typeof padroes].mockReset().mockImplementation(impl);
-    rpc.mockReset().mockImplementation(async (_fn: string, args: { apelido: string }) => ok(!apelidoEmUso(args.apelido, sessao?.user.id)));
-    from.mockReset().mockImplementation(() => consultaPerfis());
+    assinaturas.length = 0;
+    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido: string }) =>
+      fn === 'sou_assinante' ? ok(minhas().some(daAcesso)) : ok(!apelidoEmUso(args!.apelido, sessao?.user.id)),
+    );
+    from.mockReset().mockImplementation((tabela: string) => (tabela === 'assinaturas' ? consultaAssinaturas() : consultaPerfis()));
     setManterConectado.mockReset();
     provedoresAtivos.mockReset().mockResolvedValue({});
   }
@@ -120,6 +156,8 @@ function criar() {
     /** Coloca um torcedor no "banco" sem logar (ex.: dono de um apelido já usado). */
     adicionarPerfil: (perfil: Perfil) => perfis.set(perfil.id, perfil),
     perfil: (id: string) => perfis.get(id),
+    /** Grava uma assinatura como o webhook faria. Chame antes de logar para o app já carregar como assinante. */
+    assinar: (assinatura: Assinatura = assinaturaDeTeste()) => assinaturas.push(assinatura),
     /** Cria a sessão; antes do render vira a sessão salva, depois dispara SIGNED_IN como o Supabase. */
     logar(perfil: Perfil, email = EMAIL_PADRAO) {
       perfis.set(perfil.id, perfil);

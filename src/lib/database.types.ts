@@ -111,3 +111,4 @@ export type Database = {
 
 export type Perfil = Database['public']['Tables']['perfis']['Row'];
 export type PerfilUpdate = Database['public']['Tables']['perfis']['Update'];
+export type Assinatura = Database['public']['Tables']['assinaturas']['Row'];

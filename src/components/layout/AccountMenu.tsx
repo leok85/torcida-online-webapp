@@ -14,9 +14,16 @@ type AccountMenuProps = {
 
 export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuProps) {
   const navigate = useNavigate();
-  const { perfil, sair } = useAuth();
+  const { perfil, assinante, sair } = useAuth();
   const items = [
     { id: 'perfil', label: 'Meu perfil', sub: 'nível, conquistas e histórico', icon: 'person', action: () => { navigate('/perfil'); onClose(); } },
+    {
+      id: 'assinatura',
+      label: 'Minha assinatura',
+      sub: assinante ? 'membro · tudo liberado' : 'seja membro e libere tudo',
+      icon: 'workspace_premium',
+      action: () => { navigate('/conta/assinatura'); onClose(); },
+    },
     { id: 'convite', label: 'Convidar amigos', sub: '3 ativos · 1.840 XP rendidos', icon: 'group_add', action: onOpenInvite },
     { id: 'conta', label: 'Dados da conta', sub: 'nome, e-mail e senha', icon: 'badge', action: onClose },
     { id: 'notif', label: 'Preferências de notificação', sub: 'o que você recebe', icon: 'notifications_active', action: onOpenNotif },

@@ -1,10 +1,13 @@
 import { Link, NavLink } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
 import { NAV_CLUB, NAV_MAIN, type NavItem } from '../../routes';
 import { Icon } from '../ui/Icon';
 import ui from '../../styles/ui.module.css';
 import styles from './Sidebar.module.css';
 
 function NavEntry({ item }: { item: NavItem }) {
+  const { assinante } = useAuth();
+  const bloqueado = item.premium && !assinante;
   return (
     <NavLink
       to={item.path}
@@ -14,7 +17,14 @@ function NavEntry({ item }: { item: NavItem }) {
       <Icon name={item.icon} size={21} />
       <span className={styles.label}>{item.label}</span>
       {item.live && <span className={ui.liveDot} />}
-      {item.badge && <span className={styles.badge}>{item.badge}</span>}
+      {bloqueado ? (
+        <span className={styles.lock} title="Só para membros">
+          <Icon name="lock" size={15} />
+          <span className={styles.srOnly}>só para membros</span>
+        </span>
+      ) : (
+        item.badge && <span className={styles.badge}>{item.badge}</span>
+      )}
     </NavLink>
   );
 }
