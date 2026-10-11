@@ -8,7 +8,7 @@ export default mergeConfig(
     envDir: './src/test',
     test: {
       environment: 'jsdom',
-      include: ['src/**/*.test.{ts,tsx}'],
+      include: ['src/**/*.test.{ts,tsx}', 'supabase/**/*.test.ts'],
       setupFiles: ['./src/test/setup.ts'],
       env: {
         VITE_SUPABASE_URL: 'http://supabase.test',

@@ -2,36 +2,62 @@
   Supabase → Authentication → Emails → "Reset password"
   Assunto: {{ .Token }} é seu código para redefinir a senha
   O web app pede o código de 6 dígitos ({{ .Token }}); não há link no e-mail.
+  Visual: "Email Template.html" do projeto Torcida Online no Claude Design.
 -->
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-  <body style="margin:0;padding:0;background:#f4f7fa;font-family:Manrope,Arial,Helvetica,sans-serif;color:#091d37;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7fa;padding:32px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e1e7ef;border-radius:16px;">
-            <tr>
-              <td style="background:#091d37;border-radius:16px 16px 0 0;padding:22px 28px;color:#ffffff;font-size:18px;font-weight:800;letter-spacing:0.02em;text-transform:uppercase;">
-                Torcida Online
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:28px;">
-                <p style="margin:0 0 6px;font-size:20px;font-weight:800;">Redefinir senha</p>
-                <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#33425c;">
-                  Recebemos um pedido para trocar a senha da conta {{ .Email }}. Digite este código na tela de recuperação:
-                </p>
-                <p style="margin:0 0 22px;padding:16px 0;background:#eef4fd;border:1.5px dashed #8fb2e4;border-radius:12px;text-align:center;font-family:'JetBrains Mono',Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:0.3em;color:#00419b;">
-                  {{ .Token }}
-                </p>
-                <p style="margin:0;font-size:12.5px;line-height:1.5;color:#6e7c93;">
-                  O código vale por 1 hora. Se não foi você que pediu, ignore este e-mail: sua senha continua a mesma.
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{ .Token }} é seu código para redefinir a senha</title>
+</head>
+<body style="margin:0;padding:0;background-color:#EEF1F5;">
+<span style="display:none;font-size:1px;color:#EEF1F5;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Use o código na tela de recuperação para criar uma senha nova. Ele vale por 1 hora.</span>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#EEF1F5;">
+<tr><td align="center" style="padding:28px 12px;">
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#FFFFFF;border-radius:14px;overflow:hidden;">
+
+    <tr><td width="600" style="background-color:#091D37;padding:34px 34px 30px 34px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:2px;color:#7FDD4A;mso-line-height-rule:exactly;line-height:14px;">TORCIDA ONLINE</p>
+      <p style="margin:16px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:31px;font-weight:bold;color:#FFFFFF;mso-line-height-rule:exactly;line-height:35px;">Redefinir senha</p>
+      <p style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#B8C6D9;mso-line-height-rule:exactly;line-height:24px;">Recebemos um pedido para trocar a senha da sua conta.</p>
+    </td></tr>
+
+    <tr><td width="600" style="padding:30px 34px 0 34px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#091D37;mso-line-height-rule:exactly;line-height:25px;">Oi,</p>
+      <p style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#33425C;mso-line-height-rule:exactly;line-height:25px;">Para criar uma senha nova para {{ .Email }}, digite este código na tela de recuperação:</p>
+    </td></tr>
+
+    <tr><td width="600" style="padding:20px 34px 0 34px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td width="100%" align="center" style="background-color:#F6F8FB;border:1px solid #E1E7EF;border-radius:10px;padding:20px 18px;">
+            <p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:34px;font-weight:bold;letter-spacing:10px;color:#00419B;mso-line-height-rule:exactly;line-height:40px;">{{ .Token }}</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+
+    <tr><td width="600" align="center" style="padding:16px 34px 30px 34px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#6E7C93;mso-line-height-rule:exactly;line-height:20px;">O código vale por 1 hora. Se expirar, é só pedir outro na mesma tela.</p>
+    </td></tr>
+
+    <tr><td width="600" style="background-color:#F6F8FB;border-top:1px solid #E1E7EF;padding:22px 34px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#33425C;mso-line-height-rule:exactly;line-height:21px;">Não foi você que pediu? Ignore este e-mail: sua senha continua a mesma. Se isso se repetir, <a href="https://torcidaonline.com.br/suporte" style="color:#00419B;text-decoration:underline;">fale com o suporte</a>.</p>
+    </td></tr>
+
+    <tr><td width="600" style="background-color:#091D37;padding:24px 34px;">
+      <img src="https://torcidaonline.com.br/assets/shield-white.png" alt="Torcida Online" width="28" style="display:block;width:28px;height:auto;border:0;margin:0 0 14px 0;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8FA1B8;mso-line-height-rule:exactly;line-height:19px;">Torcida Online · <a href="https://torcidaonline.com.br" style="color:#B8C6D9;text-decoration:underline;">torcidaonline.com.br</a></p>
+      <p style="margin:12px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8FA1B8;mso-line-height-rule:exactly;line-height:19px;">Você recebeu este e-mail porque alguém pediu para redefinir a senha da conta {{ .Email }}.</p>
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
 </html>
