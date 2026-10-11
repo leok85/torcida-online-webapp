@@ -6,7 +6,16 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: radial-gradient(55% 60% at 50% 0%, #0b57c4 0%, rgba(11, 87, 196, 0) 70%), var(--ink);
+  background: var(--ink);
+}
+
+/* Brilho azul preso à janela: não rola junto quando o cartão é mais alto que a tela (ex.: cadastro). */
+.page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(55% 60% at 50% 0%, #0b57c4 0%, rgba(11, 87, 196, 0) 70%);
 }
 
 /* Letreiro vazado ao fundo, só decoração. */
