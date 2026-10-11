@@ -18,7 +18,10 @@ export const CORS = {
 const json = (status: number, corpo: object) =>
   new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
-export async function excluirConta(req: Request, admin: ClienteAdmin): Promise<Response> {
+/** Encerra no Stripe a assinatura do web app, se houver, para não cobrar mais ninguém depois da exclusão. */
+export type EncerrarAssinaturas = (usuarioId: string) => Promise<void>;
+
+export async function excluirConta(req: Request, admin: ClienteAdmin, encerrarAssinaturas?: EncerrarAssinaturas): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (req.method !== 'POST') return json(405, { erro: 'metodo_nao_permitido' });
 
@@ -29,8 +32,15 @@ export async function excluirConta(req: Request, admin: ClienteAdmin): Promise<R
   const { data, error } = await admin.auth.getUser(jwt);
   if (error || !data.user) return json(401, { erro: 'sem_sessao' });
 
-  // Perfil e assinaturas caem em cascata. Assinatura do web app ainda ativa no Stripe precisa ser cancelada
-  // aqui quando o pagamento existir; as das lojas a pessoa cancela na App Store ou no Google Play.
+  // Perfil e assinaturas caem em cascata no banco. A do web app é encerrada antes no Stripe; se isso falhar,
+  // a conta não é apagada (senão o cartão seguiria sendo cobrado). As das lojas a pessoa cancela na App Store
+  // ou no Google Play.
+  try {
+    await encerrarAssinaturas?.(data.user.id);
+  } catch {
+    return json(500, { erro: 'falha_ao_encerrar_assinatura' });
+  }
+
   const { error: erroExclusao } = await admin.auth.admin.deleteUser(data.user.id);
   if (erroExclusao) return json(500, { erro: 'falha_ao_excluir' });
 

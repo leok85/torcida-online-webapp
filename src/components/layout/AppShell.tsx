@@ -18,9 +18,11 @@ import { Noticias } from '../../pages/Noticias';
 import { Perfil } from '../../pages/Perfil';
 import { PosJogo } from '../../pages/PosJogo';
 import { Ranking } from '../../pages/Ranking';
+import { Cancelamento } from '../../pages/assinatura/Cancelamento';
 import { MinhaAssinatura } from '../../pages/assinatura/MinhaAssinatura';
 import { Pagamento } from '../../pages/assinatura/Pagamento';
 import { Planos } from '../../pages/assinatura/Planos';
+import { Retorno } from '../../pages/assinatura/Retorno';
 import styles from './AppShell.module.css';
 
 type Panel = 'notif' | 'account' | null;
@@ -68,7 +70,9 @@ export function AppShell() {
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/assinar" element={<Planos />} />
             <Route path="/assinar/pagamento" element={<Pagamento />} />
+            <Route path="/assinar/retorno" element={<Retorno />} />
             <Route path="/conta/assinatura" element={<MinhaAssinatura />} />
+            <Route path="/conta/assinatura/cancelar" element={<Cancelamento />} />
             <Route path="*" element={<Inicio />} />
           </Routes>
         </main>

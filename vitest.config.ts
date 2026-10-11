@@ -13,6 +13,7 @@ export default mergeConfig(
       env: {
         VITE_SUPABASE_URL: 'http://supabase.test',
         VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_teste',
+        VITE_STRIPE_PUBLISHABLE_KEY: 'pk_test_teste',
       },
       coverage: {
         include: ['src/**/*.{ts,tsx}'],
