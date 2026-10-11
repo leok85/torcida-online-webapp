@@ -29,4 +29,4 @@ A `main` é protegida: ninguém faz push direto. Para cada feature ou correção
 ## Supabase
 
 - Migrations em `supabase/migrations/`; depois de mudar o schema, regenere `src/lib/database.types.ts` e atualize os falsos dos testes.
-- Templates de e-mail (código de 6 dígitos) em `supabase/templates/`, para colar no painel.
+- Templates de e-mail (código de 6 dígitos) em `supabase/templates/`, para colar no painel. O visual segue o `Email Template.html` do projeto Torcida Online no Claude Design; `templates.test.ts` confere variáveis, marcadores e imagens.
