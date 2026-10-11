@@ -8,6 +8,42 @@ export type Database = {
   };
   public: {
     Tables: {
+      assinaturas: {
+        Row: {
+          atualizado_em: string;
+          criado_em: string;
+          expira_em: string | null;
+          id: string;
+          id_externo: string;
+          origem: string;
+          plano: string;
+          status: string;
+          usuario_id: string;
+        };
+        Insert: {
+          atualizado_em?: string;
+          criado_em?: string;
+          expira_em?: string | null;
+          id?: string;
+          id_externo: string;
+          origem: string;
+          plano: string;
+          status: string;
+          usuario_id: string;
+        };
+        Update: {
+          atualizado_em?: string;
+          criado_em?: string;
+          expira_em?: string | null;
+          id?: string;
+          id_externo?: string;
+          origem?: string;
+          plano?: string;
+          status?: string;
+          usuario_id?: string;
+        };
+        Relationships: [];
+      };
       perfis: {
         Row: {
           apelido: string | null;
@@ -62,6 +98,7 @@ export type Database = {
     };
     Functions: {
       apelido_disponivel: { Args: { apelido: string }; Returns: boolean };
+      sou_assinante: { Args: never; Returns: boolean };
     };
     Enums: {
       [_ in never]: never;
