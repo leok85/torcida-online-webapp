@@ -29,3 +29,8 @@
   border-color: var(--line-3);
   border-width: 1px;
 }
+
+.escudo {
+  flex-shrink: 0;
+  object-fit: contain;
+}

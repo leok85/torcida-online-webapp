@@ -18,7 +18,7 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
   const pais = perfil?.pais_dados;
   return (
     <header className={styles.header}>
-      <Crest width={34} height={38} tone="lightHome" />
+      <Crest width={34} height={38} tone="lightHome" clubeId={clube?.id} />
       <div className={styles.club}>
         <div className={styles.clubName}>{clube?.nome}</div>
         <div className={styles.clubMeta}>

@@ -55,9 +55,12 @@ export class BackendFalso {
   async instalar(contexto: BrowserContext) {
     await contexto.route('**/auth/v1/**', (rota) => this.auth(rota));
     await contexto.route('**/rest/v1/**', (rota) => this.rest(rota));
+    // Escudos do bucket público: o teste não tem as imagens, então o app mostra o escudo listrado.
+    await contexto.route('**/storage/v1/object/public/escudos/**', (rota) => rota.fulfill({ status: 404, body: '' }));
     await contexto.route('**/functions/v1/**', (rota) => this.funcoes(rota));
     // Nenhum teste fala com o Stripe de verdade: o Stripe.js nem carrega.
     await contexto.route('https://js.stripe.com/**', (rota) => rota.abort());
+
   }
 
   // ---------- Atalhos para montar cenários ----------

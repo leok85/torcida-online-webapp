@@ -52,7 +52,7 @@ export function Perfil() {
               <div className={styles.info}>
                 <h2 className={styles.nick}>{perfil?.apelido}</h2>
                 <div className={styles.club}>
-                  <Crest width={24} height={27} tone="dark" />
+                  <Crest width={24} height={27} tone="dark" clubeId={perfil?.clube?.id} />
                   {perfil?.clube?.nome} · desde {perfil && new Date(perfil.criado_em).getFullYear()}
                 </div>
                 <Progress value="62%" height={9} track="rgba(255,255,255,.14)" fill="var(--xp-gradient-green)" />
