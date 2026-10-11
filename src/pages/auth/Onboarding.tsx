@@ -212,7 +212,7 @@ export function Onboarding() {
                           aria-pressed={sel}
                           onClick={() => setTimeId(c.id)}
                         >
-                          <Crest width={44} height={50} tone={sel ? 'lightHome' : 'light'} />
+                          <Crest width={44} height={50} tone={sel ? 'lightHome' : 'light'} clubeId={c.id} />
                           <span className={styles.optionName}>{c.nome}</span>
                           {sel && <Icon name="check_circle" size={19} color="var(--primary)" filled className={styles.check} />}
                         </button>
