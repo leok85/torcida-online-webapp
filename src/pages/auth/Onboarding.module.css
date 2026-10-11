@@ -344,3 +344,25 @@
     flex: 1;
   }
 }
+
+/* ---------- Catálogo ---------- */
+
+.carregando {
+  height: 160px;
+  border-radius: 14px;
+  background: var(--soft);
+  animation: livepulse 1.4s ease-in-out infinite;
+}
+
+.liga + .liga {
+  margin-top: 22px;
+}
+
+.ligaNome {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

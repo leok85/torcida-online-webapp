@@ -105,7 +105,7 @@ describe('retorno do pagamento (/assinar/retorno)', () => {
     act(() => void supabaseFalso.assinar(assinaturaDeTeste()));
     expect(await screen.findByRole('heading', { name: 'Você é membro' })).toBeInTheDocument();
     expect(await screen.findByText('Plano anual')).toBeInTheDocument();
-    expect(screen.getByText('Rafa_9 · Clube B')).toBeInTheDocument();
+    expect(screen.getByText('Rafa_9 · Palmeiras')).toBeInTheDocument();
     // Os cadeados do menu somem sem recarregar a página.
     expect(screen.getByRole('navigation')).not.toHaveTextContent('só para membros');
   });

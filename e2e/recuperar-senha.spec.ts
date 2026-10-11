@@ -3,7 +3,7 @@ import { expect, test } from './fixtures';
 test('recupera a senha com o código do e-mail e entra com a senha nova', async ({ page, backend }) => {
   backend.criarUsuario('rafa@example.com', 'SenhaAntiga#1', { apelido: 'Rafa_9' }, {
     pais: 'BR',
-    time_id: 'clube-b',
+    time_id: 162,
     onboarding_concluido_em: '2026-10-01T12:00:00Z',
   });
 

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { Icon } from '../../components/ui/Icon';
-import { clubePorId } from '../../data/clubes';
 import type { Assinatura } from '../../lib/database.types';
 import { supabase } from '../../lib/supabase';
 import ui from '../../styles/ui.module.css';
@@ -107,7 +106,7 @@ function VoceEMembro() {
         <div>
           <dt>CONTA</dt>
           <dd>
-            {perfil?.apelido} · {clubePorId(perfil?.time_id)?.nome}
+            {perfil?.apelido} · {perfil?.clube?.nome}
           </dd>
         </div>
       </dl>

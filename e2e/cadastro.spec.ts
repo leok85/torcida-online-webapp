@@ -20,7 +20,7 @@ test('cadastro completo: dados, código do e-mail, boas-vindas, onboarding e app
 
   await page.getByRole('button', { name: 'Brasil' }).click();
   await page.getByRole('button', { name: /Continuar/ }).click();
-  await page.getByRole('button', { name: 'Clube D' }).click();
+  await page.getByRole('button', { name: 'Corinthians' }).click();
   // Uma pessoa leva mais que o debounce até aqui; sem esperar, a etapa 3 ainda não pode concluir e o bug não aparece.
   await checagemDoApelido;
   await page.evaluate(() => new Promise(requestAnimationFrame));
@@ -38,10 +38,10 @@ test('cadastro completo: dados, código do e-mail, boas-vindas, onboarding e app
   await expect(page).toHaveURL('/');
   const header = page.getByRole('banner');
   await expect(header).toContainText('Nova.Torcedora');
-  await expect(header).toContainText('Clube D');
+  await expect(header).toContainText('Corinthians');
   expect(backend.perfilDe('nova@example.com')).toMatchObject({
     pais: 'BR',
-    time_id: 'clube-d',
+    time_id: 167,
     cidade: 'Porto Alegre',
     onboarding_concluido_em: expect.any(String),
   });

@@ -1,30 +1,31 @@
-// Lista provisória, igual à do app mobile; os clubes reais virão da API.
+// Catálogo de futebol: tabelas paises, ligas e clubes do Supabase, alimentadas com os dados da BSD.
+import type { Pais } from '../lib/database.types';
+import { supabase } from '../lib/supabase';
 
-export type Pais = { codigo: string; nome: string; bandeira: string };
+export type { Pais };
 
-export const PAISES: Pais[] = [
-  { codigo: 'BR', nome: 'Brasil', bandeira: 'br' },
-  { codigo: 'AR', nome: 'Argentina', bandeira: 'ar' },
-  { codigo: 'ES', nome: 'Espanha', bandeira: 'es' },
-  { codigo: 'EN', nome: 'Inglaterra', bandeira: 'gb-eng' },
-];
+export type Clube = {
+  id: number;
+  nome: string;
+  nome_curto: string | null;
+  pais: string;
+  liga: { nome: string; divisao: number } | null;
+};
 
-export type Clube = { id: string; nome: string; pais: string };
+/** Países com clubes no catálogo, na ordem de destaque e depois alfabética. */
+export async function listarPaises(): Promise<Pais[]> {
+  const { data, error } = await supabase.from('paises').select('codigo, nome, bandeira, ordem').order('ordem').order('nome');
+  if (error) throw error;
+  return data;
+}
 
-export const CLUBES: Clube[] = [
-  { id: 'clube-a', nome: 'Clube A', pais: 'BR' },
-  { id: 'clube-b', nome: 'Clube B', pais: 'BR' },
-  { id: 'clube-c', nome: 'Clube C', pais: 'BR' },
-  { id: 'clube-d', nome: 'Clube D', pais: 'BR' },
-  { id: 'clube-e', nome: 'Clube E', pais: 'BR' },
-  { id: 'clube-f', nome: 'Clube F', pais: 'BR' },
-  { id: 'ar-1', nome: 'Clube Rio', pais: 'AR' },
-  { id: 'ar-2', nome: 'Clube Plata', pais: 'AR' },
-  { id: 'es-1', nome: 'Clube Sol', pais: 'ES' },
-  { id: 'es-2', nome: 'Clube Norte', pais: 'ES' },
-  { id: 'en-1', nome: 'Clube União', pais: 'EN' },
-  { id: 'en-2', nome: 'Clube Ilha', pais: 'EN' },
-];
-
-export const paisPorCodigo = (codigo?: string | null) => PAISES.find((p) => p.codigo === codigo);
-export const clubePorId = (id?: string | null) => CLUBES.find((c) => c.id === id);
+/** Clubes de um país, da primeira divisão para baixo e em ordem alfabética dentro de cada liga. */
+export async function listarClubes(pais: string): Promise<Clube[]> {
+  const { data, error } = await supabase
+    .from('clubes')
+    .select('id, nome, nome_curto, pais, liga:ligas(nome, divisao)')
+    .eq('pais', pais)
+    .order('nome');
+  if (error) throw error;
+  return [...data].sort((a, b) => (a.liga?.divisao ?? 99) - (b.liga?.divisao ?? 99) || a.nome.localeCompare(b.nome, 'pt-BR'));
+}

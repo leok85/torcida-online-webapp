@@ -30,11 +30,11 @@ describe('guards de rota', () => {
   });
 
   it('abre o app para o torcedor com onboarding concluído', async () => {
-    supabaseFalso.logar(perfilDeTeste({ apelido: 'Bia.T', time_id: 'clube-c' }));
+    supabaseFalso.logar(perfilDeTeste({ apelido: 'Bia.T', time_id: 167 }));
     renderApp('/');
     const header = await screen.findByRole('banner');
     expect(header).toHaveTextContent('Bia.T');
-    expect(header).toHaveTextContent('Clube C');
+    expect(header).toHaveTextContent('Corinthians');
   });
 
   it('tira de /entrar quem já está logado', async () => {

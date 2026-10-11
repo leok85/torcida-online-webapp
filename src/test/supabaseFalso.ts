@@ -3,6 +3,7 @@
 import { vi, type Mock } from 'vitest';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Assinatura, Perfil } from '../lib/database.types';
+import { clubesDoPais, comCatalogo, PAISES_DE_TESTE } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
 type Ouvinte = (evento: Evento, sessao: Session | null) => void;
@@ -17,7 +18,7 @@ export function perfilDeTeste(campos: Partial<Perfil> = {}): Perfil {
     nome: 'Rafael Andrade',
     apelido: 'Rafa_9',
     pais: 'BR',
-    time_id: 'clube-b',
+    time_id: 162, // Palmeiras
     nascimento: null,
     cidade: null,
     quer_avisos: true,
@@ -80,17 +81,17 @@ function criar() {
       select: () => consulta,
       update: (c: Partial<Perfil>) => ((campos = c), consulta),
       eq: (_coluna: string, valor: string) => ((id = valor), consulta),
-      maybeSingle: async () => ok((id && perfis.get(id)) ?? null),
+      maybeSingle: async () => ok(id && perfis.has(id) ? comCatalogo(perfis.get(id)!) : null),
       single: async () => {
         const atual = id ? perfis.get(id) : undefined;
         if (!atual) return { data: null, error: { code: 'PGRST116', message: 'Nenhuma linha' } };
-        if (!campos) return ok(atual);
+        if (!campos) return ok(comCatalogo(atual));
         if (campos.apelido && apelidoEmUso(campos.apelido, atual.id)) {
           return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } };
         }
         const novo = { ...atual, ...campos };
         perfis.set(atual.id, novo);
-        return ok(novo);
+        return ok(comCatalogo(novo));
       },
     };
     return consulta;
@@ -103,6 +104,19 @@ function criar() {
       order: () => consulta,
       limit: () => consulta,
       maybeSingle: async () => ok([...minhas()].sort((a, b) => b.criado_em.localeCompare(a.criado_em))[0] ?? null),
+    };
+    return consulta;
+  }
+
+  // Imita select().order() de paises e select().eq('pais', ...).order() de clubes; a lista já sai na ordem do banco.
+  function consultaCatalogo(tabela: 'paises' | 'clubes') {
+    let pais = '';
+    const consulta = {
+      select: () => consulta,
+      order: () => consulta,
+      eq: (_coluna: string, valor: string) => ((pais = valor), consulta),
+      then: (resolver: (r: unknown) => unknown, rejeitar?: (e: unknown) => unknown) =>
+        Promise.resolve(ok(tabela === 'paises' ? PAISES_DE_TESTE : clubesDoPais(pais))).then(resolver, rejeitar),
     };
     return consulta;
   }
@@ -156,7 +170,9 @@ function criar() {
     rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido: string }) =>
       fn === 'sou_assinante' ? ok(minhas().some(daAcesso)) : ok(!apelidoEmUso(args!.apelido, sessao?.user.id)),
     );
-    from.mockReset().mockImplementation((tabela: string) => (tabela === 'assinaturas' ? consultaAssinaturas() : consultaPerfis()));
+    from.mockReset().mockImplementation((tabela: string) =>
+      tabela === 'assinaturas' ? consultaAssinaturas() : tabela === 'paises' || tabela === 'clubes' ? consultaCatalogo(tabela) : consultaPerfis(),
+    );
     invoke.mockReset().mockImplementation(invocarPadrao);
     setManterConectado.mockReset();
     provedoresAtivos.mockReset().mockResolvedValue({});
