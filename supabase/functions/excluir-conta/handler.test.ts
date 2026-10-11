@@ -62,3 +62,26 @@ describe('excluir-conta', () => {
     expect((await excluirConta(pedido({ method: 'GET' }), admin)).status).toBe(405);
   });
 });
+
+describe('excluir-conta com assinatura do web app', () => {
+  it('encerra a assinatura no Stripe antes de apagar a conta', async () => {
+    const { admin, deleteUser } = adminFalso();
+    const ordem: string[] = [];
+    deleteUser.mockImplementation(async () => (ordem.push('apagou'), { error: null }));
+    const encerrar = vi.fn(async () => void ordem.push('encerrou'));
+    const resposta = await excluirConta(pedido({ headers: { Authorization: 'Bearer token-valido' } }), admin, encerrar);
+    expect(resposta.status).toBe(200);
+    expect(encerrar).toHaveBeenCalledWith('usuario-1');
+    expect(ordem).toEqual(['encerrou', 'apagou']);
+  });
+
+  it('não apaga a conta se não conseguir encerrar a assinatura, para não seguir cobrando', async () => {
+    const { admin, deleteUser } = adminFalso();
+    const resposta = await excluirConta(pedido({ headers: { Authorization: 'Bearer token-valido' } }), admin, async () => {
+      throw new Error('Stripe fora do ar');
+    });
+    expect(resposta.status).toBe(500);
+    expect(await resposta.json()).toEqual({ erro: 'falha_ao_encerrar_assinatura' });
+    expect(deleteUser).not.toHaveBeenCalled();
+  });
+});

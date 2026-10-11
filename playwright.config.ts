@@ -21,6 +21,6 @@ export default defineConfig({
     url: `http://localhost:${PORTA}`,
     // Servidor próprio, com o Supabase apontando para um host que não existe: o que escapar do backend falso falha.
     reuseExistingServer: false,
-    env: { VITE_SUPABASE_URL: 'http://supabase.e2e', VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e' },
+    env: { VITE_SUPABASE_URL: 'http://supabase.e2e', VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e', VITE_STRIPE_PUBLISHABLE_KEY: 'pk_test_e2e' },
   },
 });

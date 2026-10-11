@@ -54,6 +54,9 @@ export class BackendFalso {
   async instalar(contexto: BrowserContext) {
     await contexto.route('**/auth/v1/**', (rota) => this.auth(rota));
     await contexto.route('**/rest/v1/**', (rota) => this.rest(rota));
+    await contexto.route('**/functions/v1/**', (rota) => this.funcoes(rota));
+    // Nenhum teste fala com o Stripe de verdade: o Stripe.js nem carrega.
+    await contexto.route('https://js.stripe.com/**', (rota) => rota.abort());
   }
 
   // ---------- Atalhos para montar cenários ----------
@@ -229,6 +232,28 @@ export class BackendFalso {
     if (caminho === '/logout') return rota.fulfill({ status: 204 });
 
     return erro(404, 'not_found', `Rota falsa não implementada: ${req.method()} ${caminho}`);
+  }
+
+  // ---------- /functions/v1 (mesmo contrato das Edge Functions em supabase/functions) ----------
+
+  private async funcoes(rota: Route) {
+    const req = rota.request();
+    const json = (status: number, dados: unknown) => rota.fulfill({ status, contentType: 'application/json', body: JSON.stringify(dados) });
+    if (req.method() === 'OPTIONS') return rota.fulfill({ status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' } });
+    const nome = new URL(req.url()).pathname.replace(/^.*\/functions\/v1\//, '');
+    const usuario = this.usuarioDoToken(rota);
+    if (!usuario) return json(401, { erro: 'sem_sessao' });
+    const corpo = req.postDataJSON?.() ?? {};
+
+    if (nome === 'criar-checkout') return json(200, { clientSecret: 'cs_test_e2e_secret' });
+    if (nome === 'gerenciar-assinatura') {
+      if (corpo.acao === 'portal') return json(200, { url: 'https://billing.stripe.com/p/session/e2e' });
+      const web = this.assinaturas.find((a) => a.usuario_id === usuario.id && a.origem === 'web' && ['ativa', 'cancelada', 'atrasada'].includes(a.status));
+      if (!web || !['cancelar', 'reativar'].includes(corpo.acao)) return json(404, { erro: 'sem_assinatura_web' });
+      web.status = corpo.acao === 'cancelar' ? 'cancelada' : 'ativa';
+      return json(200, { status: web.status, expira_em: web.expira_em });
+    }
+    return json(404, { erro: `Função falsa não implementada: ${nome}` });
   }
 
   // ---------- /rest/v1 ----------

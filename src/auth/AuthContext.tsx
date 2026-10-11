@@ -12,6 +12,8 @@ type Auth = {
   assinante: boolean;
   erroPerfil: boolean;
   recarregarPerfil: () => void;
+  /** Relê `sou_assinante()` sem recarregar o perfil (ex.: esperando o webhook depois do pagamento). */
+  atualizarAssinante: () => Promise<boolean>;
   atualizarPerfil: (campos: PerfilUpdate) => Promise<PostgrestError | null>;
   sair: () => Promise<void>;
 };
@@ -57,6 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTentativa((t) => t + 1);
   }, []);
 
+  const atualizarAssinante = useCallback(async () => {
+    if (!userId) return false;
+    const { data } = await supabase.rpc('sou_assinante');
+    const assinante = data === true;
+    setCarregado((atual) => (atual?.de === userId ? { ...atual, assinante } : atual));
+    return assinante;
+  }, [userId]);
+
   const atualizarPerfil = useCallback(
     async (campos: PerfilUpdate) => {
       if (!userId) return null;
@@ -80,10 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       assinante: perfilAtual?.assinante ?? false,
       erroPerfil: !!perfilAtual && !perfilAtual.perfil,
       recarregarPerfil,
+      atualizarAssinante,
       atualizarPerfil,
       sair,
     };
-  }, [sessao, sessaoLida, userId, carregado, recarregarPerfil, atualizarPerfil, sair]);
+  }, [sessao, sessaoLida, userId, carregado, recarregarPerfil, atualizarAssinante, atualizarPerfil, sair]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

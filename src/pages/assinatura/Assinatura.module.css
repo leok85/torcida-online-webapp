@@ -317,3 +317,419 @@
     flex-basis: 100%;
   }
 }
+
+/* pagamento (W14) e telas largas */
+.pagina {
+  composes: page from '../../styles/ui.module.css';
+  max-width: 980px;
+}
+
+.pagamento {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.formulario {
+  composes: card from '../../styles/ui.module.css';
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rotulo {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.renovacao {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 11px 13px;
+  border-radius: 11px;
+  background: var(--bg);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.resumo {
+  composes: card from '../../styles/ui.module.css';
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.resumoTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resumoPlano {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.resumoPlano div {
+  display: flex;
+  flex-direction: column;
+  font-size: 13.5px;
+}
+
+.resumoPlano span {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.linhas div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.linhas dd {
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.desconto {
+  color: var(--green-dark);
+  font-weight: 700;
+}
+
+.total {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-weight: 800;
+}
+
+.letrinhas {
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* recusado (W17) */
+.recusado {
+  composes: card from '../../styles/ui.module.css';
+  max-width: 640px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.recusadoTopo {
+  display: flex;
+  gap: 16px;
+  padding: 22px;
+  background: var(--red-soft);
+}
+
+.recusadoTopo p {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.recusadoIcone {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eyebrowVermelho,
+.eyebrowVerde {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--red-dark);
+}
+
+.eyebrowVerde {
+  color: var(--green-neon);
+}
+
+.recusadoTitulo {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--red-dark);
+}
+
+.recusadoOpcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 22px 22px;
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.opcao:hover {
+  text-decoration: none;
+  border-color: var(--blue-line);
+}
+
+.opcao > span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 13.5px;
+}
+
+.opcao > span span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* retorno (W16) */
+.girando {
+  display: flex;
+  animation: girar 1s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.membro {
+  max-width: 720px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.membroTopo {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 26px;
+  background: var(--ink);
+  color: #fff;
+}
+
+.membroTopo p {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.membroSelo {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.membroTitulo {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 34px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.membroDados {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 20px 26px;
+  border-bottom: 1px solid var(--line);
+}
+
+.membroDados dt {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+.membroDados dd {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.membroDicas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 20px 26px 0;
+}
+
+.membroDicas > div {
+  display: flex;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.membroDicas span {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.membroDicas strong {
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.membroAcoes,
+.cancelarAcoes {
+  display: flex;
+  gap: 10px;
+  padding: 20px 26px 26px;
+}
+
+.cancelarAcoes {
+  padding: 18px 0 0;
+}
+
+.botaoPrimario,
+.botaoNeutro {
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.botaoPrimario {
+  background: var(--primary);
+  color: #fff;
+}
+
+.botaoNeutro {
+  border: 1px solid var(--line-2);
+  color: var(--ink);
+}
+
+.botaoPrimario:hover,
+.botaoNeutro:hover {
+  text-decoration: none;
+}
+
+.botaoPrimario:hover {
+  color: #fff;
+  background: var(--primary-hover);
+}
+
+/* minha assinatura e cancelamento (W18, W19) */
+.acoesAssinatura {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.rodapeCancelar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px -20px -20px;
+  padding: 14px 20px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 16px 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.linkPerigo {
+  flex: none;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--red-dark);
+}
+
+.perdas {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+}
+
+.perdas li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  text-decoration: line-through;
+  text-decoration-color: var(--muted-2);
+}
+
+@media (max-width: 860px) {
+  .pagamento,
+  .membroDados,
+  .membroDicas,
+  .perdas {
+    grid-template-columns: 1fr;
+  }
+
+  .rodapeCancelar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

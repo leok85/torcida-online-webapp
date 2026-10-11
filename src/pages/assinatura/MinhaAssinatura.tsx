@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { chamarFuncao } from '../../assinatura/funcoes';
+import { Alert } from '../../components/form/Alert';
 import { useAuth } from '../../auth/AuthContext';
 import { Button } from '../../components/form/Button';
 import { Icon } from '../../components/ui/Icon';
@@ -31,7 +33,7 @@ function validade(a: Assinatura) {
 
 /** W18 · Minha assinatura: a mais recente do torcedor, venha do web app ou das lojas. */
 export function MinhaAssinatura() {
-  const { perfil, sessao } = useAuth();
+  const { perfil, sessao, atualizarAssinante } = useAuth();
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
   const [tentativa, setTentativa] = useState(0);
 
@@ -72,7 +74,18 @@ export function MinhaAssinatura() {
           </div>
         </section>
       )}
-      {estado.tipo === 'pronto' && (estado.assinatura ? <Detalhes assinatura={estado.assinatura} /> : <SemAssinatura />)}
+      {estado.tipo === 'pronto' &&
+        (estado.assinatura ? (
+          <Detalhes
+            assinatura={estado.assinatura}
+            onMudou={async () => {
+              await atualizarAssinante();
+              setTentativa((t) => t + 1);
+            }}
+          />
+        ) : (
+          <SemAssinatura />
+        ))}
     </div>
   );
 }
@@ -92,9 +105,23 @@ function SemAssinatura() {
   );
 }
 
-function Detalhes({ assinatura: a }: { assinatura: Assinatura }) {
+function Detalhes({ assinatura: a, onMudou }: { assinatura: Assinatura; onMudou: () => Promise<void> }) {
   const status = STATUS[a.status] ?? STATUS.expirada;
   const loja = LOJA[a.origem];
+  const web = a.origem === 'web';
+  const [enviando, setEnviando] = useState<'portal' | 'reativar' | null>(null);
+  const [erro, setErro] = useState(false);
+
+  const agir = async (acao: 'portal' | 'reativar') => {
+    setEnviando(acao);
+    setErro(false);
+    const r = await chamarFuncao<{ url?: string }>('gerenciar-assinatura', { acao });
+    if (r.ok && acao === 'portal' && r.dados.url) return window.location.assign(r.dados.url);
+    setEnviando(null);
+    if (!r.ok) return setErro(true);
+    await onMudou();
+  };
+
   return (
     <div className={styles.detalhes}>
       <section className={styles.cartaoPlano}>
@@ -108,6 +135,33 @@ function Detalhes({ assinatura: a }: { assinatura: Assinatura }) {
           <Link to="/assinar" className={styles.link}>
             Assinar de novo
           </Link>
+        )}
+        {web && a.status === 'atrasada' && (
+          <p className={styles.nota}>
+            <Icon name="error" size={17} />A última cobrança não passou. Atualize o cartão para não perder o acesso.
+          </p>
+        )}
+        {web && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && (
+          <div className={styles.acoesAssinatura}>
+            {a.status === 'cancelada' ? (
+              <Button fullWidth={false} loading={enviando === 'reativar'} onClick={() => agir('reativar')}>
+                Reativar assinatura
+              </Button>
+            ) : (
+              <Button fullWidth={false} variant="neutral" icon="credit_card" loading={enviando === 'portal'} onClick={() => agir('portal')}>
+                {a.status === 'atrasada' ? 'Atualizar cartão' : 'Cartão e cobranças'}
+              </Button>
+            )}
+          </div>
+        )}
+        {erro && <Alert>Não deu para concluir agora. Tente de novo em instantes.</Alert>}
+        {web && a.status === 'ativa' && (
+          <div className={styles.rodapeCancelar}>
+            <span>Cancelando, você mantém tudo liberado até {data(a.expira_em)} e nada é cobrado depois disso.</span>
+            <Link to="/conta/assinatura/cancelar" className={styles.linkPerigo}>
+              Cancelar assinatura
+            </Link>
+          </div>
         )}
       </section>
       {loja && (

@@ -120,9 +120,8 @@ describe('planos (/assinar)', () => {
     expect(screen.getByRole('radio', { name: /Mensal/ })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('Plano mensal · R$ 14,90 por mês')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Continuar para pagamento' }));
-    expect(await screen.findByRole('heading', { name: 'O pagamento online abre em breve' })).toBeInTheDocument();
-    expect(local()).toBe('/assinar/pagamento');
-    expect(screen.getByText(/plano mensal por R\$ 14,90 por mês/)).toBeInTheDocument();
+    await waitFor(() => expect(local()).toBe('/assinar/pagamento'));
+    expect(supabaseFalso.cliente.functions.invoke).toHaveBeenCalledWith('criar-checkout', { body: { plano: 'mensal', moeda: 'BRL' } });
   });
 
   it('"Agora não" volta para o início', async () => {

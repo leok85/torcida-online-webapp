@@ -130,6 +130,20 @@ function criar() {
   const auth = Object.fromEntries(Object.keys(padroes).map((k) => [k, vi.fn()])) as { [K in keyof typeof padroes]: Mock<Fn> };
   const rpc = vi.fn<Fn>();
   const from = vi.fn<Fn>();
+  const invoke = vi.fn<Fn>();
+  // Mesmo contrato das Edge Functions (supabase/functions); erro vem como { context: Response } com { erro }.
+  async function invocarPadrao(nome: string, { body }: { body: { acao?: string } }) {
+    if (!sessao) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'sem_sessao' }), { status: 401 }) } };
+    if (nome === 'criar-checkout') return ok({ clientSecret: 'cs_test_secret_teste' });
+    if (nome === 'gerenciar-assinatura') {
+      if (body.acao === 'portal') return ok({ url: 'https://billing.stripe.com/p/session/teste' });
+      const web = minhas().find((a) => a.origem === 'web' && ['ativa', 'cancelada', 'atrasada'].includes(a.status));
+      if (!web) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'sem_assinatura_web' }), { status: 404 }) } };
+      web.status = body.acao === 'cancelar' ? 'cancelada' : 'ativa';
+      return ok({ status: web.status, expira_em: web.expira_em });
+    }
+    return { data: null, error: { context: new Response(JSON.stringify({ erro: 'funcao_desconhecida' }), { status: 404 }) } };
+  }
   const setManterConectado = vi.fn<Fn>();
   const provedoresAtivos = vi.fn<Fn>();
 
@@ -143,13 +157,14 @@ function criar() {
       fn === 'sou_assinante' ? ok(minhas().some(daAcesso)) : ok(!apelidoEmUso(args!.apelido, sessao?.user.id)),
     );
     from.mockReset().mockImplementation((tabela: string) => (tabela === 'assinaturas' ? consultaAssinaturas() : consultaPerfis()));
+    invoke.mockReset().mockImplementation(invocarPadrao);
     setManterConectado.mockReset();
     provedoresAtivos.mockReset().mockResolvedValue({});
   }
   resetar();
 
   return {
-    cliente: { auth, rpc, from },
+    cliente: { auth, rpc, from, functions: { invoke } },
     setManterConectado,
     provedoresAtivos,
     resetar,
@@ -158,6 +173,7 @@ function criar() {
     perfil: (id: string) => perfis.get(id),
     /** Grava uma assinatura como o webhook faria. Chame antes de logar para o app já carregar como assinante. */
     assinar: (assinatura: Assinatura = assinaturaDeTeste()) => assinaturas.push(assinatura),
+    assinaturas: () => assinaturas,
     /** Cria a sessão; antes do render vira a sessão salva, depois dispara SIGNED_IN como o Supabase. */
     logar(perfil: Perfil, email = EMAIL_PADRAO) {
       perfis.set(perfil.id, perfil);
