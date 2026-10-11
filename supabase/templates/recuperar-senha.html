@@ -1,7 +1,9 @@
 <!--
   Supabase → Authentication → Emails → "Reset password"
-  Assunto: {{ .Token }} é seu código para redefinir a senha
+  Assunto: Redefina sua senha da Torcida Online
   O web app pede o código de 6 dígitos ({{ .Token }}); não há link no e-mail.
+  O código fica só no corpo: no assunto ele aparece em notificações e na lista de e-mails.
+  Em Authentication → Sign In / Providers → Email, "Email OTP Length" precisa ser 6.
   Visual: "Email Template.html" do projeto Torcida Online no Claude Design.
 -->
 <!DOCTYPE html>
@@ -10,7 +12,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>{{ .Token }} é seu código para redefinir a senha</title>
+<title>Redefina sua senha da Torcida Online</title>
 </head>
 <body style="margin:0;padding:0;background-color:#EEF1F5;">
 <span style="display:none;font-size:1px;color:#EEF1F5;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Use o código na tela de recuperação para criar uma senha nova. Ele vale por 1 hora.</span>
