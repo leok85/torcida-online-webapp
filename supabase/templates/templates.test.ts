@@ -35,6 +35,13 @@ describe.each(templates)('%s', (nome) => {
 
   it('está em português e com o assunto anotado para o painel', () => {
     expect(corpo).toContain('<html lang="pt-BR">');
-    expect(html).toMatch(/Assunto: .*\{\{ \.Token \}\}/);
+    expect(html).toMatch(/Assunto: \S/);
+  });
+
+  it('não expõe o código no assunto nem no título', () => {
+    const assunto = html.match(/Assunto: (.*)/)?.[1] ?? '';
+    const titulo = corpo.match(/<title>(.*)<\/title>/)?.[1] ?? '';
+    expect(assunto).not.toContain('.Token');
+    expect(titulo).not.toContain('.Token');
   });
 });
