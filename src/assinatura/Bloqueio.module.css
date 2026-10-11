@@ -1,0 +1,182 @@
+.page {
+  composes: page from '../styles/ui.module.css';
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  /* Sem composes de ui.card: a ordem do CSS entre módulos não garante que o padding 0 vença. */
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 26px 26px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.selo {
+  position: relative;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 15px;
+  background: var(--blue-soft);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cadeado {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 2px solid var(--surface);
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--green-dark);
+}
+
+.titulo {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.texto {
+  margin-top: 6px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.beneficios {
+  list-style: none;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 22px;
+  padding: 22px 26px;
+}
+
+.beneficios li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.beneficio {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.detalhe {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 26px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+
+.preco {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cta {
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 11px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cta:hover {
+  text-decoration: none;
+  color: #fff;
+  background: var(--primary-hover);
+}
+
+.painel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 28px 24px;
+}
+
+.painelIcone {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.painel .texto {
+  max-width: 260px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 640px) {
+  .beneficios {
+    grid-template-columns: 1fr;
+  }
+
+  .rodape {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .cta {
+    justify-content: center;
+  }
+}

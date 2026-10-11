@@ -8,13 +8,15 @@ type Auth = {
   carregando: boolean;
   sessao: Session | null;
   perfil: Perfil | null;
+  /** Assinatura válida em qualquer origem (web, App Store ou Google Play), segundo `sou_assinante()`. */
+  assinante: boolean;
   erroPerfil: boolean;
   recarregarPerfil: () => void;
   atualizarPerfil: (campos: PerfilUpdate) => Promise<PostgrestError | null>;
   sair: () => Promise<void>;
 };
 
-type PerfilCarregado = { de: string; perfil: Perfil | null };
+type PerfilCarregado = { de: string; perfil: Perfil | null; assinante: boolean };
 
 const AuthContext = createContext<Auth | null>(null);
 
@@ -38,14 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) return;
     let ativo = true;
-    supabase
-      .from('perfis')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (ativo) setCarregado({ de: userId, perfil: data });
-      });
+    // Se a checagem da assinatura falhar, o torcedor entra como não assinante e vê o bloqueio com "Ver planos".
+    Promise.all([
+      supabase.from('perfis').select('*').eq('id', userId).maybeSingle(),
+      supabase.rpc('sou_assinante'),
+    ]).then(([{ data }, { data: assinante }]) => {
+      if (ativo) setCarregado({ de: userId, perfil: data, assinante: assinante === true });
+    });
     return () => {
       ativo = false;
     };
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (campos: PerfilUpdate) => {
       if (!userId) return null;
       const { data, error } = await supabase.from('perfis').update(campos).eq('id', userId).select().single();
-      if (data) setCarregado({ de: userId, perfil: data });
+      if (data) setCarregado((atual) => ({ de: userId, perfil: data, assinante: atual?.de === userId && atual.assinante }));
       return error;
     },
     [userId],
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       carregando: !sessaoLida || (!!userId && !perfilAtual),
       sessao,
       perfil: perfilAtual?.perfil ?? null,
+      assinante: perfilAtual?.assinante ?? false,
       erroPerfil: !!perfilAtual && !perfilAtual.perfil,
       recarregarPerfil,
       atualizarPerfil,

@@ -19,6 +19,18 @@ type Perfil = {
   atualizado_em: string;
 };
 
+type Assinatura = {
+  id: string;
+  usuario_id: string;
+  origem: 'web' | 'apple' | 'google';
+  id_externo: string;
+  plano: 'mensal' | 'anual';
+  status: 'pendente' | 'ativa' | 'atrasada' | 'cancelada' | 'expirada';
+  expira_em: string | null;
+  criado_em: string;
+  atualizado_em: string;
+};
+
 type Usuario = { id: string; email: string; senha: string; confirmado: boolean; metadata: Record<string, unknown>; criado_em: string };
 type Email = { para: string; tipo: 'signup' | 'recovery'; codigo: string };
 
@@ -32,6 +44,7 @@ export class BackendFalso {
   readonly usuarios = new Map<string, Usuario>();
   readonly perfis = new Map<string, Perfil>();
   readonly emails: Email[] = [];
+  readonly assinaturas: Assinatura[] = [];
   private readonly codigos = new Map<string, { codigo: string; tipo: Email['tipo'] }>();
   private readonly tokens = new Map<string, string>();
   private sequencia = 0;
@@ -51,6 +64,26 @@ export class BackendFalso {
     usuario.confirmado = true;
     Object.assign(this.perfis.get(usuario.id)!, perfil);
     return usuario;
+  }
+
+  /** Grava uma assinatura como o webhook do Stripe ou do RevenueCat faria. */
+  assinar(email: string, campos: Partial<Assinatura> = {}) {
+    const usuario = this.porEmail(email);
+    if (!usuario) throw new Error(`Usuário ${email} não existe`);
+    const assinatura: Assinatura = {
+      id: crypto.randomUUID(),
+      usuario_id: usuario.id,
+      origem: 'web',
+      id_externo: `sub_${this.assinaturas.length + 1}`,
+      plano: 'anual',
+      status: 'ativa',
+      expira_em: new Date(Date.now() + 365 * 86400_000).toISOString(),
+      criado_em: agora(),
+      atualizado_em: agora(),
+      ...campos,
+    };
+    this.assinaturas.push(assinatura);
+    return assinatura;
   }
 
   ultimoCodigo(email: string, tipo: Email['tipo']) {
@@ -210,6 +243,23 @@ export class BackendFalso {
     if (caminho === '/rpc/apelido_disponivel') {
       const { apelido } = req.postDataJSON();
       return json(200, !this.apelidoEmUso(apelido, usuario?.id));
+    }
+
+    if (caminho === '/rpc/sou_assinante') {
+      // Mesma regra da função sou_assinante() da migration.
+      const valida = this.assinaturas.some(
+        (a) => a.usuario_id === usuario?.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
+      );
+      return json(200, valida);
+    }
+
+    if (caminho === '/assinaturas') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for table assinaturas' });
+      // RLS: só as próprias; o app pede a mais recente (order=criado_em.desc&limit=1).
+      const linhas = this.assinaturas.filter((a) => a.usuario_id === usuario.id).sort((a, b) => b.criado_em.localeCompare(a.criado_em));
+      const limite = Number(url.searchParams.get('limit') ?? linhas.length);
+      const umObjeto = req.headers()['accept']?.includes('vnd.pgrst.object');
+      return json(200, umObjeto ? linhas[0] ?? null : linhas.slice(0, limite));
     }
 
     if (caminho === '/perfis') {

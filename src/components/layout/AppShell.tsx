@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
+import { ApenasAssinante } from '../../assinatura/Bloqueio';
 import { AccountMenu } from './AccountMenu';
 import { Header } from './Header';
 import { InviteModal } from './InviteModal';
@@ -17,6 +18,9 @@ import { Noticias } from '../../pages/Noticias';
 import { Perfil } from '../../pages/Perfil';
 import { PosJogo } from '../../pages/PosJogo';
 import { Ranking } from '../../pages/Ranking';
+import { MinhaAssinatura } from '../../pages/assinatura/MinhaAssinatura';
+import { Pagamento } from '../../pages/assinatura/Pagamento';
+import { Planos } from '../../pages/assinatura/Planos';
 import styles from './AppShell.module.css';
 
 type Panel = 'notif' | 'account' | null;
@@ -49,16 +53,22 @@ export function AppShell() {
           <Routes>
             <Route path="/" element={<Inicio />} />
             <Route path="/ao-vivo" element={<AoVivo />} />
-            <Route path="/escalacao" element={<Escalacao />} />
-            <Route path="/pos-jogo" element={<PosJogo />} />
-            <Route path="/missoes" element={<Missoes />} />
-            <Route path="/ranking" element={<Ranking />} />
-            <Route path="/fotos" element={<Fotos />} />
-            <Route path="/loja" element={<Loja />} />
+            {/* Os mesmos itens marcados como premium em routes.ts. */}
+            <Route element={<ApenasAssinante />}>
+              <Route path="/escalacao" element={<Escalacao />} />
+              <Route path="/pos-jogo" element={<PosJogo />} />
+              <Route path="/missoes" element={<Missoes />} />
+              <Route path="/ranking" element={<Ranking />} />
+              <Route path="/fotos" element={<Fotos />} />
+              <Route path="/loja" element={<Loja />} />
+            </Route>
             <Route path="/noticias" element={<Noticias />} />
             <Route path="/campeonatos" element={<Campeonatos />} />
             <Route path="/clube" element={<Clube onInvite={openInvite} />} />
             <Route path="/perfil" element={<Perfil />} />
+            <Route path="/assinar" element={<Planos />} />
+            <Route path="/assinar/pagamento" element={<Pagamento />} />
+            <Route path="/conta/assinatura" element={<MinhaAssinatura />} />
             <Route path="*" element={<Inicio />} />
           </Routes>
         </main>

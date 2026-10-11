@@ -15,8 +15,10 @@ async function ateDados(user: ReturnType<typeof renderApp>['user'], pais = 'Bras
 async function esperarChecagemDoApelido() {
   const { rpc } = supabaseFalso.cliente;
   if (!supabaseFalso.perfil('usuario-1')?.apelido) return;
-  await waitFor(() => expect(rpc).toHaveBeenCalled());
-  await act(() => rpc.mock.results[0].value);
+  // A primeira chamada é o sou_assinante do login; a checagem do apelido vem depois.
+  const checagem = () => rpc.mock.calls.findIndex(([fn]) => fn === 'apelido_disponivel');
+  await waitFor(() => expect(checagem()).toBeGreaterThanOrEqual(0));
+  await act(() => rpc.mock.results[checagem()].value);
 }
 
 describe('Onboarding', () => {
