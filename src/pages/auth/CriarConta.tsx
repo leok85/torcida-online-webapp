@@ -72,7 +72,8 @@ export function CriarConta() {
 
   return (
     <AuthLayout
-      title="Criar conta"
+      title="Crie sua conta"
+      subtitle="Leva menos de um minuto. Depois você escolhe seu time."
       step="Passo 1 de 3 · dados de acesso"
       onBack={() => navigate('/entrar', { state })}
       footer={
@@ -164,11 +165,11 @@ export function CriarConta() {
         </div>
 
         <Button type="submit" className={styles.submit} disabled={!valido} loading={enviando}>
-          {jaTemConta ? 'Corrija o e-mail para continuar' : 'Continuar'}
+          {jaTemConta ? 'Corrija o e-mail para continuar' : 'Criar conta'}
         </Button>
       </form>
 
-      <GoogleLogin divider="OU CADASTRE COM" />
+      <GoogleLogin divider="OU" />
     </AuthLayout>
   );
 }

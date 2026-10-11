@@ -1,4 +1,4 @@
-import { useId, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useId, useRef, useState, type InputHTMLAttributes, type MouseEvent, type ReactNode } from 'react';
 import { Icon } from '../ui/Icon';
 import styles from './TextField.module.css';
 
@@ -23,7 +23,17 @@ export function TextField({ label, icon, error, success, hint, password, pending
   const inputId = id ?? autoId;
   const msgId = `${inputId}-msg`;
   const [showPassword, setShowPassword] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const message = error ?? success ?? hint;
+
+  // Clicar em qualquer ponto da caixa (ícone, borda, espaço vazio) foca o campo. O próprio input e o botão de
+  // mostrar a senha seguem o comportamento normal.
+  function focarCampo(e: MouseEvent<HTMLDivElement>) {
+    const alvo = e.target as HTMLElement;
+    if (disabled || alvo === inputRef.current || alvo.closest('button')) return;
+    e.preventDefault();
+    inputRef.current?.focus();
+  }
 
   const boxCls = [styles.box, disabled && styles.disabled, error ? styles.error : success && styles.success].filter(Boolean).join(' ');
 
@@ -34,9 +44,10 @@ export function TextField({ label, icon, error, success, hint, password, pending
           {label}
         </label>
       )}
-      <div className={boxCls}>
+      <div className={boxCls} onMouseDown={focarCampo}>
         {icon && <Icon name={icon} size={20} className={styles.icon} />}
         <input
+          ref={inputRef}
           id={inputId}
           className={styles.input}
           type={password ? (showPassword ? 'text' : 'password') : type}

@@ -40,7 +40,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 22px 0;
+  margin: 4px 0;
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.1em;

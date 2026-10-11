@@ -20,6 +20,7 @@
   align-items: center;
   gap: 10px;
   padding: 0 14px;
+  cursor: text;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -47,6 +48,7 @@
 
 .disabled {
   background: var(--bg);
+  cursor: default;
 }
 
 .icon {
