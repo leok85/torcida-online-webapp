@@ -1,0 +1,142 @@
+:root {
+  --font-ui: Manrope, system-ui, sans-serif;
+  --font-display: 'Saira Condensed', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --primary: #00419b;
+  --primary-hover: #0b57c4;
+  --primary-deep: #002f71;
+  --ink: #091d37;
+  --ink-2: #33425c;
+  --muted: #6e7c93;
+  --muted-2: #9aa6b6;
+  --muted-3: #8b98ac;
+
+  --surface: #ffffff;
+  --bg: #f4f7fa;
+  --soft: #ebf0f6;
+  --line: #e1e7ef;
+  --line-2: #d5dee9;
+  --line-3: #cbd5e1;
+
+  --blue-soft: #eef4fd;
+  --blue-soft-2: #dce8f9;
+  --blue-line: #8fb2e4;
+
+  --green: #3fa414;
+  --green-dark: #2a6e0d;
+  --green-light: #55c223;
+  --green-neon: #7fdd4a;
+  --green-soft: #e1f4d8;
+  --green-soft-2: #f1faec;
+  --green-line: #d9ebce;
+  --pitch: linear-gradient(175deg, #2f7d0e, #256109);
+
+  --red: #e0342a;
+  --red-dark: #c0342c;
+  --red-soft: #fcedec;
+  --red-light: #ff8078;
+
+  --gold: #c8901a;
+  --gold-dark: #8a5e06;
+  --gold-ink: #5c4a1e;
+  --gold-light: #e7c05a;
+  --gold-soft: #fff4d6;
+  --gold-cream: #fff8e8;
+  --gold-line: #f0dfb4;
+  --gold-card: linear-gradient(120deg, #fff9ec, #ffffff);
+
+  --silver: linear-gradient(150deg, #c7d0db, #8e9bab);
+  --xp-gradient: linear-gradient(103deg, #00419b, #3fa414);
+  --xp-gradient-green: linear-gradient(103deg, #3fa414, #7fdd4a);
+
+  --shadow-pop: 0 18px 50px rgba(9, 29, 55, 0.22);
+  --shadow-tab: 0 1px 2px rgba(9, 29, 55, 0.08);
+  --shadow-focus: 0 2px 10px rgba(0, 65, 155, 0.1);
+
+  --sidebar-w: 236px;
+  --header-h: 68px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: var(--font-ui);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+button,
+input {
+  font-family: var(--font-ui);
+}
+
+button {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.ms {
+  font-family: 'Material Symbols Rounded';
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes livepulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line-3);
+  border-radius: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

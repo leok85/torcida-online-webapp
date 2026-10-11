@@ -1,0 +1,160 @@
+.pitch {
+  --inset: 12px;
+  --circle: 104px;
+  --corner: 22px;
+  --band: 44px;
+  --line: rgba(255, 255, 255, 0.26);
+  --dot: rgba(255, 255, 255, 0.34);
+  position: relative;
+  border-radius: 14px;
+  padding: 18px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.lg {
+  --inset: 14px;
+  --circle: 120px;
+  --corner: 24px;
+  --band: 52px;
+  padding: 20px 12px;
+  gap: 16px;
+}
+
+.mark {
+  position: absolute;
+  pointer-events: none;
+}
+
+.bands {
+  composes: mark;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0 var(--band), rgba(255, 255, 255, 0) var(--band) calc(var(--band) * 2));
+}
+
+.outline {
+  composes: mark;
+  inset: var(--inset);
+  border: 2px solid var(--line);
+  border-radius: 3px;
+}
+
+.centerCircle {
+  composes: mark;
+  left: 50%;
+  top: var(--inset);
+  width: var(--circle);
+  height: var(--circle);
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+}
+
+.centerDot {
+  composes: mark;
+  left: 50%;
+  top: var(--inset);
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: var(--dot);
+}
+
+.box {
+  composes: mark;
+  left: 50%;
+  bottom: var(--inset);
+  transform: translateX(-50%);
+  border: 2px solid var(--line);
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+}
+
+.bigBox {
+  composes: box;
+  width: 58%;
+  height: 74px;
+}
+
+.smallBox {
+  composes: box;
+  width: 30%;
+  height: 34px;
+}
+
+.lg .bigBox {
+  width: 56%;
+  height: 84px;
+}
+
+.lg .smallBox {
+  width: 28%;
+  height: 38px;
+}
+
+.spot {
+  composes: mark;
+  left: 50%;
+  bottom: 60px;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 999px;
+  background: var(--dot);
+}
+
+.lg .spot {
+  bottom: 68px;
+}
+
+.arc {
+  composes: mark;
+  left: 50%;
+  bottom: 82px;
+  width: 74px;
+  height: 22px;
+  transform: translateX(-50%);
+  border: 2px solid var(--line);
+  border-bottom: 0;
+  border-radius: 74px 74px 0 0;
+}
+
+.lg .arc {
+  bottom: 96px;
+  width: 84px;
+  height: 24px;
+}
+
+.corner {
+  composes: mark;
+  bottom: var(--inset);
+  width: var(--corner);
+  height: var(--corner);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-bottom: 0;
+}
+
+.cornerLeft {
+  composes: corner;
+  left: var(--inset);
+  border-left: 0;
+  border-radius: 0 var(--corner) 0 0;
+}
+
+.cornerRight {
+  composes: corner;
+  right: var(--inset);
+  border-right: 0;
+  border-radius: var(--corner) 0 0 0;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  gap: 4px;
+}

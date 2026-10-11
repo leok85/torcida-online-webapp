@@ -1,0 +1,154 @@
+/* Peças compartilhadas pelos formulários de entrar, cadastro, verificação e recuperação. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rowBetween {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.link:hover:not(:disabled) {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+.link:disabled {
+  color: var(--muted-2);
+  cursor: default;
+}
+
+.submit {
+  margin-top: 6px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.googleMark {
+  width: 18px;
+  height: 18px;
+}
+
+.tip {
+  margin-top: 26px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: var(--green-soft-2);
+  border: 1px solid var(--green-line);
+  font-size: 12px;
+  line-height: 1.45;
+  color: #2a5410;
+}
+
+.consents {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.optional {
+  color: var(--muted-2);
+}
+
+.strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.strengthBars {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+}
+
+.strengthBar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--soft);
+  transition: background 0.15s;
+}
+
+.strengthLabel {
+  min-width: 38px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.email {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.resendRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.countdown {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.info {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.info > span:first-child {
+  color: var(--muted);
+}

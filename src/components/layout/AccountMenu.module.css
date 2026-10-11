@@ -1,0 +1,91 @@
+.menu {
+  composes: popover from './Popover.module.css';
+  width: 320px;
+}
+
+.head {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nick {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin: 4px 0 8px;
+}
+
+.list {
+  padding: 8px;
+}
+
+.list + .list {
+  border-top: 1px solid var(--line);
+}
+
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.item:hover {
+  background: var(--bg);
+}
+
+.icon {
+  color: var(--ink-2);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.danger,
+.danger .icon {
+  color: var(--red-dark);
+}
+
+.logout .icon {
+  color: var(--muted);
+}
+
+.logout .label {
+  color: var(--ink-2);
+}

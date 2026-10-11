@@ -1,0 +1,182 @@
+.page {
+  composes: page from '../styles/ui.module.css';
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.headRow {
+  composes: cardHeader from '../styles/ui.module.css';
+}
+
+.headRowSm {
+  composes: headRow;
+  padding: 18px 20px;
+}
+
+.tabsCap {
+  text-transform: capitalize;
+}
+
+.colPos {
+  width: 32px;
+}
+
+.colAvatar {
+  width: 34px;
+}
+
+.colName {
+  flex: 1;
+}
+
+.colNum {
+  width: 70px;
+  text-align: right;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.me {
+  background: var(--blue-soft);
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.pos {
+  composes: colPos;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.me .pos {
+  color: var(--muted);
+}
+
+.xp {
+  composes: colNum;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lvl {
+  composes: colNum;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.mine {
+  composes: cardDark from '../styles/ui.module.css';
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.minePos {
+  composes: score from '../styles/ui.module.css';
+  font-size: 44px;
+  line-height: 1;
+  color: var(--green-neon);
+}
+
+.mineTitle {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.mineMeta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+}
+
+.club {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.club:last-child {
+  border-bottom: 0;
+}
+
+.clubPos {
+  width: 24px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.clubInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.clubName {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.me .clubName {
+  font-weight: 800;
+}
+
+.country {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
+.flag {
+  width: 16px;
+  height: 12px;
+  flex: none;
+  border-radius: 2px;
+  border: 1px solid var(--line);
+  object-fit: cover;
+}
+
+.fans {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.delta {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--green-dark);
+  margin-top: 2px;
+}
