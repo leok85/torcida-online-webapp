@@ -13,6 +13,16 @@ async function preencher(user: ReturnType<typeof renderApp>['user'], email: stri
 }
 
 describe('Entrar', () => {
+  it('segue a tela 5a do Claude Design: logo, título e troca para o cadastro dentro do cartão', async () => {
+    const { user, local } = renderApp('/entrar');
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo de volta' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Torcida Online' })).toHaveAttribute('src', '/logo-horizontal.png');
+    expect(screen.getByText('Primeira vez aqui?')).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Criar conta' }));
+    expect(await screen.findByRole('heading', { name: 'Crie sua conta' })).toBeInTheDocument();
+    expect(local()).toBe('/criar-conta');
+  });
+
   it('entra com e-mail normalizado e lembra a sessão por padrão', async () => {
     auth.signInWithPassword.mockImplementation(async () => {
       supabaseFalso.logar(perfilDeTeste());

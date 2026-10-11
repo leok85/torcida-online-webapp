@@ -9,7 +9,7 @@ test('cadastro completo: dados, código do e-mail, boas-vindas, onboarding e app
   await page.getByRole('checkbox', { name: 'Tenho 18 anos ou mais.' }).check({ force: true });
   await page.getByRole('checkbox', { name: /Li e aceito os/ }).check({ force: true });
   await expect(page.getByText('Apelido disponível.')).toBeVisible();
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
 
   await expect(page).toHaveURL('/verificar-email');
   await page.getByLabel('Código de 6 dígitos').fill(backend.ultimoCodigo('nova@example.com', 'signup'));
@@ -56,7 +56,7 @@ test('o código colado do e-mail com espaços funciona', async ({ page, backend 
   await page.getByRole('checkbox', { name: 'Tenho 18 anos ou mais.' }).check({ force: true });
   await page.getByRole('checkbox', { name: /Li e aceito os/ }).check({ force: true });
   await expect(page.getByText('Apelido disponível.')).toBeVisible();
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
 
   const codigo = backend.ultimoCodigo('colador@example.com', 'signup');
   const comEspacos = ` ${codigo.slice(0, 3)} ${codigo.slice(3)}\n`;
@@ -78,7 +78,7 @@ test('e-mail que já tem conta não cria outra', async ({ page, backend }) => {
   await page.getByRole('checkbox', { name: 'Tenho 18 anos ou mais.' }).check({ force: true });
   await page.getByRole('checkbox', { name: /Li e aceito os/ }).check({ force: true });
   await expect(page.getByText('Apelido disponível.')).toBeVisible();
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
 
   await expect(page.getByText('Esse e-mail já tem conta na Torcida Online')).toBeVisible();
   await expect(page).toHaveURL('/criar-conta');

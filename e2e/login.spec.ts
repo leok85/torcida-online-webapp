@@ -59,7 +59,7 @@ test('e-mail não confirmado: pede código novo no login e confirma', async ({ p
   await page.getByRole('checkbox', { name: 'Tenho 18 anos ou mais.' }).check({ force: true });
   await page.getByRole('checkbox', { name: /Li e aceito os/ }).check({ force: true });
   await expect(page.getByText('Apelido disponível.')).toBeVisible();
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Criar conta' }).click();
   await expect(page).toHaveURL('/verificar-email');
 
   // Abandona a verificação e tenta entrar depois.

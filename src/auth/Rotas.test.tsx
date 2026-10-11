@@ -6,7 +6,7 @@ import { perfilDeTeste, perfilNovo, supabaseFalso } from '../test/supabaseFalso'
 describe('guards de rota', () => {
   it('manda quem não entrou para /entrar', async () => {
     const { local } = renderApp('/perfil');
-    expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Bem-vindo de volta' })).toBeInTheDocument();
     expect(local()).toBe('/entrar');
   });
 

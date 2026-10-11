@@ -1,185 +1,72 @@
+/* Tela 5a do "WebApp Login" (Claude Design): cartão branco centralizado sobre o fundo escuro. */
+
 .page {
+  position: relative;
   min-height: 100vh;
-  display: flex;
-  background: var(--surface);
-}
-
-/* ---------- Painel da marca ---------- */
-
-.hero {
-  flex: none;
-  width: 500px;
-  max-width: 42%;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  background: var(--ink);
-  color: #fff;
-  padding: 34px 44px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: radial-gradient(55% 60% at 50% 0%, #0b57c4 0%, rgba(11, 87, 196, 0) 70%), var(--ink);
 }
 
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0 12px, transparent 12px 24px);
-  pointer-events: none;
-}
-
-.hero::after {
-  content: '';
-  position: absolute;
-  left: -160px;
-  bottom: -220px;
-  width: 560px;
-  height: 560px;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(63, 164, 20, 0.32), transparent 65%);
-  pointer-events: none;
-}
-
-.hero > * {
-  position: relative;
-  z-index: 1;
-}
-
-.brand {
+/* Letreiro vazado ao fundo, só decoração. */
+.backdrop {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-46%);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 11px;
-}
-
-.brandIcon {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-}
-
-.brandName {
+  pointer-events: none;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 18px;
-  line-height: 1;
+  font-size: clamp(110px, 21vw, 250px);
+  line-height: 0.82;
   text-transform: uppercase;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.005em;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.16);
+  white-space: nowrap;
 }
 
-.heroBody {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 40px 0;
-}
-
-.kicker {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--green-neon);
-}
-
-.heroTitle {
-  margin-top: 14px;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-style: italic;
-  font-size: 56px;
-  line-height: 0.94;
-  text-transform: uppercase;
-}
-
-.heroTitle em {
-  color: var(--green-neon);
-}
-
-.features {
-  list-style: none;
-  margin: 34px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 340px;
-}
-
-.feature {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  font-size: 13.5px;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.featureIcon {
-  width: 38px;
-  height: 38px;
-  flex: none;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--green-neon);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.heroFoot {
-  display: flex;
-  gap: 22px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-}
-
-.heroFoot a {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.heroFoot a:hover {
-  color: #fff;
-}
-
-/* ---------- Formulário ---------- */
-
-.side {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+.backdropGreen {
+  -webkit-text-stroke: 2px rgba(127, 221, 74, 0.5);
 }
 
 .main {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 48px 32px;
+  justify-content: safe center;
+  padding: 32px 40px;
 }
 
-.panel {
+.card {
   width: 100%;
-  max-width: 424px;
-}
-
-.compactBrand {
-  display: none;
+  max-width: 440px;
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 26px 36px;
+  box-sizing: border-box;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .top {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 18px;
 }
 
 .back {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   flex: none;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -200,6 +87,18 @@
   color: var(--muted);
 }
 
+.logo {
+  flex: none;
+  width: 210px;
+  height: auto;
+  display: block;
+  margin: 0 auto 4px;
+}
+
+.head {
+  text-align: center;
+}
+
 .title {
   font-family: var(--font-display);
   font-weight: 800;
@@ -209,24 +108,15 @@
 }
 
 .subtitle {
-  margin-top: 9px;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: var(--muted);
-}
-
-.title + * {
-  margin-top: 24px;
-}
-
-.subtitle + * {
-  margin-top: 24px;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
 }
 
 .footer {
-  flex: none;
   border-top: 1px solid var(--line);
-  padding: 18px 32px;
+  padding-top: 14px;
   text-align: center;
   font-size: 13px;
   color: var(--ink-2);
@@ -236,34 +126,36 @@
   font-weight: 800;
 }
 
-@media (max-width: 960px) {
-  .hero {
-    display: none;
-  }
+.links {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  padding: 0 16px 24px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
 
+.links a {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.links a:hover {
+  color: #fff;
+}
+
+@media (max-width: 560px) {
   .main {
-    align-items: flex-start;
-    padding: 28px 16px 40px;
+    padding: 20px 16px;
   }
 
-  .compactBrand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 28px;
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 17px;
-    text-transform: uppercase;
+  .card {
+    padding: 22px 20px;
   }
 
-  .compactBrand img {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-  }
-
-  .footer {
-    padding: 16px;
+  .logo {
+    width: 180px;
   }
 }

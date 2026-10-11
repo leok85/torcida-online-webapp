@@ -8,7 +8,6 @@ import { Alert } from '../../components/form/Alert';
 import { Button } from '../../components/form/Button';
 import { Checkbox } from '../../components/form/Checkbox';
 import { TextField } from '../../components/form/TextField';
-import { Icon } from '../../components/ui/Icon';
 import { setManterConectado, supabase } from '../../lib/supabase';
 import { AuthLayout } from './AuthLayout';
 import styles from './Auth.module.css';
@@ -59,8 +58,8 @@ export function Entrar() {
 
   return (
     <AuthLayout
-      title="Entrar"
-      subtitle="Acompanhe seu time e suba de nível junto com a torcida."
+      title="Bem-vindo de volta"
+      subtitle="Entre para acompanhar seu time e subir de nível junto com a torcida."
       footer={
         <>
           Primeira vez aqui? <Link to="/criar-conta" state={state}>Criar conta</Link>
@@ -113,12 +112,7 @@ export function Entrar() {
         </Button>
       </form>
 
-      <GoogleLogin divider="OU ENTRE COM" />
-
-      <div className={styles.tip}>
-        <Icon name="bolt" size={19} color="var(--green-dark)" />
-        <div>Entrar todo dia rende XP. Sua sequência de login conta para as missões da semana.</div>
-      </div>
+      <GoogleLogin divider="OU" />
     </AuthLayout>
   );
 }
