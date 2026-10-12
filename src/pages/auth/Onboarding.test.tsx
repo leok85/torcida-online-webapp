@@ -10,9 +10,11 @@ async function ateClube(user: User, pais = 'Brasil') {
   await user.click(screen.getByRole('button', { name: /Continuar/ }));
 }
 
-async function escolherClubeECidade(user: User, clube = 'Palmeiras', cidade = 'Curitiba, PR') {
+/** No Brasil, digita parte do nome e escolhe a cidade na lista; nos outros países, o texto livre basta. */
+async function escolherClubeECidade(user: User, clube = 'Palmeiras', cidade = 'curit', opcao: string | null = 'Curitiba') {
   await user.click(await screen.findByRole('button', { name: clube }));
   await user.type(screen.getByLabelText('Sua cidade'), cidade);
+  if (opcao) await user.click(await screen.findByRole('option', { name: new RegExp(`^${opcao}`) }));
 }
 
 /** Uma pessoa leva mais que o debounce da checagem do apelido; sem esperar, o teste passa por sorte de tempo. */
@@ -44,7 +46,7 @@ describe('Onboarding', () => {
     supabaseFalso.logar(perfilNovo());
     const { user, local } = renderApp('/onboarding');
     await ateClube(user, 'Argentina');
-    await escolherClubeECidade(user, 'Boca Juniors', 'Buenos Aires');
+    await escolherClubeECidade(user, 'Boca Juniors', 'Buenos Aires', null);
     expect(screen.getByText('Boca Juniors · Buenos Aires')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Entrar na torcida/ }));
 
@@ -53,6 +55,7 @@ describe('Onboarding', () => {
       pais: 'AR',
       time_id: 9001,
       cidade: 'Buenos Aires',
+      cidade_id: null,
       apelido: 'Rafa_9',
       onboarding_concluido_em: expect.any(String),
     });
@@ -80,13 +83,54 @@ describe('Onboarding', () => {
     await waitFor(() => expect(local()).toBe('/'));
   });
 
-  it('a cidade é obrigatória', async () => {
+  it('no Brasil, a cidade é obrigatória e vem da lista do IBGE', async () => {
+    supabaseFalso.logar(perfilNovo());
+    const { user, local } = renderApp('/onboarding');
+    await ateClube(user);
+    await user.click(await screen.findByRole('button', { name: 'Palmeiras' }));
+    const entrar = screen.getByRole('button', { name: /Entrar na torcida/ });
+    expect(entrar).toBeDisabled();
+
+    // Digitar não basta: precisa escolher a cidade. A busca ignora acentos.
+    await user.type(screen.getByLabelText('Sua cidade'), 'florianop');
+    expect(entrar).toBeDisabled();
+    await user.click(await screen.findByRole('option', { name: /^Florianópolis/ }));
+    expect(screen.getByLabelText('Sua cidade')).toHaveValue('Florianópolis, SC');
+    expect(entrar).toBeEnabled();
+
+    await user.click(entrar);
+    await waitFor(() => expect(local()).toBe('/assinar'));
+    expect(supabaseFalso.perfil('usuario-1')).toMatchObject({ cidade: 'Florianópolis, SC', cidade_id: 4205407 });
+  });
+
+  it('a lista de cidades funciona pelo teclado e mostra primeiro quem começa com o termo', async () => {
     supabaseFalso.logar(perfilNovo());
     const { user } = renderApp('/onboarding');
     await ateClube(user);
-    await user.click(await screen.findByRole('button', { name: 'Palmeiras' }));
-    expect(screen.getByRole('button', { name: /Entrar na torcida/ })).toBeDisabled();
-    await user.type(screen.getByLabelText('Sua cidade'), 'Recife');
+    await user.type(screen.getByRole('combobox', { name: 'Sua cidade' }), 'sao paulo');
+    const opcoes = await screen.findAllByRole('option');
+    expect(opcoes.map((o) => o.textContent)).toEqual(['São PauloSP', 'São Paulo do PotengiRN']);
+
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(screen.getByLabelText('Sua cidade')).toHaveValue('São Paulo do Potengi, RN');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('avisa quando nenhuma cidade combina com o que foi digitado', async () => {
+    supabaseFalso.logar(perfilNovo());
+    const { user } = renderApp('/onboarding');
+    await ateClube(user);
+    await user.type(screen.getByLabelText('Sua cidade'), 'Xyzlândia');
+    expect(await screen.findByText('Nenhuma cidade encontrada com esse nome.')).toBeInTheDocument();
+  });
+
+  it('fora do Brasil, a cidade é texto livre', async () => {
+    supabaseFalso.logar(perfilNovo());
+    const { user } = renderApp('/onboarding');
+    await ateClube(user, 'Espanha');
+    await user.click(await screen.findByRole('button', { name: 'Real Madrid' }));
+    await user.type(screen.getByLabelText('Sua cidade'), 'Madrid');
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Entrar na torcida/ })).toBeEnabled();
   });
 
@@ -102,8 +146,11 @@ describe('Onboarding', () => {
     await ateClube(user);
     await user.click(screen.getByRole('button', { name: /Usar minha localização/ }));
 
+    // A cidade da localização é casada com o município do IBGE (nome e UF).
     await waitFor(() => expect(screen.getByLabelText('Sua cidade')).toHaveValue('Florianópolis, SC'));
     expect(String(fetch.mock.calls[0][0])).toContain('latitude=-27.59&longitude=-48.54');
+    await user.click(screen.getByRole('button', { name: 'Palmeiras' }));
+    expect(screen.getByRole('button', { name: /Entrar na torcida/ })).toBeEnabled();
   });
 
   it('se a localização for negada, pede para digitar a cidade', async () => {

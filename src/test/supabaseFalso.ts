@@ -3,7 +3,7 @@
 import { vi, type Mock } from 'vitest';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Assinatura, Perfil } from '../lib/database.types';
-import { clubesDoPais, comCatalogo, PAISES_DE_TESTE } from './catalogoDeTeste';
+import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
 type Ouvinte = (evento: Evento, sessao: Session | null) => void;
@@ -21,6 +21,7 @@ export function perfilDeTeste(campos: Partial<Perfil> = {}): Perfil {
     time_id: 162, // Palmeiras
     nascimento: null,
     cidade: null,
+    cidade_id: null,
     quer_avisos: true,
     quer_novidades: false,
     termos_aceitos_em: '2026-10-01T12:00:00Z',
@@ -167,9 +168,11 @@ function criar() {
     ouvintes.clear();
     for (const [k, impl] of Object.entries(padroes)) auth[k as keyof typeof padroes].mockReset().mockImplementation(impl);
     assinaturas.length = 0;
-    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido: string }) =>
-      fn === 'sou_assinante' ? ok(minhas().some(daAcesso)) : ok(!apelidoEmUso(args!.apelido, sessao?.user.id)),
-    );
+    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string }) => {
+      if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
+      if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais));
+      return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id));
+    });
     from.mockReset().mockImplementation((tabela: string) =>
       tabela === 'assinaturas' ? consultaAssinaturas() : tabela === 'paises' || tabela === 'clubes' ? consultaCatalogo(tabela) : consultaPerfis(),
     );

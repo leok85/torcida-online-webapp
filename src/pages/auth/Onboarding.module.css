@@ -8,7 +8,6 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .cardTop {
@@ -250,11 +249,6 @@
   opacity: 0.6;
 }
 
-.dica {
-  margin-top: 8px;
-  font-size: 11px;
-  color: var(--muted);
-}
 
 .warn {
   composes: noteGold from '../../styles/ui.module.css';

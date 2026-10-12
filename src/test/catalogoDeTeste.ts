@@ -53,3 +53,24 @@ export const clubesDoPais = (pais: string) =>
     const liga = LIGAS_DE_TESTE.find((l) => l.id === c.liga_id);
     return { id: c.id, nome: c.nome, nome_curto: c.nome_curto, pais: c.pais, liga: liga ? { nome: liga.nome, divisao: liga.divisao } : null };
   });
+
+/** Recorte da tabela cidades (municípios do IBGE). */
+export const CIDADES_DE_TESTE = [
+  { id: 4205407, nome: 'Florianópolis', regiao: 'SC' },
+  { id: 4106902, nome: 'Curitiba', regiao: 'PR' },
+  { id: 3550308, nome: 'São Paulo', regiao: 'SP' },
+  { id: 2412203, nome: 'São Paulo do Potengi', regiao: 'RN' },
+  { id: 4314902, nome: 'Porto Alegre', regiao: 'RS' },
+  { id: 2611606, nome: 'Recife', regiao: 'PE' },
+];
+
+const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** Mesma regra da função buscar_cidades() da migration (só há cidades do Brasil no recorte). */
+export function buscarCidadesDeTeste(termo: string, pais = 'BR', limite = 8) {
+  const q = semAcento(termo.split(',')[0].trim()).replace(/[%_]/g, '');
+  if (pais !== 'BR' || q.length < 2) return [];
+  return CIDADES_DE_TESTE.filter((c) => semAcento(c.nome).includes(q))
+    .sort((a, b) => Number(semAcento(b.nome).startsWith(q)) - Number(semAcento(a.nome).startsWith(q)) || a.nome.length - b.nome.length || a.nome.localeCompare(b.nome))
+    .slice(0, limite);
+}

@@ -1,0 +1,43 @@
+/* A lista flutua logo abaixo da caixa, sem empurrar o resto do formulário. */
+.ancora {
+  position: relative;
+  height: 0;
+}
+
+.lista {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(9, 29, 55, 0.14);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ativa {
+  background: var(--blue-soft);
+}
+
+.uf {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
