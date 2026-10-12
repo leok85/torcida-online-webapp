@@ -6,10 +6,21 @@ import styles from './Rotas.module.css';
 
 export type DestinoState = { de?: string } | null;
 
+/** Abertura do app (Claude Design): logo subindo sobre o fundo escuro e uma barrinha verde enquanto a sessão carrega. */
 function TelaCarregando() {
   return (
-    <div className={styles.tela} aria-busy="true">
-      <img src="/icon-color.png" alt="Torcida Online" className={styles.logo} />
+    <div className={styles.abertura} aria-busy="true">
+      <div className={styles.marca}>
+        <img src="/icon-color.png" alt="" className={styles.logo} />
+        <span className={styles.nome}>
+          Torcida
+          <br />
+          Online
+        </span>
+      </div>
+      <div className={styles.barra} role="progressbar" aria-label="Carregando a Torcida Online">
+        <span />
+      </div>
     </div>
   );
 }

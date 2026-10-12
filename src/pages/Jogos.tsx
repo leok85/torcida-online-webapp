@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Icon } from '../components/ui/Icon';
+import { Carregando, Skeleton } from '../components/ui/Skeleton';
 import {
   aberturaDoPalpite,
   diaEMes,
@@ -78,11 +79,44 @@ export function Jogos() {
   }
 
   if (!jogos) {
+    // Skeleton do W20 · carregando: a faixa ao vivo (ainda não se sabe se há jogo) e as duas listas.
+    const lista = (titulo: string) => (
+      <section className={ui.cardFlush}>
+        <div className={ui.cardHeader}>
+          <h3 className={ui.titleLg}>{titulo}</h3>
+        </div>
+        <ul className={styles.lista}>
+          {[0, 1, 2].map((i) => (
+            <li key={i} className={styles.linha}>
+              <span className={styles.data}>
+                <Skeleton w={24} h={20} r={5} />
+                <Skeleton w={22} h={8} r="pilula" style={{ marginTop: 4 }} />
+              </span>
+              <span className={styles.corpo}>
+                <Skeleton w="62%" h={12} r="pilula" />
+                <Skeleton w="44%" h={9} r="pilula" />
+              </span>
+              <Skeleton w={84} h={22} r="pilula" />
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
     return (
-      <div className={ui.page} aria-busy="true">
+      <Carregando className={ui.page} rotulo="Carregando os jogos…">
         {cabecalho}
-        <p className={styles.carregando}>Carregando os jogos…</p>
-      </div>
+        <div className={styles.aoVivo}>
+          <Skeleton tom="escuro" w={92} h={26} r="pilula" />
+          <Skeleton tom="escuro" w={300} h={22} r={6} />
+          <Skeleton tom="escuro" w={150} h={10} r="pilula" style={{ flex: 1, maxWidth: 150 }} />
+          <span style={{ flex: 1 }} />
+          <Skeleton tom="escuro" w={150} h={46} r={11} />
+        </div>
+        <div className={styles.colunas}>
+          {lista('Próximos')}
+          {lista('Resultados')}
+        </div>
+      </Carregando>
     );
   }
 

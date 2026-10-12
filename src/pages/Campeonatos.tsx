@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Crest } from '../components/ui/Crest';
 import { Icon } from '../components/ui/Icon';
+import { Carregando, Skeleton, SkeletonEscudo } from '../components/ui/Skeleton';
 import {
   dadosDosCampeonatos,
   diaCurto,
@@ -312,7 +313,66 @@ export function Campeonatos() {
       </div>
     );
   } else if (!campeonatos) {
-    corpo = <p className={styles.vazio} aria-busy="true">Carregando os campeonatos…</p>;
+    // Skeleton do W10 · carregando: cards das competições, a tabela e os cards do lado.
+    corpo = (
+      <Carregando rotulo="Carregando os campeonatos…">
+        <div className={styles.cards}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={styles.comp}>
+              <span className={styles.compTopo}>
+                <Skeleton w={36} h={36} r={10} />
+                <span className={styles.compNomes}>
+                  <Skeleton w={140} h={12} r="pilula" />
+                  <Skeleton w={100} h={8} r="pilula" />
+                </span>
+              </span>
+              <span className={styles.compSituacao}>
+                <Skeleton w={70} h={24} r={6} />
+                <Skeleton w={90} h={10} r="pilula" />
+              </span>
+              <span className={styles.compRodape}>
+                <Skeleton w="80%" h={10} r="pilula" />
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className={styles.detalhe}>
+          <section className={ui.cardFlush}>
+            <div className={ui.cardHeader}>
+              <Skeleton w={220} h={16} r="pilula" />
+              <Skeleton w={160} h={9} r="pilula" />
+            </div>
+            <ol className={styles.lista}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <li key={i} className={styles.row}>
+                  <Skeleton w={20} h={12} r={4} />
+                  <SkeletonEscudo width={26} height={30} />
+                  <Skeleton w="40%" h={12} r="pilula" style={{ flex: 1, maxWidth: 220 }} />
+                  <span style={{ flex: 1 }} />
+                  <Skeleton w={90} h={10} r="pilula" />
+                </li>
+              ))}
+            </ol>
+          </section>
+          <div className={styles.stack}>
+            <section className={ui.card}>
+              <Skeleton w={140} h={16} r="pilula" />
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} w="90%" h={11} r="pilula" style={{ marginTop: 16 }} />
+              ))}
+            </section>
+            <section className={ui.card}>
+              <Skeleton w={100} h={16} r="pilula" />
+              <div className={styles.form}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} w={24} h={24} r={6} />
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </Carregando>
+    );
   } else if (!campeonatos.length) {
     corpo = (
       <div className={ui.card}>
