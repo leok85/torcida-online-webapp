@@ -1,5 +1,6 @@
 // Copia da BSD para a tabela partidas os jogos dos clubes do catálogo. Roda pelo pg_cron:
-// - modo "ao_vivo" (a cada 2 min): placar e minuto de quem está em campo, e o resultado de quem acabou de terminar;
+// - modo "ao_vivo" (a cada 2 min): placar e minuto de quem está em campo, e o resultado de quem acabou de terminar.
+//   Só chama a BSD quando algum jogo salvo está na janela ao vivo (pelo horário de início); fora dela não gasta cota;
 // - modo "agenda" (de hora em hora): resultados dos últimos dias e jogos marcados para os próximos.
 // A conta grátis da BSD tem 7.500 pedidos por dia; por isso os gols (incidentes) só são buscados quando o placar muda.
 // Fica separado do index.ts, que só existe no Deno, para os testes do Vitest chamarem direto.
@@ -68,6 +69,8 @@ export type Banco = {
   catalogo(): Promise<{ clubes: Map<number, string>; ligas: Map<number, string> }>;
   partidas(ids: number[]): Promise<Map<number, PartidaSalva>>;
   idsAoVivo(): Promise<number[]>;
+  /** Se há jogo ao vivo salvo ou jogo marcado com início entre `de` e `ate`. */
+  haJogoNaJanela(de: Date, ate: Date): Promise<boolean>;
   salvar(partidas: Partida[]): Promise<void>;
 };
 
@@ -83,15 +86,30 @@ export type Dependencias = {
 /** Teto de pedidos de incidentes por rodada, para não estourar a cota diária da BSD num dia cheio. */
 export const MAX_INCIDENTES = 20;
 
+/** Janela ao vivo: a BSD lista o jogo 5 min antes do início; 3 h depois cobre prorrogação, pênaltis e atrasos. */
+export const ANTES_DO_INICIO_MS = 5 * 60_000;
+export const DEPOIS_DO_INICIO_MS = 3 * 60 * 60_000;
+
+// Todos os status da BSD (enum do /api/v2/events/). "unresolved" e desconhecidos não são gravados.
 const STATUS: Record<string, Partida['status']> = {
   notstarted: 'agendada',
+  delayed: 'agendada',
   inprogress: 'ao_vivo',
+  '1st_half': 'ao_vivo',
+  halftime: 'ao_vivo',
+  '2nd_half': 'ao_vivo',
+  extratime: 'ao_vivo',
+  penalties: 'ao_vivo',
   finished: 'encerrada',
+  aet: 'encerrada',
   postponed: 'adiada',
+  cancelled: 'cancelada',
 };
 
-export function periodoDe(period: string | null | undefined): Partida['periodo'] {
-  const p = (period ?? '').toLowerCase();
+/** Período a partir do period da BSD; na disputa de pênaltis, o status manda (o period fica em extra_time). */
+export function periodoDe(period: string | null | undefined, status?: string): Partida['periodo'] {
+  if (status === 'penalties') return 'PEN';
+  const p = (period || status || '').toLowerCase();
   if (p === '1st_half') return '1T';
   if (p === 'halftime') return 'INT';
   if (p === '2nd_half') return '2T';
@@ -139,6 +157,8 @@ export async function sincronizar(req: Request, deps: Dependencias): Promise<Res
       const ate = dia(somarDias(agora, limitar(corpo.dias_depois, 7, 30)));
       eventos = await bsd.eventos(de, ate);
     } else {
+      const janela = await banco.haJogoNaJanela(new Date(agora.getTime() - DEPOIS_DO_INICIO_MS), new Date(agora.getTime() + ANTES_DO_INICIO_MS));
+      if (!janela) return json(200, { ok: true, modo, salvas: 0, incidentes: 0, sem_jogo_na_janela: true });
       eventos = await bsd.aoVivo();
       // Quem estava ao vivo e saiu da lista terminou (ou foi interrompido): busca o estado final.
       const vistos = new Set(eventos.map((e) => e.id));
@@ -155,7 +175,7 @@ export async function sincronizar(req: Request, deps: Dependencias): Promise<Res
   const { clubes, ligas } = await banco.catalogo();
   // Do mais recente para o mais antigo: com o teto de incidentes, os gols que aparecem no card vêm primeiro.
   const doCatalogo = eventos
-    .filter((e) => clubes.has(e.home_team_id) || clubes.has(e.away_team_id))
+    .filter((e) => Object.hasOwn(STATUS, e.status) && (clubes.has(e.home_team_id) || clubes.has(e.away_team_id)))
     .sort((a, b) => b.event_date.localeCompare(a.event_date));
   const salvas = await banco.partidas(doCatalogo.map((e) => e.id));
   const nomesDeLiga = new Map(ligas);
@@ -163,7 +183,7 @@ export async function sincronizar(req: Request, deps: Dependencias): Promise<Res
   const partidas: Partida[] = [];
 
   for (const e of doCatalogo) {
-    const status = STATUS[e.status] ?? 'cancelada';
+    const status = STATUS[e.status];
     const salva = salvas.get(e.id);
 
     let ligaNome = e.league_id != null ? nomesDeLiga.get(e.league_id) : undefined;
@@ -190,7 +210,7 @@ export async function sincronizar(req: Request, deps: Dependencias): Promise<Res
       rodada: e.round_number ?? null,
       inicio: e.event_date,
       status,
-      periodo: status === 'ao_vivo' ? periodoDe(e.period) : null,
+      periodo: status === 'ao_vivo' ? periodoDe(e.period, e.status) : null,
       minuto: status === 'ao_vivo' ? (e.current_minute ?? null) : null,
       mandante_id: e.home_team_id,
       mandante_nome: clubes.get(e.home_team_id) ?? e.home_team,

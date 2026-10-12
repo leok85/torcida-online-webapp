@@ -22,7 +22,7 @@ const evento = (campos: Partial<EventoBsd> = {}): EventoBsd => ({
 
 const gol = (campos: Partial<IncidenteBsd> = {}): IncidenteBsd => ({ type: 'goal', minute: 16, player: 'A. Barboza', is_home: true, goal_type: 'regular', ...campos });
 
-function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[], salvas = new Map<number, PartidaSalva>(), idsAoVivo = [] as number[], finais = new Map<number, EventoBsd>(), incidentes = [gol()] as IncidenteBsd[] } = {}) {
+function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[], salvas = new Map<number, PartidaSalva>(), idsAoVivo = [] as number[], finais = new Map<number, EventoBsd>(), incidentes = [gol()] as IncidenteBsd[], naJanela = true } = {}) {
   const bsd = {
     aoVivo: vi.fn(async () => [...aoVivo]),
     eventos: vi.fn(async (_de: string, _ate: string) => [...agenda]),
@@ -31,6 +31,7 @@ function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[]
     nomeDaLiga: vi.fn(async (_id: number) => 'Copa Libertadores'),
   } satisfies Bsd;
   const salvar = vi.fn(async (_p: Partida[]) => {});
+  const haJogoNaJanela = vi.fn(async (_de: Date, _ate: Date) => naJanela);
   const banco: Banco = {
     catalogo: async () => ({
       clubes: new Map([[162, 'Palmeiras'], [167, 'Corinthians'], [160, 'Flamengo']]),
@@ -38,10 +39,11 @@ function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[]
     }),
     partidas: async (ids) => new Map([...salvas].filter(([id]) => ids.includes(id))),
     idsAoVivo: async () => idsAoVivo,
+    haJogoNaJanela,
     salvar,
   };
   const salvasNaChamada = () => salvar.mock.calls.at(-1)?.[0] ?? [];
-  return { bsd, banco, salvar, salvasNaChamada };
+  return { bsd, banco, salvar, haJogoNaJanela, salvasNaChamada };
 }
 
 const pedido = (corpo: object = { modo: 'ao_vivo' }, segredo = 'segredo-cron') =>
@@ -137,6 +139,49 @@ describe('sincronizar-partidas', () => {
     const m = montar({ agenda: [...antigos, recente] });
     await rodar(m, pedido({ modo: 'agenda' }));
     expect(m.bsd.incidentes).toHaveBeenNthCalledWith(1, 7290);
+  });
+
+  it('fora da janela de algum jogo salvo, nem chama a BSD', async () => {
+    const m = montar({ naJanela: false });
+    const resposta = await rodar(m);
+    expect(await resposta.json()).toEqual({ ok: true, modo: 'ao_vivo', salvas: 0, incidentes: 0, sem_jogo_na_janela: true });
+    expect(m.bsd.aoVivo).not.toHaveBeenCalled();
+    expect(m.salvar).not.toHaveBeenCalled();
+  });
+
+  it('a janela vai de 3 h antes até 5 min depois de agora (pelo horário de início)', async () => {
+    const m = montar();
+    await rodar(m);
+    expect(m.haJogoNaJanela).toHaveBeenCalledWith(new Date('2026-10-11T18:00:00Z'), new Date('2026-10-11T21:05:00Z'));
+  });
+
+  it('o modo agenda não depende da janela', async () => {
+    const m = montar({ naJanela: false, agenda: [evento({ status: 'notstarted', home_score: null, away_score: null })] });
+    await rodar(m, pedido({ modo: 'agenda' }));
+    expect(m.haJogoNaJanela).not.toHaveBeenCalled();
+    expect(m.salvar).toHaveBeenCalled();
+  });
+
+  it('converte todos os status da BSD; pênaltis seguem ao vivo', async () => {
+    const m = montar({
+      aoVivo: [
+        evento({ id: 1, status: 'penalties', period: 'extra_time', current_minute: 120, home_score: 1, away_score: 1 }),
+        evento({ id: 2, status: 'delayed', period: null, current_minute: null, home_score: null, away_score: null }),
+        evento({ id: 3, status: 'halftime', period: null, current_minute: 45, home_score: 0, away_score: 0 }),
+        evento({ id: 4, status: 'aet', period: 'FT', home_score: 2, away_score: 1 }),
+        evento({ id: 5, status: 'cancelled', home_score: null, away_score: null }),
+        evento({ id: 6, status: 'unresolved' }),
+      ],
+    });
+    await rodar(m);
+    const porId = Object.fromEntries(m.salvasNaChamada().map((p) => [p.id, [p.status, p.periodo]]));
+    expect(porId).toEqual({
+      1: ['ao_vivo', 'PEN'],
+      2: ['agendada', null],
+      3: ['ao_vivo', 'INT'],
+      4: ['encerrada', null],
+      5: ['cancelada', null],
+    });
   });
 
   it('recusa quem não manda o segredo do cron', async () => {
