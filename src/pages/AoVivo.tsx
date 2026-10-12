@@ -56,7 +56,7 @@ type ChatMessage = { id: string; author: string; level: number; text: string; mi
 
 const INITIAL_CHAT: ChatMessage[] = [
   { id: 'c1', author: 'Rafa_9', level: 31, text: 'Escalação confirmada, vem com tudo hoje', color: '#00419B' },
-  { id: 'c2', author: 'sistema', level: 0, text: "GOL! 1 — 0 aos 23'", event: true },
+  { id: 'c2', author: 'sistema', level: 0, text: "GOL! 1 × 0 aos 23'", event: true },
   { id: 'c3', author: 'Rafa_9', level: 31, text: 'EEEEEE VAMO', color: '#00419B' },
   { id: 'c4', author: 'você', level: 24, text: 'palpite 2-1 tá vivo', mine: true },
   { id: 'c5', author: 'Bia.T', level: 47, text: 'o meia tá jogando muito, meu MVP já é dele', color: '#2A6E0D' },
@@ -93,7 +93,7 @@ export function AoVivo() {
           Clube B
         </div>
         <div className={styles.center}>
-          <div className={styles.score}>1 — 0</div>
+          <div className={styles.score}>1 × 0</div>
           <div className={styles.minute}>67' · 2º tempo</div>
         </div>
         <div className={`${styles.team} ${styles.away}`}>
@@ -104,7 +104,7 @@ export function AoVivo() {
         <div className={styles.guess}>
           <Icon name="how_to_reg" size={19} color="var(--green-light)" />
           <div>
-            Palpite <strong>2 — 1</strong>
+            Palpite <strong>2 × 1</strong>
           </div>
           <span className={styles.guessXp}>+240 XP</span>
         </div>

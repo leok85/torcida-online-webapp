@@ -53,7 +53,7 @@ function Placar({ jogo }: { jogo: Partida }) {
       <Time id={jogo.mandante_id} nome={jogo.mandante_nome} tom="dark" gols={autoresDosGols(jogo.gols.filter((g) => g.mandante))} />
       <div className={styles.center}>
         <div className={styles.score} aria-label={`Placar: ${jogo.gols_mandante ?? 0} a ${jogo.gols_visitante ?? 0}`}>
-          {jogo.gols_mandante ?? 0} — {jogo.gols_visitante ?? 0}
+          {jogo.gols_mandante ?? 0} × {jogo.gols_visitante ?? 0}
         </div>
       </div>
       <Time id={jogo.visitante_id} nome={jogo.visitante_nome} tom="darkAway" gols={autoresDosGols(jogo.gols.filter((g) => !g.mandante))} />
@@ -82,7 +82,7 @@ function Faixa({ rotulo, titulo, info, children }: { rotulo: string; titulo: str
 }
 
 const confronto = (p: Partida) => `${p.mandante_nome} × ${p.visitante_nome}`;
-const placar = (p: Partida) => `${p.mandante_nome} ${p.gols_mandante ?? 0} — ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
+const placar = (p: Partida) => `${p.mandante_nome} ${p.gols_mandante ?? 0} × ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
 
 /** W01 · card do clube em três momentos: ao vivo, encerrado (até a véspera do próximo) e véspera do próximo jogo. */
 export function CardPartida({ clubeNome }: { clubeNome: string }) {

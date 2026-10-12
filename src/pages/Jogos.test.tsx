@@ -83,7 +83,7 @@ describe('Jogos (W20)', () => {
     expect(await screen.findByRole('heading', { name: 'Jogos do Palmeiras' })).toBeInTheDocument();
     const aoVivo = await screen.findByRole('region', { name: 'Jogo ao vivo' });
     expect(aoVivo).toHaveTextContent("AO VIVO · 67'");
-    expect(aoVivo).toHaveTextContent('Palmeiras 1 — 0 Corinthians');
+    expect(aoVivo).toHaveTextContent('Palmeiras 1 × 0 Corinthians');
     await user.click(within(aoVivo).getByRole('link', { name: /Entrar no jogo/ }));
     expect(local()).toBe('/ao-vivo');
   });
@@ -115,9 +115,9 @@ describe('Jogos (W20)', () => {
     renderApp('/jogos');
     await screen.findByRole('region', { name: 'Resultados' });
     expect(linhas('Resultados')).toEqual([
-      'Vitória: Palmeiras 1 — 0 Bahia, 08 OUT · Brasileirão Série A · rodada 29',
-      'Derrota: Flamengo 2 — 0 Palmeiras, 05 OUT · Brasileirão Série A · rodada 28',
-      'Empate: Palmeiras 1 — 1 São Paulo, 01 OUT · Brasileirão Série A · rodada 27',
+      'Vitória: Palmeiras 1 × 0 Bahia, 08 OUT · Brasileirão Série A · rodada 29',
+      'Derrota: Flamengo 2 × 0 Palmeiras, 05 OUT · Brasileirão Série A · rodada 28',
+      'Empate: Palmeiras 1 × 1 São Paulo, 01 OUT · Brasileirão Série A · rodada 27',
     ]);
   });
 

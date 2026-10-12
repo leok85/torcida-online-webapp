@@ -39,7 +39,7 @@ describe('Início · card do jogo', () => {
     const jogo = await card();
     expect(await within(jogo).findByText('AO VIVO · 2º T')).toBeInTheDocument();
     expect(within(jogo).getByText("Brasileirão Série A · rodada 30 · 67'")).toBeInTheDocument();
-    expect(within(jogo).getByLabelText('Placar: 1 a 0')).toHaveTextContent('1 — 0');
+    expect(within(jogo).getByLabelText('Placar: 1 a 0')).toHaveTextContent('1 × 0');
     expect(itens(within(jogo).getByRole('list', { name: 'Gols do Palmeiras' }))).toEqual(["A. Barboza 16'"]);
     expect(within(jogo).queryByRole('list', { name: 'Gols do Corinthians' })).not.toBeInTheDocument();
 
@@ -106,7 +106,7 @@ describe('Início · card do jogo', () => {
     expect(within(jogo).getByText('Palpite e escalação abertos até 15 min antes')).toBeInTheDocument();
 
     const faixa = within(jogo).getByRole('group', { name: 'Último jogo' });
-    expect(faixa).toHaveTextContent('Palmeiras 4 — 1 Corinthians');
+    expect(faixa).toHaveTextContent('Palmeiras 4 × 1 Corinthians');
     expect(within(faixa).getByRole('link', { name: /Notas e fotos/ })).toHaveAttribute('href', '/pos-jogo');
 
     await user.click(within(jogo).getByRole('button', { name: /Dar palpite/ }));

@@ -38,7 +38,7 @@ function FaixaAoVivo({ partida }: { partida: Partida }) {
         {minuto ? `AO VIVO · ${minuto}` : 'AO VIVO'}
       </span>
       <strong className={styles.placarAoVivo}>
-        {partida.mandante_nome} {partida.gols_mandante ?? 0} — {partida.gols_visitante ?? 0} {partida.visitante_nome}
+        {partida.mandante_nome} {partida.gols_mandante ?? 0} × {partida.gols_visitante ?? 0} {partida.visitante_nome}
       </strong>
       <span className={styles.infoAoVivo}>{infoDoResultado(partida)}</span>
       <Link to="/ao-vivo" className={styles.entrar}>
@@ -145,7 +145,7 @@ export function Jogos() {
               {resultados.slice(0, LIMITE_DA_LISTA).map((p) => {
                 const r = resultadoPara(p, clubeId);
                 const { dia, mes } = diaEMes(p.inicio);
-                const placar = `${p.mandante_nome} ${p.gols_mandante ?? 0} — ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
+                const placar = `${p.mandante_nome} ${p.gols_mandante ?? 0} × ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
                 return (
                   <li key={p.id}>
                     <Link to="/pos-jogo" className={styles.linha} aria-label={`${ROTULO_RESULTADO[r]}: ${placar}, ${dia} ${mes} · ${infoDoResultado(p)}`}>
