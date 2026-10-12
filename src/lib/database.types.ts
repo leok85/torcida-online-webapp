@@ -318,7 +318,9 @@ export type Database = {
           quer_novidades: boolean;
           senha_alterada_em: string | null;
           termos_aceitos_em: string | null;
+          time_anterior_id: number | null;
           time_id: number | null;
+          time_trocado_em: string | null;
         };
         Insert: {
           apelido?: string | null;
@@ -339,7 +341,9 @@ export type Database = {
           quer_novidades?: boolean;
           senha_alterada_em?: string | null;
           termos_aceitos_em?: string | null;
+          time_anterior_id?: number | null;
           time_id?: number | null;
+          time_trocado_em?: string | null;
         };
         Update: {
           apelido?: string | null;
@@ -360,11 +364,14 @@ export type Database = {
           quer_novidades?: boolean;
           senha_alterada_em?: string | null;
           termos_aceitos_em?: string | null;
+          time_anterior_id?: number | null;
           time_id?: number | null;
+          time_trocado_em?: string | null;
         };
         Relationships: [
           { foreignKeyName: 'perfis_cidade_id_fkey'; columns: ['cidade_id']; isOneToOne: false; referencedRelation: 'cidades'; referencedColumns: ['id'] },
           { foreignKeyName: 'perfis_pais_fkey'; columns: ['pais']; isOneToOne: false; referencedRelation: 'paises'; referencedColumns: ['codigo'] },
+          { foreignKeyName: 'perfis_time_anterior_id_fkey'; columns: ['time_anterior_id']; isOneToOne: false; referencedRelation: 'clubes'; referencedColumns: ['id'] },
           { foreignKeyName: 'perfis_time_id_fkey'; columns: ['time_id']; isOneToOne: false; referencedRelation: 'clubes'; referencedColumns: ['id'] },
         ];
       };

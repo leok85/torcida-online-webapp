@@ -37,13 +37,15 @@ export const CLUBES_DE_TESTE: ClubeRow[] = [
 ];
 
 /** Mesmo formato do embed do AuthContext: clube:clubes(id, nome, nome_curto, liga_id), pais_dados:paises(nome, bandeira). */
-export function comCatalogo<T extends { pais: string | null; time_id: number | null }>(perfil: T) {
+export function comCatalogo<T extends { pais: string | null; time_id: number | null; time_anterior_id?: number | null }>(perfil: T) {
   const c = CLUBES_DE_TESTE.find((x) => x.id === perfil.time_id);
+  const anterior = CLUBES_DE_TESTE.find((x) => x.id === perfil.time_anterior_id);
   const p = PAISES_DE_TESTE.find((x) => x.codigo === perfil.pais);
   return {
     ...perfil,
     clube: c ? { id: c.id, nome: c.nome, nome_curto: c.nome_curto, liga_id: c.liga_id } : null,
     pais_dados: p ? { nome: p.nome, bandeira: p.bandeira } : null,
+    clube_anterior: anterior ? { id: anterior.id, nome: anterior.nome } : null,
   };
 }
 

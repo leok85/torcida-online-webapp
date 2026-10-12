@@ -24,6 +24,8 @@ type Perfil = {
   apelido_anterior: string | null;
   senha_alterada_em: string | null;
   exclusao_agendada_para: string | null;
+  time_anterior_id: number | null;
+  time_trocado_em: string | null;
   criado_em: string;
   atualizado_em: string;
 };
@@ -178,6 +180,8 @@ export class BackendFalso {
       // Trigger ao_trocar_senha: cadastro com senha já marca a data.
       senha_alterada_em: senha ? agora() : null,
       exclusao_agendada_para: null,
+      time_anterior_id: null,
+      time_trocado_em: null,
       criado_em: agora(),
       atualizado_em: agora(),
     });
@@ -511,6 +515,15 @@ export class BackendFalso {
         const novo = { ...perfil, ...campos, atualizado_em: agora() };
         novo.termos_aceitos_em = perfil.termos_aceitos_em ?? (campos.termos_aceitos_em ? agora() : null);
         novo.onboarding_concluido_em = perfil.onboarding_concluido_em ?? (campos.onboarding_concluido_em ? agora() : null);
+        // Troca de time: livre no onboarding; depois dele, uma única vez, com o país do clube novo.
+        novo.time_anterior_id = perfil.time_anterior_id;
+        novo.time_trocado_em = perfil.time_trocado_em;
+        if (campos.time_id !== undefined && campos.time_id !== perfil.time_id && perfil.onboarding_concluido_em) {
+          if (perfil.time_trocado_em) return json(400, { code: 'P0001', message: 'A troca de time já foi usada', hint: 'troca_usada' });
+          novo.time_anterior_id = perfil.time_id;
+          novo.time_trocado_em = agora();
+          novo.pais = CLUBES_DE_TESTE.find((c) => c.id === campos.time_id)?.pais ?? novo.pais;
+        }
         if (novo.time_id !== null && !CLUBES_DE_TESTE.some((c) => c.id === novo.time_id)) {
           return json(409, { code: '23503', message: 'insert or update on table "perfis" violates foreign key constraint "perfis_time_id_fkey"' });
         }

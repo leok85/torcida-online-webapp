@@ -28,7 +28,14 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
     { id: 'convite', label: 'Convidar amigos', sub: '3 ativos · 1.840 XP rendidos', icon: 'group_add', action: onOpenInvite },
     { id: 'conta', label: 'Dados da conta', sub: 'nome, e-mail e senha', icon: 'badge', action: () => { navigate('/conta/dados'); onClose(); } },
     { id: 'notif', label: 'Preferências de notificação', sub: 'o que você recebe', icon: 'notifications_active', action: onOpenNotif },
-    { id: 'time', label: 'Trocar de time', sub: 'uma única vez · vira-casaca', icon: 'swap_horiz', danger: true, action: onClose },
+    {
+      id: 'time',
+      label: 'Trocar de time',
+      sub: 'uma única vez · vira-casaca',
+      icon: 'swap_horiz',
+      danger: true,
+      action: () => { navigate('/conta/time'); onClose(); },
+    },
     {
       id: 'feedback',
       label: 'Enviar feedback',

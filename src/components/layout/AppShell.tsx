@@ -24,6 +24,7 @@ import { Ranking } from '../../pages/Ranking';
 import { Cancelamento } from '../../pages/assinatura/Cancelamento';
 import { DadosDaConta } from '../../pages/conta/DadosDaConta';
 import { EnviarFeedback } from '../../pages/conta/EnviarFeedback';
+import { TrocarDeTime } from '../../pages/conta/TrocarDeTime';
 import { MinhaAssinatura } from '../../pages/assinatura/MinhaAssinatura';
 import { Pagamento } from '../../pages/assinatura/Pagamento';
 import { Planos } from '../../pages/assinatura/Planos';
@@ -81,6 +82,7 @@ export function AppShell() {
             <Route path="/assinar/retorno" element={<Retorno />} />
             <Route path="/conta/dados" element={<DadosDaConta />} />
             <Route path="/conta/feedback" element={<EnviarFeedback />} />
+            <Route path="/conta/time" element={<TrocarDeTime />} />
             <Route path="/conta/assinatura" element={<MinhaAssinatura />} />
             <Route path="/conta/assinatura/cancelar" element={<Cancelamento />} />
             <Route path="*" element={<Inicio />} />
