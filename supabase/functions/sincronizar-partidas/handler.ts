@@ -94,10 +94,14 @@ export type LinhaDaTabelaBsd = {
 
 export type FaseBsd = { stage: string; stage_name?: string | null; rounds?: number | null; start_date?: string | null; end_date?: string | null };
 
+export type ZonaBsd = { key?: string; label?: string; type?: string; from: number; to: number };
+
 /** Resposta de /api/v2/leagues/{id}/standings/: tabela única ou grupos (conferências, chaves). */
 export type ClassificacaoBsd = {
   standings?: LinhaDaTabelaBsd[] | null;
   groups?: Record<string, LinhaDaTabelaBsd[]> | null;
+  /** Faixas de posição de cada zona: lista na tabela única, por grupo nas copas. */
+  zones?: ZonaBsd[] | Record<string, ZonaBsd[]> | null;
   season?: { id?: number; name?: string; start_date?: string | null; end_date?: string | null; stages?: FaseBsd[] | null } | null;
 };
 
@@ -255,6 +259,8 @@ export function formatoDaCompeticao(fases: string[]): Competicao['formato'] {
 
 const ZONAS: [RegExp, string][] = [
   [/^relegation/i, 'Rebaixamento'],
+  [/libertadores qualification/i, 'Pré-Libertadores'],
+  [/champions league qualification/i, 'Pré-Champions'],
   [/^promotion/i, 'Acesso'],
   [/^playoffs?$/i, 'Classificação'],
   [/sudamericana/i, 'Sul-Americana'],
@@ -313,30 +319,70 @@ export function golsDe(incidentes: IncidenteBsd[]): Gol[] {
     .map(({ ordem: _ordem, ...gol }) => gol);
 }
 
-/** Linhas da tabela da BSD no formato da tabela classificacao. */
+type Criterio = 'pontos' | 'vitorias' | 'saldo' | 'gols_pro';
+
+/**
+ * Critérios de desempate de ligas que não seguem a ordem da BSD (que desempata pelo saldo).
+ * Brasileirão (CBF): pontos, vitórias, saldo de gols e gols pró.
+ */
+export const CRITERIOS_DE_DESEMPATE: Record<number, Criterio[]> = {
+  9: ['pontos', 'vitorias', 'saldo', 'gols_pro'],
+  34: ['pontos', 'vitorias', 'saldo', 'gols_pro'],
+};
+
+const valor = (l: LinhaDaTabelaBsd, c: Criterio) => (c === 'pontos' ? l.pts : c === 'vitorias' ? l.won : c === 'saldo' ? l.gf - l.ga : l.gf);
+
+/** Reordena pelos critérios da liga (mantendo a ordem da BSD no empate total) e devolve as linhas com a nova posição. */
+function ordenar(linhas: LinhaDaTabelaBsd[], criterios: Criterio[] | undefined): LinhaDaTabelaBsd[] {
+  if (!criterios) return linhas;
+  return linhas
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => {
+      for (const c of criterios) {
+        const d = valor(b.l, c) - valor(a.l, c);
+        if (d) return d;
+      }
+      return a.i - b.i;
+    })
+    .map(({ l }, i) => ({ ...l, position: i + 1 }));
+}
+
+/** Zona pela posição (faixas da BSD); sem faixas, fica a zona que veio na linha. */
+function zonaDaPosicao(posicao: number, faixas: ZonaBsd[] | undefined, daLinha: LinhaDaTabelaBsd['zone']) {
+  if (!faixas?.length) return daLinha ?? null;
+  return faixas.find((z) => posicao >= z.from && posicao <= z.to) ?? null;
+}
+
+/** Linhas da tabela da BSD no formato da tabela classificacao, com o desempate da liga e a zona de cada posição. */
 export function linhasDaClassificacao(ligaId: number, bsd: ClassificacaoBsd, agora: Date, nomes = new Map<number, string>()): LinhaDaClassificacao[] {
   const grupos: [string, LinhaDaTabelaBsd[]][] =
-    bsd.groups && Object.keys(bsd.groups).length ? Object.entries(bsd.groups).map(([g, l]) => [nomeDoGrupo(g)!, l]) : [['', bsd.standings ?? []]];
-  return grupos.flatMap(([grupo, linhas]) =>
-    linhas.map((l) => ({
-      liga_id: ligaId,
-      grupo,
-      clube_id: l.team_id,
-      clube_nome: nomes.get(l.team_id) ?? l.team_name ?? null,
-      posicao: l.position,
-      pontos: l.pts,
-      jogos: l.played,
-      vitorias: l.won,
-      empates: l.drawn,
-      derrotas: l.lost,
-      gols_pro: l.gf,
-      gols_contra: l.ga,
-      forma: l.form ?? null,
-      zona: nomeDaZona(l.zone?.label),
-      zona_tipo: l.zone?.type ?? null,
-      atualizado_em: agora.toISOString(),
-    })),
-  );
+    bsd.groups && Object.keys(bsd.groups).length ? Object.entries(bsd.groups) : [['', bsd.standings ?? []]];
+  const criterios = CRITERIOS_DE_DESEMPATE[ligaId];
+  return grupos.flatMap(([chave, linhas]) => {
+    const faixas = Array.isArray(bsd.zones) ? bsd.zones : bsd.zones?.[chave];
+    return ordenar(linhas, criterios).map((l) => {
+      // Reordenada aqui, a zona sai da posição nova; senão vale a que a BSD mandou na linha.
+      const zona = criterios ? zonaDaPosicao(l.position, faixas, l.zone) : l.zone;
+      return {
+        liga_id: ligaId,
+        grupo: nomeDoGrupo(chave) ?? '',
+        clube_id: l.team_id,
+        clube_nome: nomes.get(l.team_id) ?? l.team_name ?? null,
+        posicao: l.position,
+        pontos: l.pts,
+        jogos: l.played,
+        vitorias: l.won,
+        empates: l.drawn,
+        derrotas: l.lost,
+        gols_pro: l.gf,
+        gols_contra: l.ga,
+        forma: l.form ?? null,
+        zona: nomeDaZona(zona?.label),
+        zona_tipo: zona?.type ?? null,
+        atualizado_em: agora.toISOString(),
+      };
+    });
+  });
 }
 
 /** Jogos que terminaram nas últimas 6 h mexeram na tabela da liga. */

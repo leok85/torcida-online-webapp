@@ -312,6 +312,32 @@ describe('sincronizar-partidas · classificação', () => {
     expect(m.salvarClassificacao).not.toHaveBeenCalled();
   });
 
+  it('no Brasileirão desempata por vitórias antes do saldo e recalcula a zona pela posição nova', () => {
+    // Rodada 30 de 2026: BSD pôs o Inter (7 vitórias, saldo -5) à frente do Corinthians (8 vitórias, saldo -7).
+    const inter = { position: 16, team_id: 161, team_name: 'Internacional', played: 30, won: 7, drawn: 11, lost: 12, gf: 33, ga: 38, pts: 32, zone: null };
+    const corinthians = { position: 17, team_id: 167, team_name: 'Corinthians', played: 30, won: 8, drawn: 8, lost: 14, gf: 31, ga: 38, pts: 32, zone: { label: 'Relegation', type: 'relegation' } };
+    const mirassol = { position: 15, team_id: 151, team_name: 'Mirassol', played: 30, won: 8, drawn: 9, lost: 13, gf: 34, ga: 44, pts: 33, zone: null };
+    const acima = Array.from({ length: 14 }, (_, k) => ({ position: k + 1, team_id: 1000 + k, team_name: `Time ${k + 1}`, played: 30, won: 15, drawn: 5, lost: 10, gf: 40, ga: 30, pts: 60 - k, zone: null }));
+    const abaixo = [18, 19, 20].map((p) => ({ position: p, team_id: 2000 + p, team_name: `Time ${p}`, played: 30, won: 3, drawn: 5, lost: 22, gf: 20, ga: 60, pts: 40 - p, zone: { label: 'Relegation', type: 'relegation' } }));
+    const tabela: ClassificacaoBsd = {
+      standings: [...acima, { ...mirassol, position: 15 }, { ...inter, position: 16 }, { ...corinthians, position: 17 }, ...abaixo],
+      zones: [{ label: 'Relegation', type: 'relegation', from: 17, to: 20 }],
+    };
+    const linhas = linhasDaClassificacao(9, tabela, AGORA).filter((l) => l.posicao >= 15 && l.posicao <= 18);
+    expect(linhas.map((l) => [l.clube_nome, l.posicao, l.zona])).toEqual([
+      ['Mirassol', 15, null],
+      ['Corinthians', 16, null],
+      ['Internacional', 17, 'Rebaixamento'],
+      ['Time 18', 18, 'Rebaixamento'],
+    ]);
+    // Em outra liga, vale a ordem e a zona da BSD.
+    const outra = linhasDaClassificacao(1, tabela, AGORA).filter((l) => l.posicao === 16 || l.posicao === 17);
+    expect(outra.map((l) => [l.clube_nome, l.zona])).toEqual([
+      ['Internacional', null],
+      ['Corinthians', 'Rebaixamento'],
+    ]);
+  });
+
   it('ligas com grupos guardam o grupo de cada linha', () => {
     const linhas = linhasDaClassificacao(18, { groups: { 'Group A': [linha(1, 293, 50)], Oeste: [linha(1, 278, 51)] } }, AGORA);
     // Time fora do catálogo fica com o nome da BSD.
