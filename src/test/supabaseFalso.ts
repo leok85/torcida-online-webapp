@@ -3,7 +3,7 @@
 import { vi, type Mock } from 'vitest';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Assinatura, Perfil } from '../lib/database.types';
-import type { Partida } from '../lib/database.types';
+import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.types';
 import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
@@ -68,6 +68,8 @@ function criar() {
   const perfis = new Map<string, Perfil>();
   const assinaturas: Assinatura[] = [];
   const partidas: Partida[] = [];
+  const competicoes: CompeticaoRow[] = [];
+  const tabelas: ClassificacaoRow[] = [];
   // RLS: o torcedor só enxerga as próprias assinaturas.
   const minhas = () => assinaturas.filter((a) => a.usuario_id === sessao?.user.id);
   const ouvintes = new Set<Ouvinte>();
@@ -135,6 +137,19 @@ function criar() {
     return consulta;
   }
 
+  // Imita select().in('liga_id', ids) de competicoes e select().in().order().order() de classificacao.
+  function consultaPorLiga<T extends { liga_id: number }>(linhas: T[]) {
+    let ids: number[] = [];
+    const consulta = {
+      select: () => consulta,
+      in: (_coluna: string, valores: number[]) => ((ids = valores), consulta),
+      order: () => consulta,
+      then: (resolver: (r: unknown) => unknown, rejeitar?: (e: unknown) => unknown) =>
+        Promise.resolve(ok(sessao ? linhas.filter((l) => ids.includes(l.liga_id)) : [])).then(resolver, rejeitar),
+    };
+    return consulta;
+  }
+
   const padroes = {
     onAuthStateChange: (cb: Ouvinte) => {
       ouvintes.add(cb);
@@ -182,6 +197,8 @@ function criar() {
     for (const [k, impl] of Object.entries(padroes)) auth[k as keyof typeof padroes].mockReset().mockImplementation(impl);
     assinaturas.length = 0;
     partidas.length = 0;
+    competicoes.length = 0;
+    tabelas.length = 0;
     rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number }) => {
       if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
       if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais, args!.limite));
@@ -189,7 +206,15 @@ function criar() {
       return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id));
     });
     from.mockReset().mockImplementation((tabela: string) =>
-      tabela === 'assinaturas' ? consultaAssinaturas() : tabela === 'partidas' ? consultaPartidas() : tabela === 'paises' || tabela === 'clubes' ? consultaCatalogo(tabela) : consultaPerfis(),
+      tabela === 'assinaturas'
+        ? consultaAssinaturas()
+        : tabela === 'partidas'
+          ? consultaPartidas()
+          : tabela === 'competicoes'
+            ? consultaPorLiga(competicoes)
+            : tabela === 'classificacao'
+              ? consultaPorLiga(tabelas)
+              : tabela === 'paises' || tabela === 'clubes' ? consultaCatalogo(tabela) : consultaPerfis(),
     );
     invoke.mockReset().mockImplementation(invocarPadrao);
     setManterConectado.mockReset();
@@ -210,6 +235,11 @@ function criar() {
     assinaturas: () => assinaturas,
     /** Grava um jogo como a sincronização com a BSD faria; altere o objeto para simular o placar mudando. */
     adicionarPartida: (partida: Partida) => (partidas.push(partida), partida),
+    /** Formato/fases (competicoes) e linhas de classificação, como a sincronização com a BSD gravaria. */
+    adicionarCompeticoes: (novas: CompeticaoRow[], linhas: ClassificacaoRow[] = []) => {
+      competicoes.push(...novas);
+      tabelas.push(...linhas);
+    },
     /** Cria a sessão; antes do render vira a sessão salva, depois dispara SIGNED_IN como o Supabase. */
     logar(perfil: Perfil, email = EMAIL_PADRAO) {
       perfis.set(perfil.id, perfil);

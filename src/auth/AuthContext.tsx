@@ -5,11 +5,11 @@ import type { ClubeRow, Pais, Perfil, PerfilUpdate } from '../lib/database.types
 
 /** O perfil com o clube e o país já resolvidos no catálogo (embed do PostgREST). */
 export type PerfilCompleto = Perfil & {
-  clube: Pick<ClubeRow, 'id' | 'nome' | 'nome_curto'> | null;
+  clube: Pick<ClubeRow, 'id' | 'nome' | 'nome_curto' | 'liga_id'> | null;
   pais_dados: Pick<Pais, 'nome' | 'bandeira'> | null;
 };
 
-const COLUNAS_PERFIL = '*, clube:clubes(id, nome, nome_curto), pais_dados:paises(nome, bandeira)';
+const COLUNAS_PERFIL = '*, clube:clubes(id, nome, nome_curto, liga_id), pais_dados:paises(nome, bandeira)';
 
 type Auth = {
   /** Enquanto a sessão salva é lida ou o perfil do usuário logado é buscado. */

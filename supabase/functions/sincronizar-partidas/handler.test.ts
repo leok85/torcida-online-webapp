@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  competicaoDe,
+  formatoDaCompeticao,
   golsDe,
   linhasDaClassificacao,
   MAX_INCIDENTES,
+  nomeDaFase,
+  nomeDaZona,
   periodoDe,
   sincronizar,
   type Banco,
@@ -10,6 +14,7 @@ import {
   type ClassificacaoBsd,
   type EventoBsd,
   type IncidenteBsd,
+  type Competicao,
   type LinhaDaClassificacao,
   type Partida,
   type PartidaSalva,
@@ -36,7 +41,7 @@ const evento = (campos: Partial<EventoBsd> = {}): EventoBsd => ({
 
 const gol = (campos: Partial<IncidenteBsd> = {}): IncidenteBsd => ({ type: 'goal', minute: 16, player: 'A. Barboza', is_home: true, goal_type: 'regular', ...campos });
 
-function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[], salvas = new Map<number, PartidaSalva>(), idsAoVivo = [] as number[], finais = new Map<number, EventoBsd>(), incidentes = [gol()] as IncidenteBsd[], naJanela = true, tabelas = new Map<number, ClassificacaoBsd>(), ligasRecentes = [] as number[] } = {}) {
+function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[], salvas = new Map<number, PartidaSalva>(), idsAoVivo = [] as number[], finais = new Map<number, EventoBsd>(), incidentes = [gol()] as IncidenteBsd[], naJanela = true, tabelas = new Map<number, ClassificacaoBsd>(), ligasRecentes = [] as number[], torcedores = [] as number[], copas = [] as number[], doTime = new Map<number, EventoBsd[]>() } = {}) {
   const bsd = {
     aoVivo: vi.fn(async () => [...aoVivo]),
     eventos: vi.fn(async (_de: string, _ate: string) => [...agenda]),
@@ -48,7 +53,11 @@ function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[]
       if (!tabela) throw new Error('BSD 404');
       return tabela;
     }),
+    eventosDoTime: vi.fn(async (time: number, _de: string) => doTime.get(time) ?? []),
   } satisfies Bsd;
+  const salvarCompeticao = vi.fn(async (_c: Competicao) => {});
+  const clubesComTorcedores = vi.fn(async () => torcedores);
+  const competicoesDosClubes = vi.fn(async (_clubes: number[], _desde: Date) => copas);
   const salvarClassificacao = vi.fn(async (_liga: number, _linhas: LinhaDaClassificacao[]) => {});
   const ligasComJogoDesde = vi.fn(async (_desde: Date) => ligasRecentes);
   const salvar = vi.fn(async (_p: Partida[]) => {});
@@ -64,9 +73,12 @@ function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[]
     salvar,
     ligasComJogoDesde,
     salvarClassificacao,
+    salvarCompeticao,
+    clubesComTorcedores,
+    competicoesDosClubes,
   };
   const salvasNaChamada = () => salvar.mock.calls.at(-1)?.[0] ?? [];
-  return { bsd, banco, salvar, haJogoNaJanela, salvasNaChamada, salvarClassificacao, ligasComJogoDesde };
+  return { bsd, banco, salvar, haJogoNaJanela, salvasNaChamada, salvarClassificacao, ligasComJogoDesde, salvarCompeticao, competicoesDosClubes };
 }
 
 const pedido = (corpo: object = { modo: 'ao_vivo' }, segredo = 'segredo-cron') =>
@@ -102,6 +114,13 @@ describe('sincronizar-partidas', () => {
         gols_mandante: 1,
         gols_visitante: 0,
         gols: [{ jogador: 'A. Barboza', minuto: '16', mandante: true, contra: false, penalti: false }],
+        temporada_id: null,
+        fase: null,
+        fase_nome: null,
+        grupo: null,
+        jogo_de_ida: null,
+        penaltis_mandante: null,
+        penaltis_visitante: null,
         atualizado_em: AGORA.toISOString(),
       },
     ]);
@@ -230,25 +249,61 @@ describe('sincronizar-partidas', () => {
 });
 
 describe('sincronizar-partidas · classificação', () => {
-  const linha = (position: number, team_id: number, pts: number) => ({ position, team_id, played: 30, won: 10, drawn: 5, lost: 15, gf: 40, ga: 45, pts, form: 'WDLWW' });
+  const linha = (position: number, team_id: number, pts: number) => ({ position, team_id, team_name: `Time ${team_id}`, played: 30, won: 10, drawn: 5, lost: 15, gf: 40, ga: 45, pts, form: 'WDLWW' });
 
-  it('atualiza só as ligas do catálogo com jogo nas últimas 6 h', async () => {
-    const m = montar({ ligasRecentes: [9, 384], tabelas: new Map([[9, { standings: [linha(1, 160, 60), linha(2, 162, 58)] }]]) });
+  it('atualiza as competições com jogo nas últimas 6 h, inclusive copas fora do catálogo', async () => {
+    const m = montar({ ligasRecentes: [9, 32], tabelas: new Map([[9, { standings: [linha(1, 160, 60), linha(2, 162, 58)] }], [32, { groups: { 'Group F': [linha(2, 162, 11)] } }]]) });
     const resposta = await rodar(m, pedido({ modo: 'classificacao' }));
-    expect(await resposta.json()).toEqual({ ok: true, modo: 'classificacao', ligas: 1, linhas: 2, falhas: [] });
+    expect(await resposta.json()).toEqual({ ok: true, modo: 'classificacao', ligas: 2, linhas: 3, falhas: [] });
     expect(m.ligasComJogoDesde).toHaveBeenCalledWith(new Date('2026-10-11T15:00:00Z'));
-    expect(m.bsd.classificacao).toHaveBeenCalledTimes(1);
+    expect(m.salvarClassificacao).toHaveBeenCalledWith(32, [expect.objectContaining({ grupo: 'Grupo F', clube_id: 162, clube_nome: 'Palmeiras' })]);
     expect(m.salvarClassificacao).toHaveBeenCalledWith(9, [
-      expect.objectContaining({ liga_id: 9, grupo: '', clube_id: 160, posicao: 1, pontos: 60, jogos: 30, gols_pro: 40, gols_contra: 45, forma: 'WDLWW' }),
+      expect.objectContaining({ liga_id: 9, grupo: '', clube_id: 160, clube_nome: 'Flamengo', posicao: 1, pontos: 60, jogos: 30, gols_pro: 40, gols_contra: 45, forma: 'WDLWW' }),
       expect.objectContaining({ clube_id: 162, posicao: 2 }),
     ]);
   });
 
-  it('com "todas", passa por todas as ligas do catálogo e segue quando uma falha', async () => {
-    const m = montar({ tabelas: new Map([[34, { standings: [linha(1, 809, 70)] }]]) });
+  it('com "todas", passa pelas ligas do catálogo e pelas copas dos clubes com torcedores, e segue quando uma falha', async () => {
+    const m = montar({ torcedores: [162], copas: [32, 9], tabelas: new Map([[34, { standings: [linha(1, 809, 70)] }], [32, { standings: [] }]]) });
     const corpo = await (await rodar(m, pedido({ modo: 'classificacao', todas: true }))).json();
-    expect(corpo).toEqual({ ok: true, modo: 'classificacao', ligas: 2, linhas: 1, falhas: [9] });
+    expect(corpo).toEqual({ ok: true, modo: 'classificacao', ligas: 3, linhas: 1, falhas: [9] });
+    expect(m.competicoesDosClubes).toHaveBeenCalledWith([162], new Date('2025-11-15T21:00:00Z'));
     expect(m.ligasComJogoDesde).not.toHaveBeenCalled();
+    // Copa fora do catálogo pega o nome na BSD.
+    expect(m.bsd.nomeDaLiga).toHaveBeenCalledWith(32);
+  });
+
+  it('guarda o formato e as fases da competição', async () => {
+    const libertadores: ClassificacaoBsd = {
+      season: {
+        id: 96,
+        name: 'CONMEBOL Libertadores 2026',
+        start_date: '2026-01-01',
+        end_date: '2026-12-31',
+        stages: [
+          { stage: 'group-stage', stage_name: 'Group stage', rounds: 6, start_date: '2026-04-07', end_date: '2026-05-29' },
+          { stage: 'quarterfinals', stage_name: 'Quarterfinals', rounds: 1, start_date: '2026-09-08', end_date: '2026-09-18' },
+        ],
+      },
+      groups: { 'Group F': [{ ...linha(2, 162, 11), zone: { label: 'Playoffs', type: 'playoff' } }] },
+    };
+    const m = montar({ ligasRecentes: [32], tabelas: new Map([[32, libertadores]]) });
+    await rodar(m, pedido({ modo: 'classificacao' }));
+    expect(m.salvarCompeticao).toHaveBeenCalledWith({
+      liga_id: 32,
+      nome: 'Copa Libertadores',
+      temporada_id: 96,
+      temporada: 'CONMEBOL Libertadores 2026',
+      inicio: '2026-01-01',
+      fim: '2026-12-31',
+      formato: 'grupos_mata_mata',
+      fases: [
+        { fase: 'group-stage', nome: 'Fase de grupos', rodadas: 6, inicio: '2026-04-07', fim: '2026-05-29' },
+        { fase: 'quarterfinals', nome: 'Quartas de final', rodadas: 1, inicio: '2026-09-08', fim: '2026-09-18' },
+      ],
+      atualizado_em: AGORA.toISOString(),
+    });
+    expect(m.salvarClassificacao).toHaveBeenCalledWith(32, [expect.objectContaining({ grupo: 'Grupo F', zona: 'Classificação', zona_tipo: 'playoff' })]);
   });
 
   it('liga sem tabela não apaga a que já existe', async () => {
@@ -258,11 +313,89 @@ describe('sincronizar-partidas · classificação', () => {
   });
 
   it('ligas com grupos guardam o grupo de cada linha', () => {
-    const linhas = linhasDaClassificacao(18, { groups: { Leste: [linha(1, 293, 50)], Oeste: [linha(1, 278, 51)] } }, AGORA);
-    expect(linhas.map((l) => [l.grupo, l.clube_id, l.posicao])).toEqual([
-      ['Leste', 293, 1],
-      ['Oeste', 278, 1],
+    const linhas = linhasDaClassificacao(18, { groups: { 'Group A': [linha(1, 293, 50)], Oeste: [linha(1, 278, 51)] } }, AGORA);
+    // Time fora do catálogo fica com o nome da BSD.
+    expect(linhas.map((l) => [l.grupo, l.clube_id, l.clube_nome, l.posicao])).toEqual([
+      ['Grupo A', 293, 'Time 293', 1],
+      ['Oeste', 278, 'Time 278', 1],
     ]);
+  });
+});
+
+describe('sincronizar-partidas · temporada e fases', () => {
+  it('busca a temporada de cada clube com torcedores e grava fase, grupo, ida e pênaltis', async () => {
+    const volta = evento({
+      id: 600964,
+      status: 'finished',
+      league_id: 32,
+      season_id: 96,
+      stage: 'quarterfinals',
+      stage_name: 'Quarterfinals',
+      group_name: null,
+      previous_leg_event_id: 599509,
+      penalty_shootout: { home: 3, away: 4 },
+      home_team_id: 778,
+      home_team: 'LDU',
+      away_team_id: 162,
+      away_team: 'Palmeiras',
+      home_score: 3,
+      away_score: 2,
+    });
+    const grupo = evento({ id: 9000, status: 'finished', league_id: 32, stage: 'group-stage', stage_name: 'Group stage', group_name: 'Group F', home_score: 0, away_score: 0 });
+    const m = montar({ aoVivo: [], torcedores: [162], doTime: new Map([[162, [volta, grupo]]]) });
+    const corpo = await (await rodar(m, pedido({ modo: 'temporada' }))).json();
+    expect(corpo).toMatchObject({ ok: true, modo: 'temporada', clubes: 1, salvas: 2, falhas: [] });
+    expect(m.bsd.eventosDoTime).toHaveBeenCalledWith(162, '2025-11-15');
+    const [a, b] = m.salvasNaChamada();
+    expect(a).toMatchObject({ id: 600964, temporada_id: 96, fase: 'quarterfinals', fase_nome: 'Quartas de final', grupo: null, jogo_de_ida: 599509, penaltis_mandante: 3, penaltis_visitante: 4 });
+    expect(b).toMatchObject({ id: 9000, fase: 'group-stage', fase_nome: 'Fase de grupos', grupo: 'Grupo F' });
+  });
+
+  it('a lista ao vivo, que não traz fase, mantém a fase já salva', async () => {
+    const salva: PartidaSalva = {
+      liga_nome: 'Copa Libertadores',
+      gols_mandante: 1,
+      gols_visitante: 0,
+      gols: [{ jogador: 'A. Barboza', minuto: '16', mandante: true, contra: false, penalti: false }],
+      temporada_id: 96,
+      fase: 'semifinals',
+      fase_nome: 'Semifinal',
+      grupo: null,
+      jogo_de_ida: 604436,
+      penaltis_mandante: null,
+      penaltis_visitante: null,
+    };
+    const m = montar({ salvas: new Map([[7290, salva]]) });
+    await rodar(m);
+    expect(m.salvasNaChamada()[0]).toMatchObject({ temporada_id: 96, fase: 'semifinals', fase_nome: 'Semifinal', jogo_de_ida: 604436 });
+  });
+});
+
+describe('fases, zonas e formato', () => {
+  it.each([
+    ['round-of-16', 'Oitavas de final'],
+    ['semifinals', 'Semifinal'],
+    ['qualification-round-2', '2ª fase preliminar'],
+    ['3rd-round', '3ª fase'],
+    ['round-5', '5ª fase'],
+    ['something-new', 'Nome da BSD'],
+  ])('%s → %s', (fase, esperado) => expect(nomeDaFase(fase, 'Nome da BSD')).toBe(esperado));
+
+  it('zonas conhecidas em português', () => {
+    expect(nomeDaZona('Copa Sudamericana')).toBe('Sul-Americana');
+    expect(nomeDaZona('Relegation')).toBe('Rebaixamento');
+    expect(nomeDaZona('Something')).toBe('Something');
+  });
+
+  it('formato pelas fases', () => {
+    expect(formatoDaCompeticao(['regular-season'])).toBe('pontos_corridos');
+    expect(formatoDaCompeticao(['round-of-16', 'quarterfinals', 'semifinals', 'final'])).toBe('mata_mata');
+    expect(formatoDaCompeticao(['qualification-round-1', 'group-stage', 'round-of-16'])).toBe('grupos_mata_mata');
+    expect(formatoDaCompeticao([])).toBe('pontos_corridos');
+  });
+
+  it('sem temporada na resposta, não há competição', () => {
+    expect(competicaoDe(9, 'Brasileirão Série A', { standings: [] }, AGORA)).toBeNull();
   });
 });
 
