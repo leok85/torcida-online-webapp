@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { ApenasAssinante } from '../../assinatura/Bloqueio';
+import { useAuth } from '../../auth/AuthContext';
+import { JogosDoClubeProvider } from '../../partidas/JogosDoClube';
 import { AccountMenu } from './AccountMenu';
 import { Header } from './Header';
 import { InviteModal } from './InviteModal';
@@ -12,6 +14,7 @@ import { Clube } from '../../pages/Clube';
 import { Escalacao } from '../../pages/Escalacao';
 import { Fotos } from '../../pages/Fotos';
 import { Inicio } from '../../pages/Inicio';
+import { Jogos } from '../../pages/Jogos';
 import { Loja } from '../../pages/Loja';
 import { Missoes } from '../../pages/Missoes';
 import { Noticias } from '../../pages/Noticias';
@@ -31,6 +34,7 @@ export function AppShell() {
   const [panel, setPanel] = useState<Panel>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const { pathname } = useLocation();
+  const { perfil } = useAuth();
 
   useEffect(() => setPanel(null), [pathname]);
 
@@ -42,6 +46,7 @@ export function AppShell() {
   const closeInvite = useCallback(() => setInviteOpen(false), []);
 
   return (
+    <JogosDoClubeProvider clubeId={perfil?.time_id ?? null}>
     <div className={styles.app}>
       <Sidebar onInvite={openInvite} />
       <div className={styles.main}>
@@ -54,6 +59,7 @@ export function AppShell() {
         <main className={styles.content}>
           <Routes>
             <Route path="/" element={<Inicio />} />
+            <Route path="/jogos" element={<Jogos />} />
             <Route path="/ao-vivo" element={<AoVivo />} />
             {/* Os mesmos itens marcados como premium em routes.ts. */}
             <Route element={<ApenasAssinante />}>
@@ -84,5 +90,6 @@ export function AppShell() {
       {panel === 'notif' && <NotificationsPanel onClose={() => setPanel(null)} />}
       {inviteOpen && <InviteModal onClose={closeInvite} />}
     </div>
+    </JogosDoClubeProvider>
   );
 }

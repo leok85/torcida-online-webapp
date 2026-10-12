@@ -24,3 +24,25 @@ test('o início mostra o jogo do clube vindo da tabela partidas', async ({ page,
   await expect(jogo.getByText('AO VIVO · 2º T')).toBeVisible();
   await expect(jogo.getByRole('button', { name: /Entrar no chat/ })).toBeVisible();
 });
+
+test('Jogos, pelo menu, lista o ao vivo, os próximos e os resultados do clube', async ({ page, backend }) => {
+  backend.criarUsuario('rafa@example.com', 'Senha#2026', { apelido: 'Rafa_9' }, ONBOARDING_FEITO);
+  backend.partidas.push(
+    partidaDeTeste(),
+    partidaDeTeste({ id: 7279, inicio: '2026-10-09T00:30:00Z', status: 'encerrada', periodo: null, minuto: null, visitante_id: 166, visitante_nome: 'Bahia' }),
+    partidaDeTeste({ id: 7301, inicio: '2026-10-15T00:30:00Z', status: 'agendada', periodo: null, minuto: null, gols_mandante: null, gols_visitante: null, gols: [], visitante_id: 160, visitante_nome: 'Flamengo' }),
+  );
+
+  await page.goto('/entrar');
+  await page.getByLabel('E-mail').fill('rafa@example.com');
+  await page.getByLabel('Senha', { exact: true }).fill('Senha#2026');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  const menu = page.getByRole('navigation');
+  await menu.getByRole('link', { name: 'Jogos, jogo ao vivo' }).click();
+  await expect(page).toHaveURL('/jogos');
+  await expect(menu.getByRole('link', { name: 'Jogos, jogo ao vivo' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('region', { name: 'Jogo ao vivo' })).toContainText('Palmeiras 1 — 0 Corinthians');
+  await expect(page.getByRole('region', { name: 'Próximos' }).getByRole('link')).toHaveAccessibleName(/Palmeiras × Flamengo.*abre no apito final/);
+  await expect(page.getByRole('region', { name: 'Resultados' }).getByRole('link')).toHaveAccessibleName(/^Vitória: Palmeiras 1 — 0 Bahia/);
+});

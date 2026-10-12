@@ -29,7 +29,7 @@ export function Inicio() {
   return (
     <div className={styles.page}>
       <div className={styles.top}>
-        <CardPartida clubeId={perfil?.time_id ?? null} clubeNome={perfil?.clube?.nome ?? 'seu clube'} />
+        <CardPartida clubeNome={perfil?.clube?.nome ?? 'seu clube'} />
 
         <div className={styles.stack}>
           <section className={ui.card}>
