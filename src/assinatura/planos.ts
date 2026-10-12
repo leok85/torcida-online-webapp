@@ -21,7 +21,7 @@ export const anualPorMes = (moeda: Moeda) => Math.round((PRECOS[moeda].anual / 1
 /** O que a assinatura libera, igual nos dois planos (tela Planos e bloqueios). */
 export const BENEFICIOS = [
   { icone: 'bolt', titulo: 'XP e nível', texto: 'Palpites, missões e presença contam a cada rodada.' },
-  { icone: 'monetization_on', titulo: 'Moedas que viram dinheiro', texto: '100 moedas = R$ 1,00, via Pix, a partir de 500.' },
+  { icone: 'monetization_on', titulo: 'Moedas para a loja', texto: 'Troque por produtos oficiais e prêmios do clube.' },
   { icone: 'emoji_events', titulo: 'Prêmios reais', texto: 'Pacotes semanais, sorteios e itens da loja da torcida.' },
   { icone: 'forum', titulo: 'Chat e fotos ao vivo', texto: 'A torcida reunida durante os 90 minutos.' },
   { icone: 'how_to_reg', titulo: 'Palpites e MVP', texto: 'Placar antes do apito e notas para cada jogador.' },
