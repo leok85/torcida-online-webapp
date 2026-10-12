@@ -74,6 +74,9 @@ const agora = () => new Date().toISOString();
 export class BackendFalso {
   readonly usuarios = new Map<string, Usuario>();
   readonly perfis = new Map<string, Perfil>();
+  /** Minha assinatura: e-mail de cobrança trocado e o código pendente de cada torcedor. */
+  readonly emailDeCobranca = new Map<string, string>();
+  readonly codigosDeCobranca = new Map<string, { email: string; codigo: string }>();
   readonly emails: Email[] = [];
   readonly assinaturas: Assinatura[] = [];
   /** Jogos como a sincronização com a BSD gravaria (tabela partidas). */
@@ -118,6 +121,11 @@ export class BackendFalso {
   }
 
   /** Grava uma assinatura como o webhook do Stripe ou do RevenueCat faria. */
+  /** O código que "chegou" no e-mail de cobrança novo. */
+  codigoDeCobranca(email: string) {
+    return [...this.codigosDeCobranca.values()].find((c) => c.email === email)?.codigo ?? '';
+  }
+
   assinar(email: string, campos: Partial<Assinatura> = {}) {
     const usuario = this.porEmail(email);
     if (!usuario) throw new Error(`Usuário ${email} não existe`);
@@ -338,22 +346,60 @@ export class BackendFalso {
       return json(200, { ok: true, exclui_em });
     }
     if (nome === 'gerenciar-assinatura') {
-      if (corpo.acao === 'portal') return json(200, { url: 'https://billing.stripe.com/p/session/e2e' });
       if (corpo.acao === 'resumo') {
         const doWeb = this.assinaturas.find((a) => a.usuario_id === usuario.id && a.origem === 'web');
         if (!doWeb) return json(200, { email: null, plano: null, pagamento: null, cobrancas: [] });
         const anual = doWeb.plano === 'anual';
         return json(200, {
-          email: usuario.email,
+          email: this.emailDeCobranca.get(usuario.id) ?? usuario.email,
           plano: { valor: anual ? 149 : 14.9, moeda: 'BRL', intervalo: anual ? 'ano' : 'mes' },
           pagamento: { tipo: 'cartao', bandeira: 'Visa', final: '4242', expira: '08/2029' },
           cobrancas: [{ data: doWeb.criado_em, descricao: `Plano ${doWeb.plano} · cartão •••• 4242`, valor: anual ? 149 : 14.9, moeda: 'BRL', recibo: null }],
         });
       }
+      // E-mail de cobrança: o código "enviado" fica guardado para o teste ler (ultimoCodigoDeCobranca).
+      if (corpo.acao === 'email-da-conta') {
+        this.emailDeCobranca.delete(usuario.id);
+        return json(200, { email: usuario.email });
+      }
+      if (corpo.acao === 'codigo-email') {
+        const email = String(corpo.email ?? '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(400, { erro: 'email_invalido' });
+        this.codigosDeCobranca.set(usuario.id, { email, codigo: String(100000 + this.codigosDeCobranca.size) });
+        return json(200, { ok: true });
+      }
+      if (corpo.acao === 'confirmar-email') {
+        const pendente = this.codigosDeCobranca.get(usuario.id);
+        if (!pendente) return json(410, { erro: 'codigo_expirado' });
+        if (corpo.codigo !== pendente.codigo) return json(400, { erro: 'codigo_invalido' });
+        this.emailDeCobranca.set(usuario.id, pendente.email);
+        this.codigosDeCobranca.delete(usuario.id);
+        return json(200, { email: pendente.email });
+      }
       const web = this.assinaturas.find((a) => a.usuario_id === usuario.id && a.origem === 'web' && ['ativa', 'cancelada', 'atrasada'].includes(a.status));
-      if (!web || !['cancelar', 'reativar'].includes(corpo.acao)) return json(404, { erro: 'sem_assinatura_web' });
-      web.status = corpo.acao === 'cancelar' ? 'cancelada' : 'ativa';
-      return json(200, { status: web.status, expira_em: web.expira_em });
+      if (!web) return json(404, { erro: 'sem_assinatura_web' });
+      if (corpo.acao === 'cancelar' || corpo.acao === 'reativar') {
+        web.status = corpo.acao === 'cancelar' ? 'cancelada' : 'ativa';
+        return json(200, { status: web.status, expira_em: web.expira_em });
+      }
+      if (corpo.acao === 'previa-troca' || corpo.acao === 'trocar-plano') {
+        if (web.status !== 'ativa') return json(409, { erro: 'assinatura_nao_ativa' });
+        if (corpo.plano === web.plano) return json(409, { erro: 'mesmo_plano' });
+        const anual = corpo.plano === 'anual';
+        if (corpo.acao === 'previa-troca') {
+          return json(
+            200,
+            anual
+              ? { plano: 'anual', valor: 149, credito: 7.45, total: 141.55, moeda: 'BRL', renova_em: '2027-10-12T12:00:00.000Z' }
+              : { plano: 'mensal', valor: 14.9, credito: 74.5, total: 0, moeda: 'BRL', renova_em: '2026-11-12T12:00:00.000Z' },
+          );
+        }
+        web.plano = anual ? 'anual' : 'mensal';
+        return json(200, { plano: web.plano, status: web.status, expira_em: web.expira_em });
+      }
+      if (corpo.acao === 'sessao-cartao') return json(200, { clientSecret: 'cs_setup_e2e_secret' });
+      if (corpo.acao === 'definir-cartao') return json(200, { status: web.status });
+      return json(400, { erro: 'acao_invalida' });
     }
     return json(404, { erro: `Função falsa não implementada: ${nome}` });
   }

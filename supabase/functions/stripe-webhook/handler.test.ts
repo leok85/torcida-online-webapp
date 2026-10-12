@@ -59,6 +59,21 @@ describe('stripe-webhook', () => {
     expect(f.assinaturas[0]).toMatchObject({ status: 'expirada', expira_em: new Date(1_800_000_000_000).toISOString() });
   });
 
+  it('cartão novo cadastrado em Minha assinatura (Checkout em modo setup) passa a ser o da assinatura', async () => {
+    const f = cenario();
+    const sessao = { id: 'cs_test_cartao', mode: 'setup', customer: 'cus_1', metadata: { assinatura: 'sub_1' } };
+    const resposta = await stripeWebhook(chamada(evento('checkout.session.completed', sessao)), verificar, f.banco, f.pagamentos);
+    expect(resposta.status).toBe(200);
+    expect(f.pagamentos.definirCartao).toHaveBeenCalledWith('cus_1', 'cs_test_cartao', 'sub_1');
+    expect(f.assinaturas[0]).toMatchObject({ id_externo: 'sub_1', status: 'ativa' });
+  });
+
+  it('checkout de assinatura concluído não mexe em cartão (a assinatura chega pelos eventos dela)', async () => {
+    const f = cenario();
+    await stripeWebhook(chamada(evento('checkout.session.completed', { id: 'cs_1', mode: 'subscription', customer: 'cus_1' })), verificar, f.banco, f.pagamentos);
+    expect(f.pagamentos.definirCartao).not.toHaveBeenCalled();
+  });
+
   it('o mesmo evento repetido não duplica a assinatura', async () => {
     const f = cenario();
     for (let i = 0; i < 2; i++) await stripeWebhook(chamada(evento('invoice.paid', { id: 'in_1', subscription: 'sub_1' })), verificar, f.banco, f.pagamentos);

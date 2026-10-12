@@ -140,11 +140,17 @@ describe('planos (/assinar)', () => {
     await waitFor(() => expect(local()).toBe('/'));
   });
 
-  it('quem já é membro vai direto para Minha assinatura', async () => {
-    membro();
+  it('quem assinou pela loja vai direto para Minha assinatura (troca de plano fica na loja)', async () => {
+    membro({ origem: 'apple' });
     const { local } = renderApp('/assinar');
     expect(await screen.findByRole('heading', { name: 'Minha assinatura' })).toBeInTheDocument();
     expect(local()).toBe('/conta/assinatura');
+  });
+
+  it('assinatura cancelada não troca de plano: volta para Minha assinatura', async () => {
+    membro({ status: 'cancelada' });
+    const { local } = renderApp('/assinar?plano=mensal');
+    await waitFor(() => expect(local()).toBe('/conta/assinatura'));
   });
 });
 

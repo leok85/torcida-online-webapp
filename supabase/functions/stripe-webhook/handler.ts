@@ -45,6 +45,17 @@ export async function stripeWebhook(req: Request, verificar: VerificarEvento, ba
     return resposta(400, { erro: 'assinatura_invalida' });
   }
 
+  // Cartão novo cadastrado em Minha assinatura (Checkout em modo setup): passa a ser o da assinatura.
+  // A tela também faz isso ao concluir; repetir é inofensivo.
+  if (evento.type === 'checkout.session.completed' && evento.data.object.mode === 'setup') {
+    const sessao = evento.data.object as { id: string; customer?: unknown; metadata?: { assinatura?: unknown } | null };
+    const assinaturaId = sessao.metadata?.assinatura;
+    if (typeof sessao.customer !== 'string' || typeof assinaturaId !== 'string') return resposta(200, { ignorado: 'sessao_sem_assinatura' });
+    await pagamentos.definirCartao(sessao.customer, sessao.id, assinaturaId);
+    const linha = await sincronizarAssinatura(assinaturaId, banco, pagamentos);
+    return resposta(200, linha ? { status: linha.status } : { ignorado: 'cliente_desconhecido' });
+  }
+
   const id = assinaturaDoEvento(evento);
   if (!id) return resposta(200, { ignorado: evento.type });
 

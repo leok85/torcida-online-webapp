@@ -123,6 +123,19 @@
   background: #f8fbff;
 }
 
+/* Quem já é membro: o plano atual fica visível, mas não dá para escolher. */
+.planoAtual,
+.planoAtual:hover {
+  border-color: var(--line);
+  background: var(--bg);
+  cursor: default;
+}
+
+.tag.tagAtual {
+  background: var(--soft);
+  color: var(--ink-2);
+}
+
 .nomeLinha {
   display: flex;
   align-items: center;
@@ -488,6 +501,61 @@
 .renovacao > :first-child {
   flex: none;
   color: var(--muted);
+}
+
+/* Troca de plano: o cartão que a assinatura já usa (mesma linha da W18) */
+.cartaoAtual {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #e8edf3;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.cartaoAtual > :first-child {
+  flex: none;
+  color: var(--ink-2);
+}
+
+.cartaoAtualTextos {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13.5px;
+}
+
+.cartaoAtualTextos strong {
+  font-weight: 800;
+}
+
+.cartaoAtualTextos span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cartaoAtualLink {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.cartaoAtualLink:hover {
+  text-decoration: none;
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .resumoTopo {

@@ -1,23 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { chamarFuncao } from '../../assinatura/funcoes';
+import { buscarAssinatura, buscarResumo, emAndamento, type ResumoDaCobranca } from '../../assinatura/minha';
 import { anualPorMes, formatarPreco, PRECOS, type Moeda } from '../../assinatura/planos';
 import { useAuth } from '../../auth/AuthContext';
 import { Alert } from '../../components/form/Alert';
+import { CodeInput } from '../../components/form/CodeInput';
 import { Button } from '../../components/form/Button';
 import { Icon } from '../../components/ui/Icon';
 import { Carregando, Skeleton } from '../../components/ui/Skeleton';
 import type { Assinatura } from '../../lib/database.types';
-import { supabase } from '../../lib/supabase';
 import styles from './MinhaAssinatura.module.css';
-
-/** O que a ação "resumo" de gerenciar-assinatura devolve (dados de cobrança do Stripe). */
-export type ResumoDaCobranca = {
-  email: string | null;
-  plano: { valor: number; moeda: string; intervalo: 'ano' | 'mes' } | null;
-  pagamento: { tipo: 'cartao'; bandeira: string; final: string; expira: string } | { tipo: 'pix' } | { tipo: 'outro'; nome: string } | null;
-  cobrancas: { data: string; descricao: string; valor: number; moeda: string; recibo: string | null }[];
-};
 
 type Carga<T> = { tipo: 'carregando' } | { tipo: 'erro' } | { tipo: 'pronto'; dados: T };
 
@@ -43,10 +36,6 @@ const BENEFICIOS = [
 const data = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '');
 const preco = (valor: number, moeda: string) => formatarPreco(valor, (['BRL', 'USD', 'EUR'].includes(moeda) ? moeda : MOEDA) as Moeda);
 
-/** Dá acesso: ativa, atrasada ou cancelada ainda no prazo, ou aguardando o primeiro pagamento. */
-const emAndamento = (a: Assinatura | null) =>
-  !!a && (a.status === 'pendente' || (['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date()));
-
 function useCarga<T>(carregar: () => Promise<T>, versao: number) {
   const [estado, setEstado] = useState<Carga<T>>({ tipo: 'carregando' });
   useEffect(() => {
@@ -64,25 +53,51 @@ function useCarga<T>(carregar: () => Promise<T>, versao: number) {
   return estado;
 }
 
-async function buscarAssinatura() {
-  const { data: assinatura, error } = await supabase.from('assinaturas').select('*').order('criado_em', { ascending: false }).limit(1).maybeSingle();
-  if (error) throw error;
-  return assinatura;
-}
-
-async function buscarResumo() {
-  const r = await chamarFuncao<ResumoDaCobranca>('gerenciar-assinatura', { acao: 'resumo' });
-  if (!r.ok) throw new Error(r.erro);
-  return r.dados;
-}
-
 /** W18 · Minha assinatura: a mais recente do torcedor (web, App Store ou Google Play) e as cobranças do web app. */
 export function MinhaAssinatura() {
   const { atualizarAssinante } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [params] = useSearchParams();
   const [versao, setVersao] = useState(0);
   const assinatura = useCarga(buscarAssinatura, versao);
   const resumo = useCarga(buscarResumo, versao);
   const recarregar = () => setVersao((v) => v + 1);
+  // Aviso rápido no rodapé da tela (W18): troca de e-mail, de plano ou de cartão.
+  const [aviso, setAviso] = useState<string | null>(null);
+  const avisar = (texto: string) => setAviso(texto);
+  // Aviso trazido de outra tela (troca de plano, cartão novo); sai do histórico para não repetir ao recarregar.
+  const avisoDaNavegacao = (location.state as { aviso?: string } | null)?.aviso;
+  useEffect(() => {
+    if (!avisoDaNavegacao) return;
+    setAviso(avisoDaNavegacao);
+    recarregar();
+    navigate(location.pathname + location.search, { replace: true, state: null });
+    // Só quando chega um aviso novo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+  useEffect(() => {
+    if (!aviso) return;
+    const t = setTimeout(() => setAviso(null), 2200);
+    return () => clearTimeout(t);
+  }, [aviso]);
+
+  // Volta do formulário de cartão quando o banco pede confirmação fora da página (?cartao=<sessão>).
+  const sessaoDeCartao = params.get('cartao');
+  const tratouSessao = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sessaoDeCartao || tratouSessao.current === sessaoDeCartao) return;
+    tratouSessao.current = sessaoDeCartao;
+    navigate('/conta/assinatura', { replace: true });
+    chamarFuncao('gerenciar-assinatura', { acao: 'definir-cartao', sessao: sessaoDeCartao }).then(async (r) => {
+      if (!r.ok) return;
+      await atualizarAssinante();
+      recarregar();
+      setAviso('Cartão atualizado');
+    });
+    // recarregar e atualizarAssinante não mudam o que esta tela pede.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessaoDeCartao]);
 
   return (
     <div className={styles.page}>
@@ -115,6 +130,7 @@ export function MinhaAssinatura() {
                 await atualizarAssinante();
                 recarregar();
               }}
+              onAviso={avisar}
             />
           ) : (
             <SemAssinatura expirada={!!assinatura.dados} />
@@ -136,6 +152,12 @@ export function MinhaAssinatura() {
             )}
             <Cobrancas resumo={resumo} onTentarDeNovo={recarregar} mostrarNotaDaLoja={emAndamento(assinatura.dados)} />
           </div>
+        </div>
+      )}
+      {aviso && (
+        <div className={styles.toast} role="status">
+          <Icon name="check_circle" size={19} />
+          {aviso}
         </div>
       )}
     </div>
@@ -181,12 +203,14 @@ function SemAssinatura({ expirada }: { expirada: boolean }) {
   );
 }
 
-function ComAssinatura({ assinatura: a, resumo, onMudou }: { assinatura: Assinatura; resumo: ResumoDaCobranca | null; onMudou: () => Promise<void> }) {
-  const { sessao } = useAuth();
+type ComAssinaturaProps = { assinatura: Assinatura; resumo: ResumoDaCobranca | null; onMudou: () => Promise<void>; onAviso: (texto: string) => void };
+
+function ComAssinatura({ assinatura: a, resumo, onMudou, onAviso }: ComAssinaturaProps) {
+  const navigate = useNavigate();
   const status = STATUS[a.status] ?? STATUS.ativa;
   const loja = LOJA[a.origem];
   const web = a.origem === 'web';
-  const [enviando, setEnviando] = useState<'portal' | 'reativar' | null>(null);
+  const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState(false);
 
   const valor = resumo?.plano ? preco(resumo.plano.valor, resumo.plano.moeda) : formatarPreco(PRECOS[MOEDA][a.plano === 'mensal' ? 'mensal' : 'anual'], MOEDA);
@@ -201,16 +225,18 @@ function ComAssinatura({ assinatura: a, resumo, onMudou }: { assinatura: Assinat
           : `renova em ${data(a.expira_em)}`;
   const detalhe = web ? `${valor} ${periodo} · ${quando}` : `pela ${loja} · ${quando}`;
 
-  const agir = async (acao: 'portal' | 'reativar') => {
-    setEnviando(acao);
+  const reativar = async () => {
+    setEnviando(true);
     setErro(false);
-    const r = await chamarFuncao<{ url?: string }>('gerenciar-assinatura', { acao });
-    if (r.ok && acao === 'portal' && r.dados.url) return window.location.assign(r.dados.url);
-    setEnviando(null);
+    const r = await chamarFuncao('gerenciar-assinatura', { acao: 'reativar' });
+    setEnviando(false);
     if (!r.ok) return setErro(true);
     await onMudou();
   };
-  const portal = () => agir('portal');
+  // Como no design: trocar de plano passa pela tela de planos, e o cartão novo pela de pagamento.
+  const outroPlano = a.plano === 'anual' ? 'mensal' : 'anual';
+  const trocarPlano = () => navigate(`/assinar?plano=${outroPlano}`);
+  const atualizarCartao = () => navigate('/assinar/pagamento?metodo=cartao');
 
   const pagamento = resumo?.pagamento;
 
@@ -228,7 +254,7 @@ function ComAssinatura({ assinatura: a, resumo, onMudou }: { assinatura: Assinat
           <p className={styles.planoDetalhe}>{detalhe}</p>
         </div>
         {web && a.status === 'ativa' && (
-          <button type="button" className={styles.trocarPlano} onClick={portal} disabled={enviando !== null}>
+          <button type="button" className={styles.trocarPlano} onClick={trocarPlano}>
             Trocar de plano
           </button>
         )}
@@ -243,24 +269,13 @@ function ComAssinatura({ assinatura: a, resumo, onMudou }: { assinatura: Assinat
             </div>
             <div className={styles.itemSub}>{pagamento.tipo === 'cartao' ? `${pagamento.bandeira} · expira ${pagamento.expira}` : 'pago a cada renovação'}</div>
           </div>
-          <button type="button" className={styles.linkAcao} onClick={portal} disabled={enviando !== null} aria-label="Atualizar forma de pagamento">
+          <button type="button" className={styles.botaoBorda} onClick={atualizarCartao} aria-label="Atualizar forma de pagamento">
             Atualizar
           </button>
         </div>
       )}
 
-      {web && (
-        <div className={styles.item}>
-          <Icon name="mail" size={21} />
-          <div className={styles.itemTextos}>
-            <div className={styles.itemTitulo}>Avisos de cobrança</div>
-            <div className={styles.itemSub}>{resumo?.email ?? sessao?.user.email}</div>
-          </div>
-          <button type="button" className={styles.linkAcao} onClick={portal} disabled={enviando !== null} aria-label="Trocar e-mail de cobrança">
-            Trocar
-          </button>
-        </div>
-      )}
+      {web && <EmailDeCobranca email={resumo?.email ?? null} onTrocou={onMudou} onAviso={onAviso} />}
 
       {erro && (
         <div className={styles.erro} style={{ paddingTop: 18 }}>
@@ -283,14 +298,14 @@ function ComAssinatura({ assinatura: a, resumo, onMudou }: { assinatura: Assinat
         ) : a.status === 'cancelada' ? (
           <>
             <p className={styles.rodapeTexto}>Sua assinatura não renova. Tudo continua liberado até {data(a.expira_em)}.</p>
-            <button type="button" className={styles.reativar} onClick={() => agir('reativar')} disabled={enviando !== null} aria-busy={enviando === 'reativar' || undefined}>
+            <button type="button" className={styles.reativar} onClick={reativar} disabled={enviando} aria-busy={enviando || undefined}>
               Reativar assinatura
             </button>
           </>
         ) : a.status === 'atrasada' ? (
           <>
             <p className={styles.rodapeAlerta}>A última cobrança não passou. Atualize o cartão para não perder o acesso.</p>
-            <button type="button" className={styles.reativar} onClick={portal} disabled={enviando !== null}>
+            <button type="button" className={styles.reativar} onClick={atualizarCartao}>
               Atualizar cartão
             </button>
           </>
@@ -299,6 +314,186 @@ function ComAssinatura({ assinatura: a, resumo, onMudou }: { assinatura: Assinat
         )}
       </div>
     </section>
+  );
+}
+
+type EtapaDoEmail = 'ver' | 'editar' | 'codigo';
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ERROS_DO_EMAIL: Record<string, string> = {
+  codigo_invalido: 'Código incorreto. Confira o e-mail e tente de novo.',
+  codigo_expirado: 'O código expirou. Peça um novo em Reenviar.',
+  muitas_tentativas: 'Muitas tentativas. Peça um novo código em Reenviar.',
+  email_invalido: 'Confira o formato do e-mail.',
+  email_indisponivel: 'O envio de e-mails está fora do ar. Tente mais tarde.',
+};
+
+/** W18 · onde receber os avisos de cobrança: o e-mail da conta ou outro, confirmado por código. */
+function EmailDeCobranca({ email, onTrocou, onAviso }: { email: string | null; onTrocou: () => Promise<void>; onAviso: (texto: string) => void }) {
+  const { sessao } = useAuth();
+  const conta = sessao?.user.email ?? '';
+  const atual = email ?? conta;
+  const [etapa, setEtapa] = useState<EtapaDoEmail>('ver');
+  const [opcao, setOpcao] = useState<'conta' | 'outro'>('conta');
+  const [novo, setNovo] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const outro = opcao === 'outro';
+  const nv = novo.trim().toLowerCase();
+  const formatoOk = EMAIL_VALIDO.test(nv);
+  const igual = nv === atual.toLowerCase();
+  const pode = outro ? formatoOk && !igual : atual.toLowerCase() !== conta.toLowerCase();
+  const msg = !nv
+    ? 'Enviaremos um código para confirmar o novo endereço.'
+    : igual
+      ? 'Esse já é o e-mail de cobrança.'
+      : formatoOk
+        ? 'Enviaremos um código para confirmar.'
+        : 'Confira o formato do e-mail.';
+
+  const abrir = () => {
+    setEtapa('editar');
+    setOpcao(atual.toLowerCase() === conta.toLowerCase() ? 'conta' : 'outro');
+    setNovo('');
+    setCodigo('');
+    setErro(null);
+  };
+
+  const pedir = async (acao: string, corpo: object = {}) => {
+    setEnviando(true);
+    setErro(null);
+    const r = await chamarFuncao<{ email?: string }>('gerenciar-assinatura', { acao, ...corpo });
+    setEnviando(false);
+    if (!r.ok) setErro(ERROS_DO_EMAIL[r.erro] ?? 'Não deu para concluir agora. Tente de novo.');
+    return r.ok;
+  };
+
+  const salvar = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!pode || enviando) return;
+    if (outro) {
+      if (await pedir('codigo-email', { email: nv })) {
+        setCodigo('');
+        setEtapa('codigo');
+      }
+      return;
+    }
+    if (await pedir('email-da-conta')) {
+      setEtapa('ver');
+      await onTrocou();
+      onAviso('Avisos voltam para o e-mail da conta');
+    }
+  };
+
+  const confirmar = async (e: FormEvent) => {
+    e.preventDefault();
+    if (codigo.length !== 6 || enviando) return;
+    if (await pedir('confirmar-email', { codigo })) {
+      setEtapa('ver');
+      await onTrocou();
+      onAviso(`Avisos de cobrança vão para ${nv}`);
+    }
+  };
+
+  if (etapa === 'ver') {
+    return (
+      <div className={styles.item}>
+        <Icon name="mail" size={21} />
+        <div className={styles.itemTextos}>
+          <div className={styles.itemTitulo}>Avisos de cobrança</div>
+          <div className={styles.itemSub}>
+            {atual} · {atual.toLowerCase() === conta.toLowerCase() ? 'e-mail da conta' : 'e-mail separado'}
+          </div>
+        </div>
+        <button type="button" className={styles.botaoBorda} onClick={abrir} aria-label="Trocar e-mail de cobrança">
+          Trocar
+        </button>
+      </div>
+    );
+  }
+
+  if (etapa === 'codigo') {
+    return (
+      <form className={styles.edicao} onSubmit={confirmar} aria-label="Confirme o e-mail de cobrança">
+        <div className={styles.edicaoTitulo}>Confirme o e-mail de cobrança</div>
+        <p className={styles.edicaoCodigoTexto}>
+          Digite o código de 6 dígitos enviado para <strong>{nv}</strong>. Até lá, os avisos continuam indo para {atual}.
+        </p>
+        <div className={styles.codigo}>
+          <CodeInput length={6} value={codigo} onChange={setCodigo} error={!!erro} autoFocus />
+        </div>
+        {erro && <Alert>{erro}</Alert>}
+        <div className={styles.edicaoLinks}>
+          <span>
+            Não chegou?{' '}
+            <button type="button" className={styles.linkTexto} onClick={() => pedir('codigo-email', { email: nv })} disabled={enviando}>
+              Reenviar
+            </button>
+          </span>
+          <button type="button" className={styles.linkTexto} onClick={() => setEtapa('editar')}>
+            Corrigir e-mail
+          </button>
+        </div>
+        <div className={styles.edicaoBotoes}>
+          <button type="button" className={styles.botaoCancelar} onClick={() => setEtapa('ver')}>
+            Cancelar
+          </button>
+          <button type="submit" className={styles.botaoSalvar} disabled={codigo.length !== 6 || enviando} aria-busy={enviando || undefined}>
+            Confirmar
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <form className={styles.edicao} onSubmit={salvar} aria-label="Onde receber os avisos de cobrança">
+      <div className={styles.edicaoTopo}>
+        <Icon name="mail" size={20} />
+        <div className={styles.edicaoTitulo}>Onde receber os avisos de cobrança</div>
+      </div>
+      <p className={styles.edicaoTexto}>Recibos, avisos de renovação e falhas no pagamento. O login da conta continua o mesmo.</p>
+      <div className={styles.opcoes} role="radiogroup" aria-label="E-mail de cobrança">
+        {[
+          { id: 'conta' as const, titulo: 'Usar o e-mail da conta', sub: conta },
+          { id: 'outro' as const, titulo: 'Usar outro e-mail', sub: 'Por exemplo, o de quem paga a assinatura' },
+        ].map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={opcao === o.id}
+            className={opcao === o.id ? `${styles.opcao} ${styles.opcaoMarcada}` : styles.opcao}
+            onClick={() => setOpcao(o.id)}
+          >
+            <span className={styles.radio} />
+            <span className={styles.opcaoTextos}>
+              <span className={styles.opcaoTitulo}>{o.titulo}</span>
+              <span className={styles.opcaoSub}>{o.sub}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      {outro && (
+        <div>
+          <label className={nv ? (formatoOk && !igual ? `${styles.campo} ${styles.campoOk}` : `${styles.campo} ${styles.campoErro}`) : styles.campo}>
+            <Icon name="alternate_email" size={19} />
+            <input type="email" value={novo} onChange={(e) => setNovo(e.target.value)} placeholder="financeiro@email.com" aria-label="Novo e-mail de cobrança" autoFocus />
+          </label>
+          <div className={nv && (!formatoOk || igual) ? `${styles.campoMsg} ${styles.campoMsgErro}` : styles.campoMsg}>{msg}</div>
+        </div>
+      )}
+      {erro && <Alert>{erro}</Alert>}
+      <div className={styles.edicaoBotoes}>
+        <button type="button" className={styles.botaoCancelar} onClick={() => setEtapa('ver')}>
+          Cancelar
+        </button>
+        <button type="submit" className={styles.botaoSalvar} disabled={!pode || enviando} aria-busy={enviando || undefined}>
+          {outro ? 'Enviar código' : 'Salvar'}
+        </button>
+      </div>
+    </form>
   );
 }
 

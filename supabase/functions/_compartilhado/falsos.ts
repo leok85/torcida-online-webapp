@@ -1,6 +1,6 @@
 // Banco e Stripe em memória para os testes das Edge Functions (Vitest).
 import { vi } from 'vitest';
-import type { AssinaturaStripe, Banco, CobrancaStripe, LinhaAssinatura, Pagamentos, Usuario } from './assinatura';
+import { CorreioIndisponivel, type AssinaturaStripe, type Banco, type CodigoDeEmail, type CobrancaStripe, type Correio, type LinhaAssinatura, type Pagamentos, type Usuario } from './assinatura';
 
 export const RAFA: Usuario = { id: 'usuario-1', email: 'rafa@example.com' };
 const UM_MES = 30 * 86400;
@@ -25,6 +25,12 @@ export function criarFalsos() {
   const clientes = new Map<string, string>();
   const assinaturas: (LinhaAssinatura & { criado_em: string })[] = [];
   const subs = new Map<string, AssinaturaStripe>();
+  const codigos = new Map<string, CodigoDeEmail>();
+  // Último código enviado por e-mail (o teste lê como a pessoa leria na caixa de entrada).
+  const enviados: { para: string; codigo: string }[] = [];
+  let correioLigado = true;
+  // Troca de plano: o próximo cartão recusa?
+  let recusar = false;
   // Plano anual no cartão, com uma fatura anual no cartão e duas mensais no Pix.
   const cobranca: CobrancaStripe = {
     email: 'rafa@example.com',
@@ -55,6 +61,17 @@ export function criarFalsos() {
       if (i >= 0) assinaturas[i] = { ...assinaturas[i], ...linha };
       else assinaturas.push({ ...linha, criado_em: new Date().toISOString() });
     }),
+    guardarCodigoDeEmail: vi.fn(async (id: string, c: { email: string; hash: string; expiraEm: string }) => {
+      codigos.set(id, { ...c, tentativas: 0 });
+    }),
+    codigoDeEmail: vi.fn(async (id: string) => codigos.get(id) ?? null),
+    errouCodigoDeEmail: vi.fn(async (id: string) => {
+      const c = codigos.get(id);
+      if (c) c.tentativas += 1;
+    }),
+    apagarCodigoDeEmail: vi.fn(async (id: string) => {
+      codigos.delete(id);
+    }),
   };
 
   const pagamentos: Pagamentos = {
@@ -71,11 +88,44 @@ export function criarFalsos() {
       subs.set(id, { ...sub, cancel_at_period_end: cancelar, cancel_at: cancelar ? sub.items.data[0].current_period_end : null });
     }),
     cancelarAgora: vi.fn(async () => {}),
-    criarPortal: vi.fn(async (customer: string) => `https://billing.stripe.com/p/session/${customer}`),
+    // Mensal → anual com metade do mês usada: R$ 149,00 menos R$ 7,45 de crédito.
+    previaDaTroca: vi.fn(async () => ({ valor: 14900, credito: 745, total: 14155, moeda: 'brl', renovaEm: 1823256000 })),
+    trocarPlano: vi.fn(async (id: string, preco: string) => {
+      if (recusar) return 'recusado' as const;
+      const sub = subs.get(id)!;
+      const intervalo = preco.endsWith('anual') ? 'year' : 'month';
+      subs.set(id, { ...sub, items: { data: [{ ...sub.items.data[0], price: { recurring: { interval: intervalo } } }] } });
+      return 'ok' as const;
+    }),
+    criarSessaoDeCartao: vi.fn(async () => 'cs_setup_secret_teste'),
+    definirCartao: vi.fn(async (_customer: string, sessao: string) => sessao === 'cs_test_cartao'),
+    trocarEmailDeCobranca: vi.fn(async (_customer: string, email: string) => {
+      cobranca.email = email;
+    }),
     buscarCobranca: vi.fn(async (): Promise<CobrancaStripe> => cobranca),
   };
 
-  return { banco, pagamentos, tokens, clientes, assinaturas, subs, cobranca };
+  const correio: Correio = {
+    enviarCodigoDeCobranca: vi.fn(async (para: string, codigo: string) => {
+      if (!correioLigado) throw new CorreioIndisponivel();
+      enviados.push({ para, codigo });
+    }),
+  };
+
+  return {
+    banco,
+    pagamentos,
+    correio,
+    tokens,
+    clientes,
+    assinaturas,
+    subs,
+    cobranca,
+    codigos,
+    enviados,
+    desligarCorreio: () => (correioLigado = false),
+    recusarCartao: () => (recusar = true),
+  };
 }
 
 export const pedido = (url: string, init: RequestInit & { corpo?: object } = {}) => {
