@@ -46,3 +46,46 @@ test('Jogos, pelo menu, lista o ao vivo, os próximos e os resultados do clube',
   await expect(page.getByRole('region', { name: 'Próximos' }).getByRole('link')).toHaveAccessibleName(/Palmeiras × Flamengo.*abre no apito final/);
   await expect(page.getByRole('region', { name: 'Resultados' }).getByRole('link')).toHaveAccessibleName(/^Vitória: Palmeiras 1 — 0 Bahia/);
 });
+
+test('placar centralizado na altura dos escudos, e nome longo de campeonato não quebra o card', async ({ page, backend }) => {
+  backend.criarUsuario('rafa@example.com', 'Senha#2026', { apelido: 'Rafa_9' }, ONBOARDING_FEITO);
+  backend.partidas.push(
+    partidaDeTeste({ status: 'encerrada', periodo: null, minuto: null, gols_mandante: 4, gols_visitante: 1 }),
+    partidaDeTeste({
+      id: 7301,
+      inicio: '2030-01-01T00:00:00Z',
+      liga_nome: 'Copa do Brasil de Futebol Masculino Profissional · quartas de final',
+      status: 'agendada',
+      periodo: null,
+      minuto: null,
+      gols_mandante: null,
+      gols_visitante: null,
+      gols: [],
+    }),
+  );
+  await page.goto('/entrar');
+  await page.getByLabel('E-mail').fill('rafa@example.com');
+  await page.getByLabel('Senha', { exact: true }).fill('Senha#2026');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  const jogo = page.getByRole('region', { name: 'Jogo do Palmeiras' });
+  const placar = await jogo.getByLabel('Placar: 4 a 1').boundingBox();
+  // Sem as imagens no teste, o escudo é o listrado (div aria-hidden com o degradê).
+  const escudo = await jogo.locator('[aria-hidden="true"][style*="repeating"]').first().boundingBox();
+  const centro = (c: { y: number; height: number }) => c.y + c.height / 2;
+  expect(Math.abs(centro(placar!) - centro(escudo!))).toBeLessThanOrEqual(2);
+
+  // A faixa do próximo jogo corta o texto longo em vez de empurrar o botão.
+  const faixa = jogo.getByRole('group', { name: 'Próximo jogo' });
+  const botao = await faixa.getByRole('link', { name: /Dar palpite/ }).boundingBox();
+  expect(botao!.height).toBe(36);
+  const cartao = await jogo.boundingBox();
+  expect(botao!.x + botao!.width).toBeLessThanOrEqual(cartao!.x + cartao!.width);
+
+  // "Dar notas" escurece no hover, como os botões da faixa (--green-dark).
+  const darNotas = jogo.getByRole('button', { name: /Dar notas/ });
+  await darNotas.hover();
+  await expect(darNotas).toHaveCSS('background-color', 'rgb(42, 110, 13)');
+  await faixa.getByRole('link', { name: /Dar palpite/ }).hover();
+  await expect(faixa.getByRole('link', { name: /Dar palpite/ })).toHaveCSS('background-color', 'rgb(42, 110, 13)');
+});
