@@ -62,6 +62,14 @@ const banco: Banco = {
     falhar('idsAoVivo', error);
     return data!.map((p) => p.id);
   },
+  async haJogoNaJanela(de, ate) {
+    const { count, error } = await admin
+      .from('partidas')
+      .select('id', { count: 'exact', head: true })
+      .or(`status.eq.ao_vivo,and(status.eq.agendada,inicio.gte.${de.toISOString()},inicio.lte.${ate.toISOString()})`);
+    falhar('haJogoNaJanela', error);
+    return (count ?? 0) > 0;
+  },
   async salvar(partidas) {
     const { error } = await admin.from('partidas').upsert(partidas);
     falhar('salvar', error);
