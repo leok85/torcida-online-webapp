@@ -67,7 +67,7 @@ export function Escalacao() {
     <div className={styles.page}>
       <div className={ui.pageHead}>
         <h2 className={ui.pageTitle}>Escalação ideal e palpite</h2>
-        <span className={ui.pageSub}>Clube B × Clube Serra · fecha 15 min antes</span>
+        <span className={ui.pageSub}>Clube B x Clube Serra · fecha 15 min antes</span>
         <div className={ui.spacer} />
         <div className={ui.xpPill}>+80 XP</div>
       </div>
@@ -145,7 +145,7 @@ export function Escalacao() {
                 <Crest width={42} height={47} tone="lightHome" />
                 <Stepper value={home} onChange={change(setHome)} />
               </div>
-              <div className={styles.times}>×</div>
+              <div className={styles.times}>x</div>
               <div className={styles.side}>
                 <Crest width={42} height={47} tone="light" />
                 <Stepper value={away} onChange={change(setAway)} />

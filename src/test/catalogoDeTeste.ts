@@ -79,7 +79,7 @@ export function buscarCidadesDeTeste(termo: string, pais = 'BR', limite = 8) {
     .slice(0, limite);
 }
 
-/** Palmeiras 1 × 0 Corinthians ao vivo, no 2º tempo. Sobrescreva o que importa para o teste. */
+/** Palmeiras 1 x 0 Corinthians ao vivo, no 2º tempo. Sobrescreva o que importa para o teste. */
 export function partidaDeTeste(campos: Partial<Partida> = {}): Partida {
   return {
     id: 7290,

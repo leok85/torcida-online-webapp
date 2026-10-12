@@ -34,7 +34,7 @@ describe('separarJogos', () => {
 
 describe('resultadoPara', () => {
   it('olha do lado do clube, seja mandante ou visitante', () => {
-    const jogo = encerrada(1, '2026-10-01T20:00:00Z', 4, 1); // Palmeiras (162) 4 × 1 Corinthians (167)
+    const jogo = encerrada(1, '2026-10-01T20:00:00Z', 4, 1); // Palmeiras (162) 4 x 1 Corinthians (167)
     expect(resultadoPara(jogo, 162)).toBe('V');
     expect(resultadoPara(jogo, 167)).toBe('D');
     expect(resultadoPara(encerrada(2, '2026-10-01T20:00:00Z', 1, 1), 167)).toBe('E');

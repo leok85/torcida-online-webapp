@@ -41,7 +41,7 @@ export function PosJogo() {
             Clube B
           </div>
           <div className={styles.center}>
-            <div className={styles.score}>2 — 1</div>
+            <div className={styles.score}>2 x 1</div>
             <div className={styles.win}>VITÓRIA</div>
           </div>
           <div className={`${styles.team} ${styles.away}`}>
@@ -51,7 +51,7 @@ export function PosJogo() {
           <div className={ui.spacer} />
           <div className={styles.exact}>
             <Icon name="bolt" size={21} color="var(--green-neon)" />
-            Palpite exato 2 — 1<span className={styles.exactXp}>+240 XP</span>
+            Palpite exato 2 x 1<span className={styles.exactXp}>+240 XP</span>
           </div>
         </section>
         <section className={styles.mvp}>

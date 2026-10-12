@@ -12,7 +12,7 @@ const encerrada = (id: number, inicio: string, campos: Partial<Partida>) =>
   partidaDeTeste({ id, inicio, status: 'encerrada', periodo: null, minuto: null, ...campos });
 
 function temporada({ aoVivo = true } = {}) {
-  if (aoVivo) supabaseFalso.adicionarPartida(partidaDeTeste()); // Palmeiras 1 × 0 Corinthians, 67'
+  if (aoVivo) supabaseFalso.adicionarPartida(partidaDeTeste()); // Palmeiras 1 x 0 Corinthians, 67'
   supabaseFalso.adicionarPartida(encerrada(7279, '2026-10-09T00:30:00Z', { visitante_id: 166, visitante_nome: 'Bahia', rodada: 29, gols_mandante: 1, gols_visitante: 0 }));
   supabaseFalso.adicionarPartida(
     encerrada(7270, '2026-10-05T19:00:00Z', { mandante_id: 160, mandante_nome: 'Flamengo', visitante_id: 162, visitante_nome: 'Palmeiras', rodada: 28, gols_mandante: 2, gols_visitante: 0 }),
@@ -83,7 +83,7 @@ describe('Jogos (W20)', () => {
     expect(await screen.findByRole('heading', { name: 'Jogos do Palmeiras' })).toBeInTheDocument();
     const aoVivo = await screen.findByRole('region', { name: 'Jogo ao vivo' });
     expect(aoVivo).toHaveTextContent("AO VIVO · 67'");
-    expect(aoVivo).toHaveTextContent('Palmeiras 1 — 0 Corinthians');
+    expect(aoVivo).toHaveTextContent('Palmeiras 1 x 0 Corinthians');
     await user.click(within(aoVivo).getByRole('link', { name: /Entrar no jogo/ }));
     expect(local()).toBe('/ao-vivo');
   });
@@ -94,8 +94,8 @@ describe('Jogos (W20)', () => {
     renderApp('/jogos');
     await screen.findByRole('region', { name: 'Próximos' });
     expect(linhas('Próximos')).toEqual([
-      'Palmeiras × Flamengo, 14 OUT · Brasileirão Série A · rodada 31 · qua 21:30 · abre no apito final',
-      'São Paulo × Palmeiras, 18 OUT · Brasileirão Série A · rodada 32 · dom 16:00 · abre qui',
+      'Palmeiras x Flamengo, 14 OUT · Brasileirão Série A · rodada 31 · qua 21:30 · abre no apito final',
+      'São Paulo x Palmeiras, 18 OUT · Brasileirão Série A · rodada 32 · dom 16:00 · abre qui',
     ]);
     expect(within(screen.getByRole('region', { name: 'Próximos' })).getAllByRole('link')[0]).toHaveAttribute('href', '/escalacao');
   });
@@ -115,9 +115,9 @@ describe('Jogos (W20)', () => {
     renderApp('/jogos');
     await screen.findByRole('region', { name: 'Resultados' });
     expect(linhas('Resultados')).toEqual([
-      'Vitória: Palmeiras 1 — 0 Bahia, 08 OUT · Brasileirão Série A · rodada 29',
-      'Derrota: Flamengo 2 — 0 Palmeiras, 05 OUT · Brasileirão Série A · rodada 28',
-      'Empate: Palmeiras 1 — 1 São Paulo, 01 OUT · Brasileirão Série A · rodada 27',
+      'Vitória: Palmeiras 1 x 0 Bahia, 08 OUT · Brasileirão Série A · rodada 29',
+      'Derrota: Flamengo 2 x 0 Palmeiras, 05 OUT · Brasileirão Série A · rodada 28',
+      'Empate: Palmeiras 1 x 1 São Paulo, 01 OUT · Brasileirão Série A · rodada 27',
     ]);
   });
 

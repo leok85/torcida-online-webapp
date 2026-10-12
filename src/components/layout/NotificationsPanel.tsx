@@ -5,7 +5,7 @@ import styles from './NotificationsPanel.module.css';
 type Notification = { id: string; icon: string; color: string; bg: string; title: string; text: string; when: string; action?: string };
 
 const TODAY: Notification[] = [
-  { id: 'n1', icon: 'sports_soccer', color: '#FFF', bg: '#E0342A', title: 'Clube B 1 × 0 Clube E', text: "Gol de Gabriel aos 23'. O chat está fervendo.", when: '2 min', action: 'Entrar no chat' },
+  { id: 'n1', icon: 'sports_soccer', color: '#FFF', bg: '#E0342A', title: 'Clube B 1 x 0 Clube E', text: "Gol de Gabriel aos 23'. O chat está fervendo.", when: '2 min', action: 'Entrar no chat' },
   { id: 'n2', icon: 'how_to_vote', color: '#FFF', bg: '#00419B', title: 'Enquete surpresa no chat', text: 'Substitui o lateral agora? Votar rende +15 XP.', when: '8 min', action: 'Votar' },
   { id: 'n3', icon: 'bolt', color: '#FFF', bg: '#3FA414', title: 'Você subiu para o nível 24', text: '+240 XP pelo palpite exato de ontem.', when: '1 h' },
 ];
