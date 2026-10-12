@@ -153,6 +153,20 @@ describe('Onboarding', () => {
     expect(screen.getByRole('button', { name: /Entrar na torcida/ })).toBeEnabled();
   });
 
+  it('a localização acha o município mesmo vindo sem acento e com nomes parecidos', async () => {
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      geolocation: { getCurrentPosition: (ok: PositionCallback) => ok({ coords: { latitude: -27.6, longitude: -48.63 } } as GeolocationPosition) },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ city: 'Sao Jose', principalSubdivisionCode: 'BR-SC' }))));
+    supabaseFalso.logar(perfilNovo());
+    const { user } = renderApp('/onboarding');
+    await ateClube(user);
+    await user.click(screen.getByRole('button', { name: /Usar minha localização/ }));
+    await waitFor(() => expect(screen.getByLabelText('Sua cidade')).toHaveValue('São José, SC'));
+    expect(supabaseFalso.cliente.rpc).toHaveBeenCalledWith('buscar_cidades', { termo: 'Sao Jose', pais: 'BR', limite: 20 });
+  });
+
   it('se a localização for negada, pede para digitar a cidade', async () => {
     vi.stubGlobal('navigator', {
       ...navigator,

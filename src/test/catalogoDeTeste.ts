@@ -62,12 +62,15 @@ export const CIDADES_DE_TESTE = [
   { id: 2412203, nome: 'São Paulo do Potengi', regiao: 'RN' },
   { id: 4314902, nome: 'Porto Alegre', regiao: 'RS' },
   { id: 2611606, nome: 'Recife', regiao: 'PE' },
+  { id: 4216602, nome: 'São José', regiao: 'SC' },
+  { id: 3549904, nome: 'São José dos Campos', regiao: 'SP' },
 ];
 
 const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 /** Mesma regra da função buscar_cidades() da migration (só há cidades do Brasil no recorte). */
 export function buscarCidadesDeTeste(termo: string, pais = 'BR', limite = 8) {
+  limite = Math.min(Math.max(limite, 1), 20);
   const q = semAcento(termo.split(',')[0].trim()).replace(/[%_]/g, '');
   if (pais !== 'BR' || q.length < 2) return [];
   return CIDADES_DE_TESTE.filter((c) => semAcento(c.nome).includes(q))

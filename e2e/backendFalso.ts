@@ -277,8 +277,8 @@ export class BackendFalso {
     }
 
     if (caminho === '/rpc/buscar_cidades') {
-      const { termo, pais } = req.postDataJSON();
-      return json(200, buscarCidadesDeTeste(termo, pais));
+      const { termo, pais, limite } = req.postDataJSON();
+      return json(200, buscarCidadesDeTeste(termo, pais, limite));
     }
 
     if (caminho === '/rpc/sou_assinante') {
