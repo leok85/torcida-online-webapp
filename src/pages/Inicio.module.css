@@ -25,11 +25,15 @@
   gap: 16px;
 }
 
-/* placar ao vivo */
+/* card do jogo: corpo e, embaixo, a faixa do próximo (ou do último) jogo */
 .live {
   border-radius: 16px;
   background: var(--ink);
   color: #fff;
+  overflow: hidden;
+}
+
+.liveBody {
   padding: 26px 28px;
 }
 
@@ -69,6 +73,7 @@
 /* sem jogo, carregando ou com erro: o mesmo cartão escuro, com a mensagem no centro */
 .liveVazio {
   min-height: 260px;
+  padding: 26px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -92,7 +97,8 @@
 
 .scoreboard {
   display: flex;
-  align-items: center;
+  /* alinhado pelo topo: os gols embaixo de cada time não empurram o placar */
+  align-items: flex-start;
   justify-content: center;
   gap: 34px;
 }
@@ -121,31 +127,29 @@
 .score {
   composes: score from '../styles/ui.module.css';
   font-size: 64px;
+  line-height: 68px;
 }
 
 .scorer {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.55);
-  margin: 6px auto 0;
+  margin: 2px 0 0;
   padding: 0;
   list-style: none;
-  max-width: 300px;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  column-gap: 8px;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-/* cada autor inteiro na mesma linha, separados por "·" */
 .scorer li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   white-space: nowrap;
-}
-
-.scorer li + li::before {
-  content: '·';
-  margin-right: 8px;
 }
 
 .liveFoot {
@@ -153,6 +157,136 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
+}
+
+/* Sem composes: a borda zero do .btn compartilhado podia vencer esta (ordem do CSS entre módulos). */
+.outlineBtn {
+  flex: none;
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.outlineBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* véspera */
+.nextPill {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(63, 164, 20, 0.2);
+  color: var(--green-light);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.countdown {
+  composes: score from '../styles/ui.module.css';
+  font-size: 56px;
+  line-height: 68px;
+  white-space: nowrap;
+}
+
+.countdownSub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 6px;
+}
+
+.nota {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.07);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notaTexto {
+  flex: 1;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.notaXp {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green-light);
+}
+
+/* faixa de baixo */
+.faixa {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.faixaRotulo {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.faixaTitulo {
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.faixaInfo {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.faixaLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--green-light);
+  white-space: nowrap;
+}
+
+.faixaLink:hover {
+  color: var(--green-light);
+}
+
+.faixaBloqueio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
 }
 
 
