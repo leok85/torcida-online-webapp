@@ -427,17 +427,33 @@
   max-width: 980px;
 }
 
+/* W14 · Pagamento: 1040px de conteúdo no design (content-box) + 56px de padding */
+.paginaPagamento {
+  composes: pagePlanos;
+}
+
 .pagamento {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
 
-.formulario {
-  composes: card from '../../styles/ui.module.css';
+.formulario,
+.resumo {
+  padding: 22px 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
+}
+
+.formulario {
+  gap: 16px;
+}
+
+.resumo {
   gap: 14px;
 }
 
@@ -449,23 +465,29 @@
   color: var(--muted);
 }
 
+.rotuloForma {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted-3);
+}
+
 .renovacao {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-start;
-  padding: 11px 13px;
-  border-radius: 11px;
-  background: var(--bg);
+  padding: 12px 14px;
+  border: 1px solid #e8edf3;
+  border-radius: 12px;
+  background: #f8fafc;
   font-size: 12px;
   line-height: 1.45;
   color: var(--ink-2);
 }
 
-.resumo {
-  composes: card from '../../styles/ui.module.css';
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.renovacao > :first-child {
+  flex: none;
+  color: var(--muted);
 }
 
 .resumoTopo {
@@ -474,62 +496,123 @@
   justify-content: space-between;
 }
 
+.resumoTopo a {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.resumoTitulo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .resumoPlano {
   display: flex;
-  gap: 11px;
+  gap: 12px;
   align-items: center;
-  padding: 12px 14px;
+  padding: 14px;
+  border: 1px solid #e8edf3;
   border-radius: 12px;
-  background: var(--bg);
+  background: #f8fafc;
 }
 
 .resumoPlano div {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  font-size: 13.5px;
+  gap: 4px;
+  font-size: 14px;
 }
 
-.resumoPlano span {
+.resumoPlano div span {
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--muted);
 }
 
 .linhas {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   margin: 0;
   font-size: 13px;
 }
 
 .linhas div {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
+  padding: 6px 0;
+  color: var(--ink-2);
+  font-weight: 500;
 }
 
 .linhas dd {
   margin: 0;
   font-family: var(--font-mono);
+  font-size: 13px;
 }
 
-.desconto {
-  color: var(--green-dark);
+.linhas .desconto {
+  color: #2e7d0e;
   font-weight: 700;
 }
 
-.total {
-  padding-top: 8px;
+.linhas .total {
   border-top: 1px solid var(--line);
+  color: var(--ink);
   font-weight: 800;
+}
+
+.pagar {
+  width: 100%;
+  height: 52px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--green);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pagar:hover:not(:disabled) {
+  background: #37900f;
+}
+
+.pagar:disabled {
+  cursor: progress;
+  opacity: 0.85;
 }
 
 .letrinhas {
   font-size: 11.5px;
-  line-height: 1.45;
+  line-height: 1.5;
   text-align: center;
   color: var(--muted);
 }
+
+.letrinhas a {
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .pagamento {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .paginaPagamento {
+    padding: 20px 16px 32px;
+  }
+}
+
 
 /* recusado (W17) */
 .recusado {
