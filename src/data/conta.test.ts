@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { APP_IPHONE, CHROME_MAC, EDGE_WINDOWS } from '../test/supabaseFalso';
-import { descreverAparelho, problemaDaFoto, proximaTrocaDeApelido, textoDoApelido, usadoHa } from './conta';
+import { descreverAparelho, problemaDaFoto, proximaTrocaDeApelido, textoDaSenha, textoDoApelido, usadoHa } from './conta';
 
 const AGORA = new Date('2026-10-14T15:00:00Z');
 
@@ -39,6 +39,16 @@ describe('apelido', () => {
     expect(textoDoApelido('2026-07-14T12:00:00Z', AGORA)).toBe('Última troca há 92 dias · pode trocar agora');
     expect(textoDoApelido('2026-10-13T12:00:00Z', AGORA)).toBe('Última troca há 1 dia · próxima troca em 12/11/2026');
     expect(textoDoApelido('2026-10-14T12:00:00Z', AGORA)).toBe('Trocado hoje · próxima troca em 13/11/2026');
+  });
+});
+
+describe('senha', () => {
+  it('quando foi alterada, em dias, meses ou anos', () => {
+    expect(textoDaSenha('2026-10-14T09:00:00Z', AGORA)).toBe('Alterada hoje');
+    expect(textoDaSenha('2026-10-13T12:00:00Z', AGORA)).toBe('Alterada há 1 dia');
+    expect(textoDaSenha('2026-09-20T12:00:00Z', AGORA)).toBe('Alterada há 24 dias');
+    expect(textoDaSenha('2026-06-10T12:00:00Z', AGORA)).toBe('Alterada há 4 meses');
+    expect(textoDaSenha('2025-09-01T12:00:00Z', AGORA)).toBe('Alterada há 1 ano');
   });
 });
 

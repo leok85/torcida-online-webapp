@@ -42,7 +42,7 @@ export function Aparelhos({ versao, onSalvo }: AparelhosProps) {
     try {
       await encerrarAparelho(a.id);
       setLista((l) => l?.filter((x) => x.id !== a.id) ?? l);
-      onSalvo(`${a.nome} saiu da conta.`);
+      onSalvo('Sessão encerrada');
     } catch {
       setErro('Não deu para encerrar esse aparelho agora. Tente de novo.');
     } finally {
@@ -57,7 +57,7 @@ export function Aparelhos({ versao, onSalvo }: AparelhosProps) {
     setOcupado(null);
     if (error) return setErro(mensagemDeErro(error));
     setLista((l) => l?.filter((x) => x.atual) ?? l);
-    onSalvo('Os outros aparelhos saíram da conta.');
+    onSalvo('Outros aparelhos desconectados');
   }
 
   const outros = lista?.filter((a) => !a.atual).length ?? 0;
@@ -74,13 +74,13 @@ export function Aparelhos({ versao, onSalvo }: AparelhosProps) {
       {!lista && !erroAoCarregar && (
         <Carregando rotulo="Carregando aparelhos">
           {[0, 1].map((i) => (
-            <div key={i} className={styles.aparelho}>
-              <Skeleton w={36} h={36} r={10} />
-              <div>
-                <Skeleton w={120} h={12} r="pilula" />
-                <Skeleton w={80} h={10} r="pilula" style={{ marginTop: 6 }} />
+            <div key={i} className={styles.linha}>
+              <Skeleton w={38} h={38} r={11} />
+              <div className={styles.valorBloco}>
+                <Skeleton w={130} h={12} r="pilula" />
+                <Skeleton w={90} h={10} r="pilula" style={{ marginTop: 6 }} />
               </div>
-              <Skeleton w={80} h={34} r={9} />
+              <Skeleton w={84} h={36} r={9} />
             </div>
           ))}
         </Carregando>
@@ -101,18 +101,18 @@ export function Aparelhos({ versao, onSalvo }: AparelhosProps) {
       )}
 
       {lista && (
-        <ul className={styles.listaSemMarcador} aria-label="Aparelhos">
+        <ul className={styles.lista} aria-label="Aparelhos">
           {lista.map((a) => (
-            <li key={a.id} className={styles.aparelho}>
+            <li key={a.id} className={styles.linha}>
               <span className={styles.aparelhoIcone} aria-hidden="true">
-                <Icon name={a.tipo === 'celular' ? 'smartphone' : 'laptop_mac'} size={20} />
+                <Icon name={a.tipo === 'celular' ? 'smartphone' : 'computer'} size={20} />
               </span>
-              <div>
+              <div className={styles.valorBloco}>
                 <div className={styles.aparelhoNome}>{a.nome}</div>
-                <div className={styles.apoio}>{a.atual ? 'agora' : `último uso ${usadoHa(a.usadoEm, agora)}`}</div>
+                <div className={styles.apoio}>{a.atual ? 'agora' : usadoHa(a.usadoEm, agora)}</div>
               </div>
               {a.atual ? (
-                <span className={styles.esteNavegador}>Este navegador</span>
+                <span className={styles.esteNavegador}>ESTE NAVEGADOR</span>
               ) : (
                 <button type="button" className={styles.acao} onClick={() => encerrar(a)} disabled={ocupado !== null} aria-label={`Encerrar ${a.nome}`}>
                   Encerrar

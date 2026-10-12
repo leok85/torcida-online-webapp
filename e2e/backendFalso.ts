@@ -20,6 +20,8 @@ type Perfil = {
   onboarding_concluido_em: string | null;
   foto: string | null;
   apelido_alterado_em: string | null;
+  apelido_anterior: string | null;
+  senha_alterada_em: string | null;
   exclusao_agendada_para: string | null;
   criado_em: string;
   atualizado_em: string;
@@ -167,6 +169,9 @@ export class BackendFalso {
       onboarding_concluido_em: null,
       foto: null,
       apelido_alterado_em: null,
+      apelido_anterior: null,
+      // Trigger ao_trocar_senha: cadastro com senha já marca a data.
+      senha_alterada_em: senha ? agora() : null,
       exclusao_agendada_para: null,
       criado_em: agora(),
       atualizado_em: agora(),
@@ -283,6 +288,7 @@ export class BackendFalso {
           return erro(422, 'current_password_mismatch', 'Current password required when setting new password.');
         }
         usuario.senha = corpo.password;
+        this.perfis.get(usuario.id)!.senha_alterada_em = agora();
       }
       if (req.method() === 'PUT' && corpo.email) {
         if (this.porEmail(corpo.email)) return erro(422, 'email_exists', 'A user with this email address has already been registered');
@@ -383,7 +389,6 @@ export class BackendFalso {
       return json(200, resumoDoClubeDeTeste([...this.perfis.values()], req.postDataJSON().clube));
     }
 
-    if (caminho === '/rpc/tenho_senha') return json(200, !!usuario?.senha);
     if (caminho === '/rpc/meus_aparelhos') {
       if (!usuario) return json(401, { code: '42501', message: 'permission denied for function meus_aparelhos' });
       return json(200, [{ id: 'sessao-atual', user_agent: req.headers()['user-agent'] ?? null, criado_em: usuario.criado_em, usado_em: agora(), atual: true }]);

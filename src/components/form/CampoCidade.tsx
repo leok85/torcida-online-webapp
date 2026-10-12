@@ -1,31 +1,23 @@
-import { useEffect, useId, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useState, type KeyboardEvent, type ReactNode } from "react";
 import { buscarCidades, rotuloCidade, type Cidade } from "../../data/cidades";
 import { TextField } from "./TextField";
 import styles from "./CampoCidade.module.css";
 
 export type ValorCidade = { texto: string; cidade: Cidade | null };
 
-type CampoCidadeProps = {
-  label: string;
+type BuscaProps = {
   valor: ValorCidade;
   onChange: (valor: ValorCidade) => void;
   /** Com catálogo (Brasil), a pessoa escolhe uma cidade da lista; sem, o texto livre vale. */
   comCatalogo: boolean;
   pais: string;
-  error?: string | null;
-  disabled?: boolean;
 };
 
-/** Campo de cidade com autocompletar (combobox) nos países que têm cidades no catálogo. */
-export function CampoCidade({
-  label,
-  valor,
-  onChange,
-  comCatalogo,
-  pais,
-  error,
-  disabled,
-}: CampoCidadeProps) {
+/**
+ * Autocompletar de cidade (combobox): busca no catálogo com debounce, setas, Enter e Esc.
+ * Devolve as props do input e a lista de sugestões, para cada tela desenhar a caixa do seu jeito.
+ */
+export function useBuscaDeCidade({ valor, onChange, comCatalogo, pais }: BuscaProps) {
   const listaId = useId();
   const [sugestoes, setSugestoes] = useState<{
     termo: string;
@@ -75,74 +67,76 @@ export function CampoCidade({
     }
   }
 
-  const semResultado = atuais?.length === 0;
-  const hint = comCatalogo
-    ? semResultado
-      ? "Nenhuma cidade encontrada com esse nome."
-      : "Mostra de onde vem a torcida do clube. Não aparece no seu perfil."
+  const input = {
+    value: valor.texto,
+    onChange: (e: { target: { value: string } }) => {
+      onChange({ texto: e.target.value, cidade: null });
+      setAberta(true);
+      setAtiva(0);
+    },
+    onKeyDown: teclado,
+    onBlur: () => setAberta(false),
+    onFocus: () => setAberta(true),
+    autoComplete: "off",
+    maxLength: 80,
+    role: comCatalogo ? "combobox" : undefined,
+    "aria-autocomplete": comCatalogo ? ("list" as const) : undefined,
+    "aria-expanded": comCatalogo ? mostrar : undefined,
+    "aria-controls": comCatalogo ? listaId : undefined,
+    "aria-activedescendant": mostrar ? `${listaId}-${ativa}` : undefined,
+  };
+
+  const lista: ReactNode = mostrar && (
+    <div className={styles.ancora}>
+      <ul id={listaId} role="listbox" aria-label="Cidades" className={styles.lista}>
+        {atuais.map((c, i) => (
+          <li
+            key={c.id}
+            id={`${listaId}-${i}`}
+            role="option"
+            aria-selected={i === ativa}
+            className={i === ativa ? `${styles.opcao} ${styles.ativa}` : styles.opcao}
+            // mousedown para escolher antes do blur do campo fechar a lista.
+            onMouseDown={(e) => {
+              e.preventDefault();
+              escolher(c);
+            }}
+            onMouseEnter={() => setAtiva(i)}
+          >
+            <span>{c.nome}</span>
+            {c.regiao && <span className={styles.uf}>{c.regiao}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  return { input, lista, semResultado: atuais?.length === 0 };
+}
+
+type CampoCidadeProps = BuscaProps & {
+  label: string;
+  error?: string | null;
+  disabled?: boolean;
+};
+
+/** Campo de cidade com autocompletar (combobox) nos países que têm cidades no catálogo. */
+export function CampoCidade({ label, valor, onChange, comCatalogo, pais, error, disabled }: CampoCidadeProps) {
+  const { input, lista, semResultado } = useBuscaDeCidade({ valor, onChange, comCatalogo, pais });
+  const hint = comCatalogo && semResultado
+    ? "Nenhuma cidade encontrada com esse nome."
     : "Mostra de onde vem a torcida do clube. Não aparece no seu perfil.";
 
   return (
     <TextField
       label={label}
       icon="search"
-      value={valor.texto}
-      onChange={(e) => {
-        onChange({ texto: e.target.value, cidade: null });
-        setAberta(true);
-        setAtiva(0);
-      }}
-      onKeyDown={teclado}
-      onBlur={() => setAberta(false)}
-      onFocus={() => setAberta(true)}
-      placeholder={
-        comCatalogo ? "Digite e escolha na lista" : "Ex.: Buenos Aires"
-      }
-      autoComplete="off"
-      maxLength={80}
+      placeholder={comCatalogo ? "Digite e escolha na lista" : "Ex.: Buenos Aires"}
       disabled={disabled}
       error={error}
       hint={hint}
-      role={comCatalogo ? "combobox" : undefined}
-      aria-autocomplete={comCatalogo ? "list" : undefined}
-      aria-expanded={comCatalogo ? mostrar : undefined}
-      aria-controls={comCatalogo ? listaId : undefined}
-      aria-activedescendant={mostrar ? `${listaId}-${ativa}` : undefined}
-      below={
-        mostrar && (
-          <div className={styles.ancora}>
-            <ul
-              id={listaId}
-              role="listbox"
-              aria-label="Cidades"
-              className={styles.lista}
-            >
-              {atuais.map((c, i) => (
-                <li
-                  key={c.id}
-                  id={`${listaId}-${i}`}
-                  role="option"
-                  aria-selected={i === ativa}
-                  className={
-                    i === ativa
-                      ? `${styles.opcao} ${styles.ativa}`
-                      : styles.opcao
-                  }
-                  // mousedown para escolher antes do blur do campo fechar a lista.
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    escolher(c);
-                  }}
-                  onMouseEnter={() => setAtiva(i)}
-                >
-                  <span>{c.nome}</span>
-                  {c.regiao && <span className={styles.uf}>{c.regiao}</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )
-      }
+      {...input}
+      below={lista}
     />
   );
 }

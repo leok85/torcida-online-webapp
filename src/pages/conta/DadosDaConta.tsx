@@ -10,15 +10,15 @@ import { FotoDoPerfil } from './FotoDoPerfil';
 import { Linha } from './Linha';
 import styles from './DadosDaConta.module.css';
 
-const AVISO_MS = 3500;
+const AVISO_MS = 2200;
 
 /** Aviso rápido no pé da tela depois de salvar. */
 function useAviso() {
-  const [aviso, setAviso] = useState<{ id: number; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timer.current), []);
   const mostrar = useCallback((texto: string) => {
-    setAviso((a) => ({ id: (a?.id ?? 0) + 1, texto }));
+    setAviso(texto);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setAviso(null), AVISO_MS);
   }, []);
@@ -27,7 +27,7 @@ function useAviso() {
 
 /**
  * W21 · Dados da conta, aberta pelo menu de conta. Perfil (foto, nome, apelido e cidade), acesso (e-mail, senha,
- * Apple e Google), aparelhos conectados e a exclusão da conta. Cada "Alterar" abre a edição na própria linha.
+ * Apple e Google), aparelhos conectados e a exclusão da conta. Cada "Alterar" abre a edição no lugar da linha.
  * A troca de time fica no item próprio do menu.
  */
 export function DadosDaConta() {
@@ -37,10 +37,25 @@ export function DadosDaConta() {
   const [versaoDosAparelhos, setVersaoDosAparelhos] = useState(0);
   const [aviso, mostrarAviso] = useAviso();
   const fechar = () => setEditando(null);
+  // Salvou: avisa e fecha a edição.
+  const salvo = useCallback(
+    (mensagem: string) => {
+      mostrarAviso(mensagem);
+      setEditando(null);
+    },
+    [mostrarAviso],
+  );
   const apelidoLiberaEm = proximaTrocaDeApelido(perfil?.apelido_alterado_em ?? null);
 
   const alterar = (campo: string, rotulo: string, bloqueado = false) => (
-    <button type="button" className={styles.acao} onClick={() => setEditando(campo)} disabled={bloqueado} aria-label={`Alterar ${rotulo}`}>
+    <button
+      type="button"
+      className={styles.acao}
+      onClick={() => setEditando(campo)}
+      disabled={bloqueado}
+      aria-label={`Alterar ${rotulo}`}
+      title={bloqueado ? 'Dá para trocar uma vez a cada 30 dias' : undefined}
+    >
       Alterar
     </button>
   );
@@ -55,59 +70,59 @@ export function DadosDaConta() {
             Perfil
           </h2>
         </div>
-        <FotoDoPerfil onSalvo={mostrarAviso} />
-        <Linha
-          rotulo="Nome"
-          valor={perfil?.nome || 'Sem nome'}
-          apoio="Só a torcida do seu clube vê seu nome completo."
-          acoes={alterar('nome', 'nome')}
-          aberta={editando === 'nome'}
-        >
-          <EditarNome onFechar={fechar} onSalvo={mostrarAviso} />
-        </Linha>
-        <Linha
-          rotulo="Apelido"
-          valor={`@${perfil?.apelido ?? ''}`}
-          apoio={textoDoApelido(perfil?.apelido_alterado_em ?? null)}
-          acoes={alterar('apelido', 'apelido', !!apelidoLiberaEm)}
-          aberta={editando === 'apelido'}
-        >
-          <EditarApelido onFechar={fechar} onSalvo={mostrarAviso} />
-        </Linha>
-        <Linha
-          rotulo="Cidade"
-          valor={perfil?.cidade || 'Sem cidade'}
-          apoio="Só entra nas estatísticas da torcida. Não aparece no perfil."
-          acoes={alterar('cidade', 'cidade')}
-          aberta={editando === 'cidade'}
-        >
-          <EditarCidade onFechar={fechar} onSalvo={mostrarAviso} />
-        </Linha>
+        <FotoDoPerfil onSalvo={salvo} />
+        {editando === 'nome' ? (
+          <EditarNome onFechar={fechar} onSalvo={salvo} />
+        ) : (
+          <Linha rotulo="Nome" valor={perfil?.nome || 'Sem nome'} apoio="Só a torcida do seu clube vê seu nome completo." acoes={alterar('nome', 'nome')} />
+        )}
+        {editando === 'apelido' ? (
+          <EditarApelido onFechar={fechar} onSalvo={salvo} />
+        ) : (
+          <Linha
+            rotulo="Apelido"
+            valor={`@${perfil?.apelido ?? ''}`}
+            apoio={textoDoApelido(perfil?.apelido_alterado_em ?? null)}
+            acoes={alterar('apelido', 'apelido', !!apelidoLiberaEm)}
+          />
+        )}
+        {editando === 'cidade' ? (
+          <EditarCidade onFechar={fechar} onSalvo={salvo} />
+        ) : (
+          <Linha
+            rotulo="Cidade"
+            valor={perfil?.cidade || 'Sem cidade'}
+            apoio="Só entra nas estatísticas da torcida. Não aparece no perfil."
+            acoes={alterar('cidade', 'cidade')}
+          />
+        )}
       </section>
 
-      <Acesso editando={editando} onEditar={setEditando} onSalvo={mostrarAviso} onSenhaAlterada={() => setVersaoDosAparelhos((v) => v + 1)} />
+      <Acesso editando={editando} onEditar={setEditando} onSalvo={salvo} onSenhaAlterada={() => setVersaoDosAparelhos((v) => v + 1)} />
 
-      <Aparelhos versao={versaoDosAparelhos} onSalvo={mostrarAviso} />
+      <Aparelhos versao={versaoDosAparelhos} onSalvo={salvo} />
 
       <section className={styles.excluir} aria-labelledby="titulo-excluir">
-        <Icon name="no_accounts" size={22} className={styles.excluirIcone} />
-        <div>
-          <h2 id="titulo-excluir" className={styles.excluirTitulo}>
-            Excluir minha conta
-          </h2>
-          <div className={styles.apoio}>Apaga XP, moedas, conquistas e fotos no app e no web app. Não tem volta.</div>
+        <div className={styles.excluirConteudo}>
+          <Icon name="delete_forever" size={22} className={styles.excluirIcone} />
+          <div className={styles.excluirTextos}>
+            <h2 id="titulo-excluir" className={styles.excluirTitulo}>
+              Excluir minha conta
+            </h2>
+            <div className={styles.apoio}>Apaga XP, moedas, conquistas e fotos no app e no web app. Não tem volta.</div>
+          </div>
+          <button type="button" className={styles.acaoExcluir} onClick={() => setExcluindo(true)}>
+            Excluir conta
+          </button>
         </div>
-        <button type="button" className={styles.acaoVermelha} onClick={() => setExcluindo(true)}>
-          Excluir conta
-        </button>
       </section>
 
       {excluindo && <ExcluirConta onFechar={() => setExcluindo(false)} />}
 
       {aviso && (
-        <div key={aviso.id} className={styles.aviso} role="status">
-          <Icon name="check_circle" size={18} />
-          {aviso.texto}
+        <div className={styles.aviso} role="status">
+          <Icon name="check_circle" size={19} />
+          {aviso}
         </div>
       )}
     </div>

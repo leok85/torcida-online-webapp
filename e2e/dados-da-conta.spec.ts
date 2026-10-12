@@ -29,7 +29,7 @@ test('foto: escolhe, ajusta o recorte com o mouse e salva uma foto quadrada de 5
   await expect(janela.getByRole('img', { name: 'Foto escolhida' })).toBeVisible();
 
   await janela.getByRole('button', { name: 'Aumentar zoom' }).click();
-  await expect(janela.getByRole('slider', { name: 'Zoom' })).toHaveValue('1.25');
+  await expect(janela.getByRole('slider', { name: 'Zoom' })).toHaveValue('1.2');
   const area = janela.getByRole('group', { name: /Área de ajuste da foto/ });
   const caixa = (await area.boundingBox())!;
   await page.mouse.move(caixa.x + caixa.width / 2, caixa.y + caixa.height / 2);
@@ -37,8 +37,8 @@ test('foto: escolhe, ajusta o recorte com o mouse e salva uma foto quadrada de 5
   await page.mouse.move(caixa.x + caixa.width / 2 + 40, caixa.y + caixa.height / 2 + 10, { steps: 4 });
   await page.mouse.up();
 
-  await janela.getByRole('button', { name: 'Salvar foto' }).click();
-  await expect(page.getByRole('status')).toHaveText(/Foto atualizada\./);
+  await janela.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText(/Foto atualizada/);
   await expect(janela).toBeHidden();
 
   const foto = backend.perfilDe('rafa@example.com')!.foto!;
@@ -61,11 +61,12 @@ test('e-mail: troca com o código enviado para o endereço novo', async ({ page,
   await abrirDadosDaConta(page);
 
   await page.getByRole('button', { name: 'Alterar e-mail' }).click();
-  await page.getByLabel('Novo e-mail').fill('rafa.novo@example.com');
+  await page.getByRole('textbox', { name: 'Novo e-mail' }).fill('rafa.novo@example.com');
   await page.getByRole('button', { name: 'Enviar código' }).click();
   await page.getByLabel('Código de 6 dígitos').fill(backend.ultimoCodigo('rafa.novo@example.com', 'email_change'));
+  await page.getByRole('button', { name: 'Confirmar' }).click();
 
-  await expect(page.getByRole('status')).toHaveText(/E-mail atualizado\./);
+  await expect(page.getByRole('status')).toHaveText(/E-mail confirmado/);
   await expect(page.getByText('rafa.novo@example.com')).toBeVisible();
 
   // O e-mail novo passa a valer para entrar.
@@ -79,9 +80,9 @@ test('excluir conta: agenda, tira do app e, entrando de novo no prazo, dá para 
   await abrirDadosDaConta(page);
 
   await page.getByRole('button', { name: 'Excluir conta' }).click();
-  const janela = page.getByRole('dialog', { name: 'Excluir sua conta?' });
+  const janela = page.getByRole('dialog', { name: 'Excluir conta' });
   await janela.getByLabel('Digite EXCLUIR para confirmar').fill('EXCLUIR');
-  await janela.getByRole('button', { name: 'Excluir minha conta' }).click();
+  await janela.getByRole('button', { name: 'Excluir definitivamente' }).click();
 
   await expect(page).toHaveURL('/entrar');
   await expect(page.getByText(/Sua conta será excluída em \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
