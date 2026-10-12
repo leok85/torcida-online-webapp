@@ -14,7 +14,7 @@ test('o início mostra o jogo do clube vindo da tabela partidas', async ({ page,
   await expect(page).toHaveURL('/');
 
   const jogo = page.getByRole('region', { name: 'Jogo do Palmeiras' });
-  await expect(jogo.getByText('ENCERRADO')).toBeVisible();
+  await expect(jogo.getByText(/^ENCERRADO · HÁ/)).toBeVisible();
   await expect(jogo.getByLabel('Placar: 4 a 1')).toBeVisible();
   await expect(jogo.getByText('Corinthians')).toBeVisible();
 

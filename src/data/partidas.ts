@@ -48,12 +48,11 @@ export function resultadoPara(p: Partida, clubeId: number): 'V' | 'E' | 'D' {
 
 const PERIODOS: Record<string, string> = { '1T': '1º T', INT: 'INTERVALO', '2T': '2º T', PRO: 'PRORROGAÇÃO', PEN: 'PÊNALTIS' };
 
-/** Selo do card: "AO VIVO · 2º T" ou "ENCERRADO". */
-export const seloDaPartida = (p: Partida) =>
-  p.status === 'ao_vivo' ? (p.periodo ? `AO VIVO · ${PERIODOS[p.periodo]}` : 'AO VIVO') : 'ENCERRADO';
+/** Selo do card: "AO VIVO · 2º T" ou "ENCERRADO · HÁ 3 H". */
+export const seloDaPartida = (p: Partida, agora = new Date()) =>
+  p.status === 'ao_vivo' ? (p.periodo ? `AO VIVO · ${PERIODOS[p.periodo]}` : 'AO VIVO') : `ENCERRADO · ${haQuanto(p.inicio, agora)}`;
 
 const FUSO = 'America/Sao_Paulo';
-const DATA = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: FUSO });
 const DIA_DA_SEMANA = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', timeZone: FUSO });
 const HORA = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: FUSO });
 const DIA = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', timeZone: FUSO });
@@ -86,15 +85,11 @@ export function aberturaDoPalpite(proximos: Partida[], indice: number, haJogoAoV
   return `abre ${semPonto(DIA_DA_SEMANA.format(diaSeguinte))}`;
 }
 
-/** "Brasileirão Série A · rodada 30 · 67'" ao vivo; com a data ("sáb., 11/10") depois do jogo. */
+/** "Brasileirão Série A · rodada 30 · 67'" ao vivo; sem o minuto depois do jogo (o selo já diz há quanto tempo). */
 export function infoDaPartida(p: Partida) {
   const partes = [p.liga_nome];
   if (p.rodada) partes.push(`rodada ${p.rodada}`);
-  if (p.status === 'ao_vivo') {
-    if (p.minuto != null && p.periodo !== 'INT') partes.push(`${p.minuto}'`);
-  } else {
-    partes.push(DATA.format(new Date(p.inicio)));
-  }
+  if (p.status === 'ao_vivo' && p.minuto != null && p.periodo !== 'INT') partes.push(`${p.minuto}'`);
   return partes.join(' · ');
 }
 
@@ -111,4 +106,65 @@ export function autoresDosGols(gols: Gol[]) {
       const [jogador, contra] = chave.split('|');
       return `${jogador} ${minutos.join(', ')}${contra ? ' (contra)' : ''}`;
     });
+}
+
+// ---------- Momentos do card do início (W01) ----------
+
+export type Momento =
+  | { tipo: 'ao_vivo'; jogo: Partida; proximo: Partida | null }
+  | { tipo: 'encerrado'; jogo: Partida; proximo: Partida | null }
+  | { tipo: 'vespera'; jogo: Partida; ultimo: Partida | null };
+
+const DIA_ISO = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: FUSO });
+/** Dias de calendário (em Brasília) de `de` até `ate`. */
+const diasEntre = (de: Date, ate: Date) => (Date.parse(DIA_ISO.format(ate)) - Date.parse(DIA_ISO.format(de))) / 86_400_000;
+
+/**
+ * Qual momento o card mostra: o jogo ao vivo; senão o último resultado, até a véspera do próximo jogo; a partir
+ * da véspera (dia anterior, em Brasília), o próximo jogo com a contagem regressiva.
+ */
+export function momentoDoInicio(jogos: Partida[], agora = new Date()): Momento | null {
+  const { aoVivo, resultados } = separarJogos(jogos);
+  // Um jogo marcado que já passou da janela sem virar ao vivo não é mais "próximo".
+  const proximo = jogos.find((p) => p.status === 'agendada' && new Date(p.inicio).getTime() + DEPOIS_DO_INICIO_MS > agora.getTime()) ?? null;
+  const ultimo = resultados[0] ?? null;
+  if (aoVivo) return { tipo: 'ao_vivo', jogo: aoVivo, proximo };
+  if (proximo && (!ultimo || diasEntre(agora, new Date(proximo.inicio)) <= 1)) return { tipo: 'vespera', jogo: proximo, ultimo };
+  if (ultimo) return { tipo: 'encerrado', jogo: ultimo, proximo };
+  return null;
+}
+
+const doisDigitos = (n: number) => String(n).padStart(2, '0');
+
+/** "1d 02h", "05h 12min", "12 min" até o apito inicial; "em instantes" quando a hora já chegou. */
+export function contagemRegressiva(inicio: string, agora = new Date()) {
+  const minutos = Math.floor((new Date(inicio).getTime() - agora.getTime()) / 60_000);
+  if (minutos <= 0) return 'em instantes';
+  const dias = Math.floor(minutos / 1440);
+  const horas = Math.floor((minutos % 1440) / 60);
+  if (dias > 0) return `${dias}d ${doisDigitos(horas)}h`;
+  if (horas > 0) return `${doisDigitos(horas)}h ${doisDigitos(minutos % 60)}min`;
+  return `${minutos} min`;
+}
+
+/** Duração típica de um jogo, para estimar o apito final a partir do início. */
+const DURACAO_DO_JOGO_MS = 115 * 60_000;
+
+/** "HÁ 3 H", "HÁ 2 D", "HÁ 40 MIN" desde o fim estimado do jogo. */
+export function haQuanto(inicio: string, agora = new Date()) {
+  const minutos = Math.max(0, Math.floor((agora.getTime() - new Date(inicio).getTime() - DURACAO_DO_JOGO_MS) / 60_000));
+  if (minutos < 60) return minutos < 5 ? 'AGORA' : `HÁ ${minutos} MIN`;
+  if (minutos < 1440) return `HÁ ${Math.floor(minutos / 60)} H`;
+  return `HÁ ${Math.floor(minutos / 1440)} D`;
+}
+
+const DIA_MES = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: FUSO });
+
+/** "Copa do Brasil · qua 14/10 21:30": linha do próximo jogo na véspera. */
+export function infoDaVespera(p: Partida) {
+  const data = new Date(p.inicio);
+  const partes = [p.liga_nome];
+  if (p.rodada) partes.push(`rodada ${p.rodada}`);
+  partes.push(`${semPonto(DIA_DA_SEMANA.format(data))} ${DIA_MES.format(data)} ${HORA.format(data)}`);
+  return partes.join(' · ');
 }

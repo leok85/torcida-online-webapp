@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { partidaDeTeste } from '../test/catalogoDeTeste';
-import { aberturaDoPalpite, diaEMes, haJogoNaJanela, infoDoProximo, resultadoPara, separarJogos } from './partidas';
+import { aberturaDoPalpite, contagemRegressiva, diaEMes, haJogoNaJanela, haQuanto, infoDoProximo, momentoDoInicio, resultadoPara, separarJogos } from './partidas';
 
 const marcada = (id: number, inicio: string) => partidaDeTeste({ id, inicio, status: 'agendada', periodo: null, minuto: null, gols_mandante: null, gols_visitante: null, gols: [] });
 const encerrada = (id: number, inicio: string, gm: number, gv: number) => partidaDeTeste({ id, inicio, status: 'encerrada', periodo: null, minuto: null, gols_mandante: gm, gols_visitante: gv });
@@ -61,4 +61,48 @@ describe('formatos', () => {
     expect(diaEMes('2026-10-15T00:30:00Z')).toEqual({ dia: '14', mes: 'OUT' });
     expect(infoDoProximo(partidaDeTeste({ inicio: '2026-10-15T00:30:00Z', rodada: 20 }))).toBe('Brasileirão Série A · rodada 20 · qua 21:30');
   });
+});
+
+describe('momentoDoInicio', () => {
+  const ultimo = encerrada(1, '2026-10-11T20:30:00Z', 4, 1);
+  const proximo = marcada(2, '2026-10-15T00:30:00Z'); // qua 14/10 21:30 em Brasília
+  const tipo = (agora: string, jogos = [ultimo, proximo]) => momentoDoInicio(jogos, new Date(agora))?.tipo;
+
+  it('ao vivo manda em tudo', () => {
+    expect(tipo('2026-10-12T15:00:00Z', [ultimo, partidaDeTeste({ id: 3 }), proximo])).toBe('ao_vivo');
+  });
+
+  it('encerrado até o fim do dia anterior à véspera, em Brasília', () => {
+    expect(tipo('2026-10-12T15:00:00Z')).toBe('encerrado');
+    expect(tipo('2026-10-13T02:59:00Z')).toBe('encerrado'); // seg 23:59 em Brasília
+  });
+
+  it('véspera a partir da meia-noite do dia anterior e até o apito', () => {
+    expect(tipo('2026-10-13T03:00:00Z')).toBe('vespera'); // ter 00:00 em Brasília
+    expect(tipo('2026-10-15T00:29:00Z')).toBe('vespera');
+  });
+
+  it('jogo marcado que passou da janela sem começar deixa de ser o próximo', () => {
+    expect(tipo('2026-10-15T04:00:00Z')).toBe('encerrado');
+  });
+
+  it('sem jogos, nada', () => {
+    expect(momentoDoInicio([], new Date())).toBeNull();
+  });
+});
+
+describe('contagemRegressiva e haQuanto', () => {
+  it.each([
+    ['2026-10-13T22:00:00Z', '1d 02h'],
+    ['2026-10-14T19:18:00Z', '05h 12min'],
+    ['2026-10-15T00:18:00Z', '12 min'],
+    ['2026-10-15T00:31:00Z', 'em instantes'],
+  ])('agora %s → %s', (agora, esperado) => expect(contagemRegressiva('2026-10-15T00:30:00Z', new Date(agora))).toBe(esperado));
+
+  it.each([
+    ['2026-10-11T22:27:00Z', 'AGORA'],
+    ['2026-10-11T23:05:00Z', 'HÁ 40 MIN'],
+    ['2026-10-12T01:30:00Z', 'HÁ 3 H'],
+    ['2026-10-13T23:00:00Z', 'HÁ 2 D'],
+  ])('jogo das 20:30 UTC, agora %s → %s', (agora, esperado) => expect(haQuanto('2026-10-11T20:30:00Z', new Date(agora))).toBe(esperado));
 });
