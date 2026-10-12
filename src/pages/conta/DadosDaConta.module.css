@@ -1,7 +1,10 @@
-/* W21 · Dados da conta, com as medidas do Claude Design (WebApp.dc.html). */
+/* W21 · Dados da conta, com as medidas do Claude Design (WebApp.dc.html).
+   O protótipo usa content-box: largura e altura lá não incluem padding e borda. Aqui, com border-box,
+   as medidas somam os dois para dar o mesmo tamanho na tela. */
 .page {
   padding: 26px 28px 40px;
-  max-width: 900px;
+  /* 900px de conteúdo + 28px de cada lado */
+  max-width: 956px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;

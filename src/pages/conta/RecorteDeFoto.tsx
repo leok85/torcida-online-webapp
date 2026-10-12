@@ -203,8 +203,9 @@ export function RecorteDeFoto({ imagem, onTrocarImagem, onCancelar, onSalvar }: 
         </div>
 
         <div className={styles.previas}>
+          {/* 56 e 36px de imagem, mais a borda branca de 2px (no design a borda fica por fora). */}
           {[56, 36].map((lado) => (
-            <div key={lado} className={styles.previa} style={{ width: lado, height: lado }}>
+            <div key={lado} className={styles.previa} style={{ width: lado + 4, height: lado + 4 }}>
               {tamanho && <ImagemPosicionada src={imagem} tamanho={tamanho} pos={pos} zoom={zoom} lado={lado} alt="" />}
             </div>
           ))}
