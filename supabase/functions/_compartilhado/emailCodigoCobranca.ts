@@ -1,6 +1,9 @@
 // E-mail com o código que confirma o e-mail de cobrança (W18). Mesmo visual dos templates do Supabase Auth
 // (supabase/templates), que seguem o "Email Template.html" do Claude Design.
 
+/** Mesmo remetente dos e-mails do Supabase Auth (SMTP do Resend). */
+export const REMETENTE = 'Torcida Online <no-reply@torcidaonline.com.br>';
+
 export const ASSUNTO_CODIGO_COBRANCA = 'Confirme o e-mail de cobrança - Torcida Online';
 
 export function textoDoCodigoDeCobranca(codigo: string) {
