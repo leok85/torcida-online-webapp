@@ -51,8 +51,10 @@ function Placar({ jogo }: { jogo: Partida }) {
   return (
     <div className={styles.scoreboard}>
       <Time id={jogo.mandante_id} nome={jogo.mandante_nome} tom="dark" gols={autoresDosGols(jogo.gols.filter((g) => g.mandante))} />
-      <div className={styles.score} aria-label={`Placar: ${jogo.gols_mandante ?? 0} a ${jogo.gols_visitante ?? 0}`}>
-        {jogo.gols_mandante ?? 0} — {jogo.gols_visitante ?? 0}
+      <div className={styles.center}>
+        <div className={styles.score} aria-label={`Placar: ${jogo.gols_mandante ?? 0} a ${jogo.gols_visitante ?? 0}`}>
+          {jogo.gols_mandante ?? 0} — {jogo.gols_visitante ?? 0}
+        </div>
       </div>
       <Time id={jogo.visitante_id} nome={jogo.visitante_nome} tom="darkAway" gols={autoresDosGols(jogo.gols.filter((g) => !g.mandante))} />
     </div>
@@ -63,9 +65,17 @@ function Placar({ jogo }: { jogo: Partida }) {
 function Faixa({ rotulo, titulo, info, children }: { rotulo: string; titulo: string; info: string; children: React.ReactNode }) {
   return (
     <div className={styles.faixa} aria-label={rotulo === 'PRÓXIMO' ? 'Próximo jogo' : 'Último jogo'} role="group">
-      <span className={styles.faixaRotulo}>{rotulo}</span>
-      <strong className={styles.faixaTitulo}>{titulo}</strong>
-      <span className={styles.faixaInfo}>{info}</span>
+      <div className={styles.faixaTexto}>
+        <div className={styles.faixaLinha}>
+          <span className={styles.faixaRotulo}>{rotulo}</span>
+          <strong className={styles.faixaTitulo} title={titulo}>
+            {titulo}
+          </strong>
+        </div>
+        <span className={styles.faixaInfo} title={info}>
+          {info}
+        </span>
+      </div>
       {children}
     </div>
   );
@@ -118,7 +128,9 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
         <div className={styles.liveBody}>
           <div className={styles.liveMeta}>
             <span className={styles.nextPill}>PRÓXIMO JOGO</span>
-            <span className={styles.liveInfo}>{infoDaVespera(jogo)}</span>
+            <span className={styles.liveInfo} title={infoDaVespera(jogo)}>
+              {infoDaVespera(jogo)}
+            </span>
           </div>
           <div className={styles.scoreboard}>
             <Time id={jogo.mandante_id} nome={jogo.mandante_nome} tom="dark" />
@@ -142,7 +154,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
         </div>
         {ultimo && (
           <Faixa rotulo="ÚLTIMO JOGO" titulo={placar(ultimo)} info={infoDoResultado(ultimo)}>
-            <Link to="/pos-jogo" className={styles.faixaLink}>
+            <Link to="/pos-jogo" className={styles.faixaBtn}>
               Notas e fotos
               <Icon name="arrow_forward" size={17} />
             </Link>
@@ -198,7 +210,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
               Palpite abre no apito final
             </span>
           ) : (
-            <Link to="/escalacao" className={styles.faixaLink}>
+            <Link to="/escalacao" className={styles.faixaBtn}>
               Dar palpite
               <Icon name="arrow_forward" size={17} />
             </Link>
