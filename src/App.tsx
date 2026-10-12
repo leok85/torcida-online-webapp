@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import { ApenasLogado, ApenasVisitante } from './auth/Rotas';
-import { AppShell } from './components/layout/AppShell';
+import { AppShellDoTime } from './components/layout/AppShell';
 import { BoasVindas } from './pages/auth/BoasVindas';
 import { CriarConta } from './pages/auth/CriarConta';
 import { Entrar } from './pages/auth/Entrar';
@@ -23,7 +23,7 @@ export default function App() {
         <Route path="/onboarding" element={<Onboarding />} />
       </Route>
       <Route element={<ApenasLogado torcedor />}>
-        <Route path="/*" element={<AppShell />} />
+        <Route path="/*" element={<AppShellDoTime />} />
       </Route>
     </Routes>
   );
