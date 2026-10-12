@@ -14,10 +14,30 @@ import styles from './Assinatura.module.css';
 
 type Sessao = { tipo: 'criando' } | { tipo: 'pronta'; clientSecret: string } | { tipo: 'erro' };
 
-// Visual do formulário do Stripe alinhado ao design (fonte, azul primário, cantos).
+// O formulário do Stripe com as medidas da W14: abas de 52px, campos de 46px com borda de 1.5px e rótulos de 11.5px.
 const APARENCIA = {
   theme: 'stripe' as const,
-  variables: { colorPrimary: '#00419b', colorText: '#091d37', colorDanger: '#e0342a', borderRadius: '11px', fontFamily: 'Manrope, system-ui, sans-serif' },
+  variables: {
+    colorPrimary: '#00419b',
+    colorText: '#091d37',
+    colorTextSecondary: '#6e7c93',
+    colorDanger: '#e0342a',
+    borderRadius: '11px',
+    fontFamily: 'Manrope, system-ui, sans-serif',
+    fontSizeBase: '14px',
+    spacingGridRow: '14px',
+    spacingGridColumn: '14px',
+  },
+  rules: {
+    '.Tab': { border: '1.5px solid #e1e7ef', borderRadius: '12px', boxShadow: 'none', padding: '14px', color: '#6e7c93' },
+    '.Tab:hover': { color: '#00419b' },
+    '.Tab--selected': { borderColor: '#00419b', backgroundColor: '#f8fbff', color: '#00419b', boxShadow: 'none' },
+    '.Tab--selected:hover': { color: '#00419b' },
+    '.TabLabel': { fontWeight: '800', fontSize: '14px' },
+    '.Label': { fontSize: '11.5px', fontWeight: '700', color: '#33425c', marginBottom: '6px' },
+    '.Input': { border: '1.5px solid #e1e7ef', borderRadius: '11px', padding: '12px 14px', boxShadow: 'none', fontSize: '14px' },
+    '.Input:focus': { borderColor: '#00419b', boxShadow: 'none' },
+  },
 };
 const FONTES = [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap' }];
 
@@ -54,10 +74,10 @@ export function Pagamento() {
   if (assinante) return <Navigate to="/conta/assinatura" replace />;
 
   return (
-    <div className={styles.pagina}>
-      <div className={ui.pageHead}>
-        <h2 className={ui.pageTitle}>Pagamento</h2>
-        <span className={ui.pageSub}>Ambiente seguro. Os dados do cartão não ficam salvos com a gente.</span>
+    <div className={styles.paginaPagamento}>
+      <div className={styles.cabecalho}>
+        <h2>Pagamento</h2>
+        <span>Ambiente seguro. Os dados do cartão não ficam salvos com a gente.</span>
       </div>
       <Passos atual={2} />
       {sessao.tipo === 'erro' && (
@@ -95,6 +115,10 @@ function Formulario({ plano, moeda }: { plano: Plano; moeda: Moeda }) {
 
   const precos = PRECOS[moeda];
   const valor = formatarPreco(precos[plano], moeda);
+  const hoje = new Date();
+  const renovacao = new Date(hoje);
+  if (plano === 'anual') renovacao.setFullYear(hoje.getFullYear() + 1);
+  else renovacao.setMonth(hoje.getMonth() + 1);
 
   const pagar = async () => {
     setEnviando(true);
@@ -115,37 +139,49 @@ function Formulario({ plano, moeda }: { plano: Plano; moeda: Moeda }) {
   return (
     <div className={styles.pagamento}>
       <section className={styles.formulario}>
-        <div className={styles.rotulo}>FORMA DE PAGAMENTO</div>
-        <PaymentElement options={{ layout: 'tabs' }} />
+        <div className={styles.rotuloForma}>FORMA DE PAGAMENTO</div>
+        {/* O aviso de cobrança recorrente fica no quadro de renovação e nas letrinhas do resumo, como no design. */}
+        <PaymentElement options={{ layout: 'tabs', terms: { card: 'never' } }} />
         <p className={styles.renovacao}>
-          <Icon name="autorenew" size={17} />A renovação é cobrada neste cartão no fim de cada período. Avisamos por e-mail antes.
+          <Icon name="autorenew" size={19} />A renovação é cobrada neste cartão no fim de cada período. Avisamos por e-mail 3 dias antes.
         </p>
         {erro && <Alert>{erro}</Alert>}
       </section>
       <aside className={styles.resumo}>
         <div className={styles.resumoTopo}>
-          <h3 className={ui.title}>Resumo</h3>
+          <h3 className={styles.resumoTitulo}>Resumo</h3>
           <Link to={`/assinar?plano=${plano}&moeda=${moeda}`} className={styles.link}>
             Trocar plano
           </Link>
         </div>
         <div className={styles.resumoPlano}>
-          <Icon name="workspace_premium" size={22} color="var(--primary)" />
+          <Icon name="workspace_premium" size={24} color="var(--primary)" />
           <div>
             <strong>Plano {plano}</strong>
-            <span>{plano === 'anual' ? 'renova a cada 12 meses' : 'renova todo mês'}</span>
+            <span>renova em {renovacao.toLocaleDateString('pt-BR')}</span>
           </div>
         </div>
         <dl className={styles.linhas}>
-          {plano === 'anual' && (
+          {plano === 'anual' ? (
             <>
               <div>
-                <dt>12 meses no mensal</dt>
+                <dt>Plano anual</dt>
                 <dd>{formatarPreco(precos.mensal * 12, moeda)}</dd>
               </div>
               <div className={styles.desconto}>
                 <dt>Desconto de 2 meses</dt>
                 <dd>− {formatarPreco(precos.mensal * 12 - precos.anual, moeda)}</dd>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <dt>Plano mensal</dt>
+                <dd>{valor}</dd>
+              </div>
+              <div className={styles.desconto}>
+                <dt>Cobrança recorrente</dt>
+                <dd>todo dia {hoje.getDate()}</dd>
               </div>
             </>
           )}
@@ -154,9 +190,10 @@ function Formulario({ plano, moeda }: { plano: Plano; moeda: Moeda }) {
             <dd>{valor}</dd>
           </div>
         </dl>
-        <Button variant="success" icon="lock" loading={enviando} onClick={pagar}>
+        <button type="button" className={styles.pagar} onClick={pagar} disabled={enviando} aria-busy={enviando || undefined}>
+          <Icon name={enviando ? 'progress_activity' : 'lock'} size={20} className={enviando ? styles.girando : undefined} />
           Pagar {valor}
-        </Button>
+        </button>
         <p className={styles.letrinhas}>
           Ao pagar você concorda com os{' '}
           <a href="https://torcidaonline.com.br/termos-de-uso" target="_blank" rel="noreferrer">

@@ -10,6 +10,7 @@ const stripe = vi.hoisted(() => ({
   opcoes: null as null | { clientSecret: string },
   estado: { type: 'success' } as { type: 'loading' | 'success' | 'error'; error?: { message: string } },
   confirm: null as unknown as ReturnType<typeof vi.fn>,
+  formulario: null as null | Record<string, unknown>,
 }));
 
 vi.mock('../../lib/stripe', () => ({ carregarStripe: () => Promise.resolve({}) }));
@@ -18,7 +19,10 @@ vi.mock('@stripe/react-stripe-js/checkout', () => ({
     stripe.opcoes = options;
     return children;
   },
-  PaymentElement: () => <div>Formulário do cartão</div>,
+  PaymentElement: ({ options }: { options: Record<string, unknown> }) => {
+    stripe.formulario = options;
+    return <div>Formulário do cartão</div>;
+  },
   useCheckoutElements: () =>
     stripe.estado.type === 'success' ? { type: 'success', checkout: { confirm: stripe.confirm } } : stripe.estado,
 }));
@@ -42,6 +46,32 @@ describe('pagamento (/assinar/pagamento)', () => {
     expect(screen.getByText('Desconto de 2 meses')).toBeInTheDocument();
     expect(screen.getByText('− R$ 29,80')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pagar R$ 149,00' })).toBeInTheDocument();
+  });
+
+  it('resumo do W14: data da renovação, linhas do pedido e o formulário sem o aviso do Stripe', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-12T15:00:00Z'));
+    torcedor();
+    renderApp('/assinar/pagamento?plano=anual&moeda=BRL');
+    expect(await screen.findByText('renova em 12/10/2027')).toBeInTheDocument();
+    expect(screen.getByText('R$ 178,80')).toBeInTheDocument();
+    expect(screen.getByText(/Avisamos por e-mail 3 dias antes/)).toBeInTheDocument();
+    // O aviso de cobrança recorrente já está na tela; o do Stripe ficaria duplicado.
+    expect(stripe.formulario).toMatchObject({ layout: 'tabs', terms: { card: 'never' } });
+    vi.useRealTimers();
+  });
+
+  it('no mensal, o resumo mostra o dia da cobrança recorrente', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-12T15:00:00Z'));
+    torcedor();
+    renderApp('/assinar/pagamento?plano=mensal&moeda=BRL');
+    expect(await screen.findByText('renova em 12/11/2026')).toBeInTheDocument();
+    expect(screen.getByText('Cobrança recorrente')).toBeInTheDocument();
+    expect(screen.getByText('todo dia 12')).toBeInTheDocument();
+    expect(screen.queryByText('Desconto de 2 meses')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pagar R$ 14,90' })).toBeInTheDocument();
+    vi.useRealTimers();
   });
 
   it('pagamento aprovado leva para a confirmação', async () => {
