@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { useApelido } from '../../auth/validacao';
@@ -11,6 +11,7 @@ import { Crest } from '../../components/ui/Crest';
 import { Icon } from '../../components/ui/Icon';
 import { PAISES_COM_CIDADES, rotuloCidade } from '../../data/cidades';
 import { listarClubes, listarPaises, type Clube } from '../../data/clubes';
+import { useCarga } from '../../data/useCarga';
 import { FLAG, SITE } from '../../data/common';
 import { cidadeDaLocalizacao } from '../../data/localizacao';
 import layout from './AuthLayout.module.css';
@@ -20,28 +21,6 @@ type Etapa = 1 | 2;
 
 const ETAPAS = { 1: 'país', 2: 'clube e cidade' } as const;
 
-/** Carrega dados do catálogo e guarda de qual chave eles são, para nunca mostrar os clubes de outro país. */
-function useCarga<T>(chave: string | null, carregar: (chave: string) => Promise<T>) {
-  const [estado, setEstado] = useState<{ chave: string; dados?: T; erro?: boolean } | null>(null);
-  const [tentativa, setTentativa] = useState(0);
-
-  useEffect(() => {
-    if (!chave) return;
-    let ativo = true;
-    carregar(chave).then(
-      (dados) => ativo && setEstado({ chave, dados }),
-      () => ativo && setEstado({ chave, erro: true }),
-    );
-    return () => {
-      ativo = false;
-    };
-    // carregar é uma função do módulo: não muda entre renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chave, tentativa]);
-
-  const atual = chave && estado?.chave === chave ? estado : null;
-  return { dados: atual?.dados, erro: !!atual?.erro, tentarDeNovo: () => setTentativa((t) => t + 1) };
-}
 
 /** Agrupa os clubes (já ordenados por divisão) pela liga, mantendo a ordem. */
 function porLiga(clubes: Clube[]) {

@@ -1,0 +1,669 @@
+/* W22 · Trocar de time, com as medidas do Claude Design (WebApp.dc.html).
+   O design usa content-box: 980px de conteúdo + 56px de padding = 1036px em border-box. */
+.page {
+  max-width: 1036px;
+  margin: 0 auto;
+  padding: 26px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.titulo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.alerta {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 18px;
+  background: var(--red-soft);
+  border: 1px solid #f0c9c6;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #7a211b;
+}
+
+.alerta > :first-child {
+  flex: none;
+  color: var(--red-dark);
+}
+
+.alerta strong {
+  font-weight: 800;
+}
+
+.colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.cartao {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+/* ---------- novo time ---------- */
+.escolha {
+  composes: cartao;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cardTitulo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.cardSub {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.paises {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pais {
+  height: 36px;
+  padding: 0 12px 0 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pais:hover {
+  border-color: var(--primary);
+}
+
+.paisMarcado {
+  border-color: var(--primary);
+  background: var(--blue-soft);
+  font-weight: 800;
+}
+
+.bandeira {
+  width: 22px;
+  height: 16px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.busca {
+  height: 42px;
+  padding: 0 13px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+}
+
+.busca:focus-within {
+  border-color: var(--primary);
+}
+
+.busca input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+}
+
+.clubes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.clube {
+  position: relative;
+  padding: 12px 6px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+}
+
+.clube:hover {
+  border-color: var(--primary);
+}
+
+.clube > span {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.clubeMarcado {
+  border-color: var(--primary);
+  background: var(--blue-soft);
+}
+
+.marca {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  color: var(--primary);
+}
+
+.vazio {
+  padding: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.carregando {
+  height: 120px;
+  border-radius: 12px;
+  background: var(--soft);
+  animation: livepulse 1.4s ease-in-out infinite;
+}
+
+/* ---------- time atual, novo time e o que muda ---------- */
+.lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.time {
+  composes: cartao;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.timeVazio {
+  border-style: dashed;
+}
+
+.timeTextos {
+  flex: 1;
+  min-width: 0;
+}
+
+.rotulo {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.timeNome {
+  margin-top: 3px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.timeNomeVazio {
+  color: var(--muted-2);
+}
+
+.timeMeta {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.timePais {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.timePais img {
+  width: 16px;
+  height: 12px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  object-fit: cover;
+}
+
+.seta {
+  align-self: center;
+  margin: -6px 0;
+  color: var(--muted-2);
+}
+
+.muda {
+  composes: cartao;
+  padding: 18px 20px;
+}
+
+.muda .cardTitulo {
+  margin-bottom: 12px;
+}
+
+.muda ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.muda li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.muda li > :first-child {
+  flex: none;
+}
+
+.perde {
+  color: var(--red-dark);
+}
+
+.fica {
+  color: var(--green);
+}
+
+.mundo {
+  color: var(--primary);
+}
+
+.selo {
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: var(--soft);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.viraCasaca {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px dashed var(--muted-2);
+  border-radius: 999px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--ink-2);
+}
+
+/* ---------- confirmação ---------- */
+.barra {
+  composes: cartao;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.ciente {
+  flex: 1;
+  min-width: 260px;
+  border: 0;
+  background: none;
+  padding: 0;
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.caixa {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border: 1.5px solid #c7d2e1;
+  border-radius: 6px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.caixaMarcada {
+  border-color: var(--red-dark);
+  background: var(--red-dark);
+}
+
+.continuar {
+  flex: none;
+  height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.continuar:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.confirmar {
+  flex: none;
+  height: 46px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--red-dark);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.confirmar:disabled {
+  background: #e8c5c1;
+  cursor: not-allowed;
+}
+
+.confirmar[aria-busy='true'] {
+  cursor: progress;
+}
+
+.erro {
+  flex-basis: 100%;
+}
+
+/* ---------- troca concluída ---------- */
+.concluida {
+  composes: cartao;
+  overflow: hidden;
+}
+
+.concluidaTopo {
+  padding: 30px 32px;
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.concluidaTextos {
+  flex: 1;
+  min-width: 220px;
+}
+
+.concluidaRotulo {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--green-neon);
+}
+
+.concluidaTitulo {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 38px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.concluidaApelido {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.concluidaApelido strong {
+  font-weight: 800;
+}
+
+.viraCasacaEscuro {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #e4eaf2;
+}
+
+.mantidos {
+  margin: 0;
+  padding: 22px 32px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.mantidos dt {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.mantidos dd {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.concluidaRodape {
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.concluidaRodape p {
+  flex: 1;
+  min-width: 240px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.primario {
+  flex: none;
+  height: 46px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.primario:hover {
+  background: var(--primary-hover);
+}
+
+/* ---------- troca já utilizada ---------- */
+.usada {
+  composes: cartao;
+  padding: 28px 30px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.cadeado {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.usadaTextos {
+  flex: 1;
+  min-width: 240px;
+}
+
+.usadaTitulo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.usadaTextos p {
+  margin-top: 10px;
+  max-width: 56ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.usadaAcoes {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.primarioLink,
+.suporte {
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  font-size: 13.5px;
+  text-decoration: none;
+}
+
+.primarioLink {
+  padding: 0 20px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+}
+
+.primarioLink:hover {
+  background: var(--primary-hover);
+  color: #fff;
+  text-decoration: none;
+}
+
+.suporte {
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-weight: 700;
+}
+
+.suporte:hover {
+  text-decoration: none;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+@media (max-width: 860px) {
+  .colunas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px 16px 32px;
+  }
+
+  .mantidos {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px;
+  }
+
+  .concluidaTopo,
+  .concluidaRodape {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .continuar,
+  .confirmar {
+    flex: 1;
+  }
+}

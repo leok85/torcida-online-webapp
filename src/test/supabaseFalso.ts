@@ -6,7 +6,7 @@ import type { Session, User, UserIdentity } from '@supabase/supabase-js';
 import type { Assinatura, FeedbackRow, Perfil } from '../lib/database.types';
 import { inicioDaSemana } from '../data/semana';
 import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.types';
-import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
+import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
 type Ouvinte = (evento: Evento, sessao: Session | null) => void;
@@ -28,6 +28,8 @@ export function perfilDeTeste(campos: Partial<Perfil> = {}): Perfil {
     apelido: 'Rafa_9',
     apelido_alterado_em: null,
     apelido_anterior: null,
+    time_anterior_id: null,
+    time_trocado_em: null,
     // Com senha (trigger ao_trocar_senha); null = entra só pelo Google ou pela Apple.
     senha_alterada_em: '2026-06-10T12:00:00Z',
     foto: null,
@@ -156,7 +158,23 @@ function criar() {
         if (trocouApelido && atual.apelido_alterado_em && Date.now() - new Date(atual.apelido_alterado_em).getTime() < 30 * DIA_MS) {
           return { data: null, error: { code: 'P0001', message: 'Apelido trocado há menos de 30 dias', hint: 'apelido_recente' } };
         }
-        const novo = { ...atual, ...campos, ...(trocouApelido && { apelido_alterado_em: new Date().toISOString(), apelido_anterior: atual.apelido }) };
+        // Troca de time: livre no onboarding; depois dele, uma única vez, com o país do clube novo.
+        const trocouTime = campos.time_id !== undefined && campos.time_id !== atual.time_id && !!atual.onboarding_concluido_em;
+        if (trocouTime && atual.time_trocado_em) {
+          return { data: null, error: { code: 'P0001', message: 'A troca de time já foi usada', hint: 'troca_usada' } };
+        }
+        const novo = {
+          ...atual,
+          ...campos,
+          time_anterior_id: atual.time_anterior_id,
+          time_trocado_em: atual.time_trocado_em,
+          ...(trocouApelido && { apelido_alterado_em: new Date().toISOString(), apelido_anterior: atual.apelido }),
+          ...(trocouTime && {
+            time_anterior_id: atual.time_id,
+            time_trocado_em: new Date().toISOString(),
+            pais: CLUBES_DE_TESTE.find((c) => c.id === campos!.time_id)?.pais ?? atual.pais,
+          }),
+        };
         perfis.set(atual.id, novo);
         return ok(comCatalogo(novo));
       },

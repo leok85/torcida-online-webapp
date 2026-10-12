@@ -7,9 +7,13 @@ import type { ClubeRow, Pais, Perfil, PerfilUpdate } from '../lib/database.types
 export type PerfilCompleto = Perfil & {
   clube: Pick<ClubeRow, 'id' | 'nome' | 'nome_curto' | 'liga_id'> | null;
   pais_dados: Pick<Pais, 'nome' | 'bandeira'> | null;
+  /** O clube de antes da troca de time (vira-casaca); null enquanto a troca não foi usada. */
+  clube_anterior: Pick<ClubeRow, 'id' | 'nome'> | null;
 };
 
-const COLUNAS_PERFIL = '*, clube:clubes(id, nome, nome_curto, liga_id), pais_dados:paises(nome, bandeira)';
+// Duas chaves para clubes (time atual e anterior): o embed precisa dizer qual usar.
+const COLUNAS_PERFIL =
+  '*, clube:clubes!perfis_time_id_fkey(id, nome, nome_curto, liga_id), clube_anterior:clubes!perfis_time_anterior_id_fkey(id, nome), pais_dados:paises(nome, bandeira)';
 
 type Auth = {
   /** Enquanto a sessão salva é lida ou o perfil do usuário logado é buscado. */
