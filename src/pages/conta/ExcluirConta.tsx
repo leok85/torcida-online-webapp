@@ -12,7 +12,7 @@ import styles from './DadosDaConta.module.css';
 
 const PALAVRA = 'EXCLUIR';
 
-/** Confirmação da exclusão (W21): o que se perde, o prazo para desistir e só libera com EXCLUIR digitado. */
+/** Confirmação da exclusão (W21; 480px de conteúdo + 28px de padding de cada lado): o que se perde, o prazo para desistir e só libera com EXCLUIR digitado. */
 export function ExcluirConta({ onFechar }: { onFechar: () => void }) {
   const { perfil, assinante, sair } = useAuth();
   const navigate = useNavigate();
@@ -50,7 +50,7 @@ export function ExcluirConta({ onFechar }: { onFechar: () => void }) {
   }
 
   return (
-    <Modal rotulo="Excluir conta" onFechar={excluindo ? () => undefined : onFechar} largura={480}>
+    <Modal rotulo="Excluir conta" onFechar={excluindo ? () => undefined : onFechar} largura={536}>
       <div className={styles.janelaExcluir}>
         <div className={styles.excluirTopo}>
           <span className={styles.excluirAlerta}>
