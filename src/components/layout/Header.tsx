@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { resumoDoClube, textoPosicao, textoTorcedores, type ResumoDoClube } from '../../data/clubes';
 import { Avatar } from '../ui/Avatar';
 import { Crest } from '../ui/Crest';
+import { Carregando, Skeleton } from '../ui/Skeleton';
 import { Icon } from '../ui/Icon';
 import { FLAG } from '../../data/common';
 import styles from './Header.module.css';
@@ -17,6 +18,7 @@ type HeaderProps = {
 /** Atualiza o resumo do clube a cada 10 min (torcedores e classificação mudam devagar). */
 export const ATUALIZAR_RESUMO_MS = 600_000;
 
+/** undefined enquanto carrega; null se falhou ou se o clube não tem resumo. */
 function useResumoDoClube(clubeId: number | undefined) {
   const [resumo, setResumo] = useState<{ clubeId: number; dados: ResumoDoClube | null } | null>(null);
   useEffect(() => {
@@ -26,7 +28,7 @@ function useResumoDoClube(clubeId: number | undefined) {
       resumoDoClube(clubeId).then(
         (dados) => ativo && setResumo({ clubeId, dados }),
         // Sem o resumo, o topo só não mostra os números; tenta de novo na próxima rodada.
-        () => {},
+        () => ativo && setResumo((anterior) => (anterior?.clubeId === clubeId ? anterior : { clubeId, dados: null })),
       );
     carregar();
     const timer = window.setInterval(carregar, ATUALIZAR_RESUMO_MS);
@@ -35,7 +37,7 @@ function useResumoDoClube(clubeId: number | undefined) {
       window.clearInterval(timer);
     };
   }, [clubeId]);
-  return resumo && resumo.clubeId === clubeId ? resumo.dados : null;
+  return resumo && resumo.clubeId === clubeId ? resumo.dados : undefined;
 }
 
 export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount }: HeaderProps) {
@@ -52,7 +54,14 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
         <div className={styles.clubName}>{clube?.nome}</div>
         <div className={styles.clubMeta}>
           {pais && <img src={FLAG(pais.bandeira)} alt="" className={styles.flag} />}
-          <span>{meta}</span>
+          {resumo === undefined && clube ? (
+            <Carregando as="div" className={styles.metaCarregando} rotulo="Carregando torcedores e posição">
+              <Skeleton w={78} h={9} r="pilula" />
+              <Skeleton w={110} h={9} r="pilula" />
+            </Carregando>
+          ) : (
+            <span>{meta}</span>
+          )}
         </div>
       </div>
       <label className={styles.search}>

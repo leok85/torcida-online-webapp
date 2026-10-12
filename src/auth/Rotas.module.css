@@ -7,11 +7,99 @@
   background: var(--bg);
 }
 
+/* abertura do app: mesmo fundo escuro com brilho azul do login */
+.abertura {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: var(--ink);
+  overflow: hidden;
+}
+
+.abertura::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(55% 60% at 50% 0%, #0b57c4 0%, rgba(11, 87, 196, 0) 70%);
+}
+
+.marca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #fff;
+  animation: entrada 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 .logo {
   width: 56px;
   height: 56px;
   border-radius: 15px;
-  animation: livepulse 1.4s ease-in-out infinite;
+}
+
+.nome {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.barra {
+  position: relative;
+  width: 120px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.barra > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--green-neon);
+  animation: correndo 1.1s ease-in-out infinite;
+}
+
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes correndo {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marca {
+    animation: none;
+  }
+
+  .barra > span {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
 }
 
 .erro {

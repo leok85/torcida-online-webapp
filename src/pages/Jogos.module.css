@@ -166,8 +166,7 @@
   color: #c0342c;
 }
 
-.vazio,
-.carregando {
+.vazio {
   padding: 22px;
   margin: 0;
   font-size: 13.5px;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Crest } from '../components/ui/Crest';
 import { Icon } from '../components/ui/Icon';
+import { Skeleton, SkeletonEscudo, TextoOculto } from '../components/ui/Skeleton';
 import {
   autoresDosGols,
   contagemRegressiva,
@@ -104,9 +105,43 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
   }
 
   if (!jogos) {
+    // Skeleton do W01 · carregando: selo, escudos, placar, botões e a faixa do próximo jogo.
+    const escuro = 'escuro' as const;
     return (
-      <section className={`${styles.live} ${styles.liveVazio}`} aria-label={titulo} aria-busy="true">
-        <p className={styles.vazioTexto}>Carregando o jogo…</p>
+      // Mesmo <section> do card carregado: quando os dados chegam, só o conteúdo muda.
+      <section className={styles.live} aria-label={titulo} aria-busy="true">
+        <TextoOculto>Carregando o jogo…</TextoOculto>
+        <div className={styles.liveBody}>
+          <div className={styles.liveMeta}>
+            <Skeleton tom={escuro} w={112} h={24} r="pilula" />
+            <Skeleton tom={escuro} w={150} h={10} r="pilula" />
+          </div>
+          <div className={styles.scoreboard}>
+            <div className={styles.team}>
+              <SkeletonEscudo tom={escuro} width={60} height={68} />
+              <Skeleton tom={escuro} w={80} h={12} r="pilula" />
+            </div>
+            <div className={styles.center}>
+              <Skeleton tom={escuro} w={150} h={56} r={11} />
+            </div>
+            <div className={styles.team}>
+              <SkeletonEscudo tom={escuro} width={60} height={68} />
+              <Skeleton tom={escuro} w={80} h={12} r="pilula" />
+            </div>
+          </div>
+          <div className={styles.liveFoot}>
+            <Skeleton tom={escuro} h={46} r={11} style={{ flex: 1 }} />
+            <Skeleton tom={escuro} w={130} h={46} r={11} />
+            <Skeleton tom={escuro} w={92} h={46} r={11} />
+          </div>
+        </div>
+        <div className={styles.faixa}>
+          <div className={styles.faixaTexto}>
+            <Skeleton tom={escuro} w={220} h={12} r="pilula" />
+            <Skeleton tom={escuro} w={160} h={9} r="pilula" />
+          </div>
+          <Skeleton tom={escuro} w={120} h={36} r={9} />
+        </div>
       </section>
     );
   }
