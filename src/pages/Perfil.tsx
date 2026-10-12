@@ -20,7 +20,7 @@ const BLUE = { color: '#00419B', bg: '#DCE8F9' };
 
 const HISTORY = [
   { when: 'hoje 23:12', icon: 'military_tech', text: 'Votou no MVP da partida', xp: '+60', ...GOLD },
-  { when: 'hoje 23:04', icon: 'how_to_reg', text: 'Palpite exato: Clube B 2 × 1 Clube E', xp: '+240', ...GREEN },
+  { when: 'hoje 23:04', icon: 'how_to_reg', text: 'Palpite exato: Clube B 2 x 1 Clube E', xp: '+240', ...GREEN },
   { when: 'hoje 21:38', icon: 'photo_camera', text: 'Enviou foto na janela pré-jogo', xp: '+40', ...BLUE },
   { when: 'hoje 19:02', icon: 'forum', text: '18 mensagens no chat da partida', xp: '+90', ...BLUE },
   { when: 'hoje 08:11', icon: 'local_fire_department', text: 'Login diário · 3 dias seguidos', xp: '+20', ...GOLD },

@@ -42,9 +42,9 @@ test('Jogos, pelo menu, lista o ao vivo, os próximos e os resultados do clube',
   await menu.getByRole('link', { name: 'Jogos, jogo ao vivo' }).click();
   await expect(page).toHaveURL('/jogos');
   await expect(menu.getByRole('link', { name: 'Jogos, jogo ao vivo' })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('region', { name: 'Jogo ao vivo' })).toContainText('Palmeiras 1 × 0 Corinthians');
-  await expect(page.getByRole('region', { name: 'Próximos' }).getByRole('link')).toHaveAccessibleName(/Palmeiras × Flamengo.*abre no apito final/);
-  await expect(page.getByRole('region', { name: 'Resultados' }).getByRole('link')).toHaveAccessibleName(/^Vitória: Palmeiras 1 × 0 Bahia/);
+  await expect(page.getByRole('region', { name: 'Jogo ao vivo' })).toContainText('Palmeiras 1 x 0 Corinthians');
+  await expect(page.getByRole('region', { name: 'Próximos' }).getByRole('link')).toHaveAccessibleName(/Palmeiras x Flamengo.*abre no apito final/);
+  await expect(page.getByRole('region', { name: 'Resultados' }).getByRole('link')).toHaveAccessibleName(/^Vitória: Palmeiras 1 x 0 Bahia/);
 });
 
 test('placar centralizado na altura dos escudos, e nome longo de campeonato não quebra o card', async ({ page, backend }) => {

@@ -28,7 +28,7 @@ export function Fotos() {
     <div className={styles.page}>
       <div className={ui.pageHead}>
         <h2 className={ui.pageTitle}>Fotos da torcida</h2>
-        <span className={ui.pageSub}>Clube B 2 × 1 Clube E · 218 fotos</span>
+        <span className={ui.pageSub}>Clube B 2 x 1 Clube E · 218 fotos</span>
         <div className={ui.spacer} />
         <button type="button" className={styles.upload}>
           <Icon name="add_a_photo" size={20} />

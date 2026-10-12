@@ -17,10 +17,10 @@ const GOLS_DO_CLASSICO: Partida['gols'] = [
   { jogador: 'A. Giay', minuto: '51', mandante: true, contra: false, penalti: true },
   { jogador: 'G. Henrique', minuto: '90+1', mandante: false, contra: false, penalti: false },
 ];
-/** Palmeiras 4 × 1 Corinthians, dom 11/10 17:30 (Brasília). */
+/** Palmeiras 4 x 1 Corinthians, dom 11/10 17:30 (Brasília). */
 const classico = () =>
   partidaDeTeste({ status: 'encerrada', periodo: null, minuto: null, gols_mandante: 4, gols_visitante: 1, gols: GOLS_DO_CLASSICO });
-/** Palmeiras × Flamengo, qua 14/10 21:30 (Brasília). */
+/** Palmeiras x Flamengo, qua 14/10 21:30 (Brasília). */
 const proximo = () =>
   partidaDeTeste({ id: 7301, inicio: '2026-10-15T00:30:00Z', rodada: 31, status: 'agendada', periodo: null, minuto: null, gols_mandante: null, gols_visitante: null, gols: [], visitante_id: 160, visitante_nome: 'Flamengo' });
 
@@ -39,12 +39,12 @@ describe('Início · card do jogo', () => {
     const jogo = await card();
     expect(await within(jogo).findByText('AO VIVO · 2º T')).toBeInTheDocument();
     expect(within(jogo).getByText("Brasileirão Série A · rodada 30 · 67'")).toBeInTheDocument();
-    expect(within(jogo).getByLabelText('Placar: 1 a 0')).toHaveTextContent('1 × 0');
+    expect(within(jogo).getByLabelText('Placar: 1 a 0')).toHaveTextContent('1 x 0');
     expect(itens(within(jogo).getByRole('list', { name: 'Gols do Palmeiras' }))).toEqual(["A. Barboza 16'"]);
     expect(within(jogo).queryByRole('list', { name: 'Gols do Corinthians' })).not.toBeInTheDocument();
 
     const faixa = within(jogo).getByRole('group', { name: 'Próximo jogo' });
-    expect(faixa).toHaveTextContent('Palmeiras × Flamengo');
+    expect(faixa).toHaveTextContent('Palmeiras x Flamengo');
     expect(faixa).toHaveTextContent('Palpite abre no apito final');
     expect(within(faixa).queryByRole('link')).not.toBeInTheDocument();
 
@@ -106,7 +106,7 @@ describe('Início · card do jogo', () => {
     expect(within(jogo).getByText('Palpite e escalação abertos até 15 min antes')).toBeInTheDocument();
 
     const faixa = within(jogo).getByRole('group', { name: 'Último jogo' });
-    expect(faixa).toHaveTextContent('Palmeiras 4 × 1 Corinthians');
+    expect(faixa).toHaveTextContent('Palmeiras 4 x 1 Corinthians');
     expect(within(faixa).getByRole('link', { name: /Notas e fotos/ })).toHaveAttribute('href', '/pos-jogo');
 
     await user.click(within(jogo).getByRole('button', { name: /Dar palpite/ }));

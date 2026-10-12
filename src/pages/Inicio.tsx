@@ -98,7 +98,7 @@ export function Inicio() {
             <div className={styles.event}>
               <Icon name="sports_soccer" size={20} color="var(--primary)" />
               <div>
-                <div className={styles.eventTitle}>Clube B × Clube Serra</div>
+                <div className={styles.eventTitle}>Clube B x Clube Serra</div>
                 <div className={styles.eventSub}>Copa · quartas, qua 21:30</div>
               </div>
             </div>
