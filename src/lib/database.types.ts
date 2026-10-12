@@ -56,6 +56,7 @@ export type Database = {
         Row: {
           atualizado_em: string;
           clube_id: number;
+          clube_nome: string | null;
           derrotas: number;
           empates: number;
           forma: string | null;
@@ -67,10 +68,13 @@ export type Database = {
           pontos: number;
           posicao: number;
           vitorias: number;
+          zona: string | null;
+          zona_tipo: string | null;
         };
         Insert: {
           atualizado_em?: string;
           clube_id: number;
+          clube_nome?: string | null;
           derrotas: number;
           empates: number;
           forma?: string | null;
@@ -82,10 +86,13 @@ export type Database = {
           pontos: number;
           posicao: number;
           vitorias: number;
+          zona?: string | null;
+          zona_tipo?: string | null;
         };
         Update: {
           atualizado_em?: string;
           clube_id?: number;
+          clube_nome?: string | null;
           derrotas?: number;
           empates?: number;
           forma?: string | null;
@@ -97,10 +104,46 @@ export type Database = {
           pontos?: number;
           posicao?: number;
           vitorias?: number;
+          zona?: string | null;
+          zona_tipo?: string | null;
         };
-        Relationships: [
-          { foreignKeyName: 'classificacao_liga_id_fkey'; columns: ['liga_id']; isOneToOne: false; referencedRelation: 'ligas'; referencedColumns: ['id'] },
-        ];
+        Relationships: [];
+      };
+      competicoes: {
+        Row: {
+          atualizado_em: string;
+          fases: Json;
+          fim: string | null;
+          formato: string;
+          inicio: string | null;
+          liga_id: number;
+          nome: string;
+          temporada: string | null;
+          temporada_id: number | null;
+        };
+        Insert: {
+          atualizado_em?: string;
+          fases?: Json;
+          fim?: string | null;
+          formato: string;
+          inicio?: string | null;
+          liga_id: number;
+          nome: string;
+          temporada?: string | null;
+          temporada_id?: number | null;
+        };
+        Update: {
+          atualizado_em?: string;
+          fases?: Json;
+          fim?: string | null;
+          formato?: string;
+          inicio?: string | null;
+          liga_id?: number;
+          nome?: string;
+          temporada?: string | null;
+          temporada_id?: number | null;
+        };
+        Relationships: [];
       };
       clubes: {
         Row: {
@@ -150,6 +193,13 @@ export type Database = {
         Row: {
           atualizado_em: string;
           gols: Json;
+          fase: string | null;
+          fase_nome: string | null;
+          grupo: string | null;
+          jogo_de_ida: number | null;
+          penaltis_mandante: number | null;
+          penaltis_visitante: number | null;
+          temporada_id: number | null;
           gols_mandante: number | null;
           gols_visitante: number | null;
           id: number;
@@ -168,6 +218,13 @@ export type Database = {
         Insert: {
           atualizado_em?: string;
           gols?: Json;
+          fase?: string | null;
+          fase_nome?: string | null;
+          grupo?: string | null;
+          jogo_de_ida?: number | null;
+          penaltis_mandante?: number | null;
+          penaltis_visitante?: number | null;
+          temporada_id?: number | null;
           gols_mandante?: number | null;
           gols_visitante?: number | null;
           id: number;
@@ -186,6 +243,13 @@ export type Database = {
         Update: {
           atualizado_em?: string;
           gols?: Json;
+          fase?: string | null;
+          fase_nome?: string | null;
+          grupo?: string | null;
+          jogo_de_ida?: number | null;
+          penaltis_mandante?: number | null;
+          penaltis_visitante?: number | null;
+          temporada_id?: number | null;
           gols_mandante?: number | null;
           gols_visitante?: number | null;
           id?: number;
@@ -264,6 +328,7 @@ export type Database = {
     };
     Functions: {
       apelido_disponivel: { Args: { apelido: string }; Returns: boolean };
+      clubes_com_torcedores: { Args: Record<string, never>; Returns: number[] };
       resumo_do_clube: {
         Args: { clube: number };
         Returns: { artigo: string | null; liga: string | null; posicao: number | null; torcedores: number }[];
@@ -292,4 +357,6 @@ export type PartidaRow = Database['public']['Tables']['partidas']['Row'];
 /** Item da coluna partidas.gols (jsonb), como a sincronização com a BSD grava. */
 export type Gol = { jogador: string; minuto: string; mandante: boolean; contra: boolean; penalti: boolean };
 export type Partida = Omit<PartidaRow, 'gols'> & { gols: Gol[] };
+export type ClassificacaoRow = Database['public']['Tables']['classificacao']['Row'];
+export type CompeticaoRow = Database['public']['Tables']['competicoes']['Row'];
 export type Assinatura = Database['public']['Tables']['assinaturas']['Row'];

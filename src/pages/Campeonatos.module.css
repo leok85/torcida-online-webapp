@@ -2,9 +2,132 @@
   composes: page from '../styles/ui.module.css';
 }
 
-.grid {
+/* grade de competições: se reorganiza sozinha conforme a quantidade de cards */
+.cards {
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.comp {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.comp:hover {
+  border-color: var(--line-3);
+}
+
+.compAtiva {
+  border: 2px solid var(--primary);
+  padding: 15px 17px;
+  box-shadow: var(--shadow-focus);
+}
+
+.compTopo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.compIcone {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--blue-soft);
+  color: var(--primary);
+}
+
+.compAtiva .compIcone {
+  background: var(--primary);
+  color: #fff;
+}
+
+.compIconeOuro,
+.compAtiva .compIconeOuro {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.compNomes {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compNome {
+  font-size: 14.5px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compFormato {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.compSituacao {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.compDestaque {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ouro {
+  color: var(--gold);
+}
+
+.compComplemento {
+  font-size: 12.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compRodape {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* detalhe da competição escolhida */
+.detalhe {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -17,7 +140,9 @@
 
 .legend {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 16px;
 }
 
 .legendItem {
@@ -32,11 +157,18 @@
   width: 3px;
   height: 13px;
   border-radius: 2px;
+  flex: none;
 }
 
 .head {
   composes: tableHead from '../styles/ui.module.css';
   gap: 12px;
+}
+
+.lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .row {
@@ -76,6 +208,10 @@
 
 .name {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .num {
@@ -102,6 +238,84 @@
   color: var(--muted);
 }
 
+/* próximos jogos e últimos 5 */
+.proximos {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proximo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg);
+  font-size: 13.5px;
+}
+
+.proximo:last-child {
+  border-bottom: 0;
+}
+
+.rodada,
+.proximoData {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.rodada {
+  width: 26px;
+}
+
+.proximoNome {
+  flex: 1;
+  min-width: 0;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.result {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rV {
+  background: var(--green);
+}
+
+.rE {
+  background: var(--muted);
+}
+
+.rD {
+  background: var(--red);
+}
+
+.resultVazio {
+  composes: result;
+  background: var(--soft);
+}
+
+/* fase atual (mata-mata) */
 .cupLabel {
   composes: eyebrow from '../styles/ui.module.css';
   color: rgba(255, 255, 255, 0.55);
@@ -113,112 +327,206 @@
   font-size: 30px;
   text-transform: uppercase;
   line-height: 1.05;
-  margin-top: 4px;
+  margin: 4px 0 12px;
 }
 
-.cupText {
-  font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-top: 6px;
-}
 
-.form {
-  display: flex;
-  gap: 5px;
+.palpitar {
+  composes: btnGreen from '../styles/ui.module.css';
   margin-top: 16px;
+  padding: 0 18px;
 }
 
-.result {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10.5px;
-  font-weight: 800;
+.palpitar:hover {
+  background: var(--green-dark);
+  color: #fff;
+  text-decoration: none;
 }
 
-.tie {
-  background: #fff;
-  border: 1.5px solid var(--primary);
-  border-radius: 16px;
-  padding: 18px 20px;
-  box-shadow: var(--shadow-focus);
+/* jogos de uma fase */
+.jogos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.tieLabel {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-
-.side {
+.jogo {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 9px 0;
   font-size: 13px;
-}
-
-.side + .side {
-  padding-top: 10px;
-}
-
-.sideHome {
-  composes: side;
-  padding-bottom: 10px;
   border-bottom: 1px solid var(--bg);
-  font-weight: 800;
 }
 
-.sideAway {
-  composes: side;
+.cupPhase ~ .jogos .jogo {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.jogo:last-child {
+  border-bottom: 0;
+}
+
+.jogoPlacar {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.jogoData {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cupPhase ~ .jogos .resultVazio {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cupPhase ~ .jogos .jogoData {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* caminho até a final */
+.caminho {
+  margin: 0;
+  padding: 6px 22px 10px;
+  list-style: none;
+}
+
+.etapa {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.etapa:last-child {
+  border-bottom: 0;
+}
+
+.etapaLinha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.concluida .etapaLinha {
+  color: var(--green);
+}
+
+.eliminada .etapaLinha {
+  color: var(--red);
+}
+
+.atual .etapaLinha {
+  color: var(--primary);
+}
+
+.futura .etapaLinha {
+  color: var(--muted-2);
+}
+
+.etapaNome {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.futura .etapaNome {
+  color: var(--muted);
   font-weight: 600;
+}
+
+.etapaSituacao {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.verJogos {
+  border: 1px solid var(--line-2);
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.verJogos:hover {
+  background: var(--blue-soft);
+}
+
+.etapaDetalhe {
+  margin: 12px 0 2px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* campanha encerrada */
+.campeao,
+.fimDeCampanha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 16px;
+}
+
+.campeao {
+  background: var(--gold-card);
+  border: 1.5px solid var(--gold-light);
+  color: var(--gold-ink);
+}
+
+.fimDeCampanha {
+  background: var(--surface);
+  border: 1px dashed var(--line-3);
   color: var(--ink-2);
 }
 
-.dash {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--line-3);
+.campanhaTitulo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 24px;
+  text-transform: uppercase;
+  line-height: 1.1;
 }
 
-.tieBtn {
-  composes: btnBlue from '../styles/ui.module.css';
-  width: 100%;
-  height: 42px;
-  margin-top: 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.locked {
-  background: #fff;
-  border: 1px dashed var(--line-3);
-  border-radius: 16px;
-  padding: 18px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.campanhaTexto {
   font-size: 12.5px;
+  margin-top: 3px;
+}
+
+.vazio {
+  margin: 0;
+  padding: 6px 0;
+  font-size: 13px;
   color: var(--muted);
-  line-height: 1.4;
 }
 
-.final {
-  background: var(--gold-card);
-  border: 1.5px solid var(--gold-light);
-  border-radius: 16px;
-  padding: 18px 20px;
+.aviso {
   display: flex;
   align-items: center;
-  gap: 13px;
-  font-size: 12.5px;
-  color: var(--gold-ink);
-  line-height: 1.4;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.aviso p {
+  margin: 0;
+}
+
+.tentar {
+  composes: btnGreen from '../styles/ui.module.css';
+  flex: none;
+  padding: 0 18px;
+}
+
+@media (max-width: 960px) {
+  .detalhe {
+    grid-template-columns: 1fr;
+  }
 }

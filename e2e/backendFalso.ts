@@ -2,7 +2,7 @@
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
 import type { BrowserContext, Route } from '@playwright/test';
-import type { Partida } from '../src/lib/database.types';
+import type { ClassificacaoRow, CompeticaoRow, Partida } from '../src/lib/database.types';
 import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
@@ -50,6 +50,8 @@ export class BackendFalso {
   readonly assinaturas: Assinatura[] = [];
   /** Jogos como a sincronização com a BSD gravaria (tabela partidas). */
   readonly partidas: Partida[] = [];
+  readonly competicoes: CompeticaoRow[] = [];
+  readonly classificacao: ClassificacaoRow[] = [];
   private readonly codigos = new Map<string, { codigo: string; tipo: Email['tipo'] }>();
   private readonly tokens = new Map<string, string>();
   private sequencia = 0;
@@ -311,6 +313,14 @@ export class BackendFalso {
       // O app pede os jogos de um clube: or=(mandante_id.eq.X,visitante_id.eq.X)&order=inicio.asc.
       const clubeId = Number(/mandante_id\.eq\.(\d+)/.exec(url.searchParams.get('or') ?? '')?.[1]);
       return json(200, jogosDoClubeDeTeste(this.partidas, clubeId));
+    }
+
+    if (caminho === '/competicoes' || caminho === '/classificacao') {
+      if (!usuario) return json(401, { code: '42501', message: `permission denied for table ${caminho.slice(1)}` });
+      // O app filtra por liga: liga_id=in.(9,32,35).
+      const ids = (url.searchParams.get('liga_id') ?? '').replace(/^in\.\(|\)$/g, '').split(',').map(Number);
+      const linhas: { liga_id: number }[] = caminho === '/competicoes' ? this.competicoes : this.classificacao;
+      return json(200, linhas.filter((l) => ids.includes(l.liga_id)));
     }
 
     // Catálogo: leitura pública, sem sessão.
