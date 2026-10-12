@@ -1,11 +1,12 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { Avatar } from '../components/ui/Avatar';
-import { Crest } from '../components/ui/Crest';
 import { Icon } from '../components/ui/Icon';
 import { Progress } from '../components/ui/Progress';
 import { Striped } from '../components/ui/Striped';
 import { ME, RANK_BASE } from '../data/ranking';
 import ui from '../styles/ui.module.css';
+import { CardPartida } from './CardPartida';
 import styles from './Inicio.module.css';
 
 const MISSIONS = [
@@ -23,47 +24,12 @@ const NEWS = [
 const RANK = [...RANK_BASE.slice(0, 3), ME];
 
 export function Inicio() {
-  const navigate = useNavigate();
+  const { perfil } = useAuth();
 
   return (
     <div className={styles.page}>
       <div className={styles.top}>
-        <section className={styles.live}>
-          <div className={styles.liveMeta}>
-            <span className={styles.livePill}>
-              <span className={ui.liveDot} />
-              AO VIVO · 2º T
-            </span>
-            <span className={styles.liveInfo}>Brasileirão · rodada 19 · 67'</span>
-          </div>
-          <div className={styles.scoreboard}>
-            <div className={styles.team}>
-              <Crest width={60} height={68} tone="dark" />
-              Clube B
-            </div>
-            <div className={styles.center}>
-              <div className={styles.score}>1 — 0</div>
-              <div className={styles.scorer}>Gabriel 23'</div>
-            </div>
-            <div className={`${styles.team} ${styles.away}`}>
-              <Crest width={60} height={68} tone="darkAway" />
-              Clube E
-            </div>
-          </div>
-          <div className={styles.liveFoot}>
-            <div className={styles.guess}>
-              <Icon name="how_to_reg" size={19} color="var(--green-light)" />
-              <div className={styles.guessText}>
-                Seu palpite <strong>2 — 1</strong> segue vivo
-              </div>
-              <span className={styles.guessXp}>+240 XP</span>
-            </div>
-            <button type="button" className={styles.chatBtn} onClick={() => navigate('/ao-vivo')}>
-              <Icon name="forum" size={20} />
-              Entrar no chat
-            </button>
-          </div>
-        </section>
+        <CardPartida clubeId={perfil?.time_id ?? null} clubeNome={perfil?.clube?.nome ?? 'seu clube'} />
 
         <div className={styles.stack}>
           <section className={ui.card}>

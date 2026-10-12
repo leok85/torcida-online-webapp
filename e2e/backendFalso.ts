@@ -2,7 +2,8 @@
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
 import type { BrowserContext, Route } from '@playwright/test';
-import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE } from '../src/test/catalogoDeTeste';
+import type { Partida } from '../src/lib/database.types';
+import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, partidaEmDestaqueDeTeste } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
   id: string;
@@ -47,6 +48,8 @@ export class BackendFalso {
   readonly perfis = new Map<string, Perfil>();
   readonly emails: Email[] = [];
   readonly assinaturas: Assinatura[] = [];
+  /** Jogos como a sincronização com a BSD gravaria (tabela partidas). */
+  readonly partidas: Partida[] = [];
   private readonly codigos = new Map<string, { codigo: string; tipo: Email['tipo'] }>();
   private readonly tokens = new Map<string, string>();
   private sequencia = 0;
@@ -296,6 +299,15 @@ export class BackendFalso {
       const limite = Number(url.searchParams.get('limit') ?? linhas.length);
       const umObjeto = req.headers()['accept']?.includes('vnd.pgrst.object');
       return json(200, umObjeto ? linhas[0] ?? null : linhas.slice(0, limite));
+    }
+
+    if (caminho === '/partidas') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for table partidas' });
+      // O app só pede o jogo em destaque de um clube: or=(mandante_id.eq.X,visitante_id.eq.X)&status=in.(ao_vivo,encerrada).
+      const clubeId = Number(/mandante_id\.eq\.(\d+)/.exec(url.searchParams.get('or') ?? '')?.[1]);
+      const partida = partidaEmDestaqueDeTeste(this.partidas, clubeId);
+      const umObjeto = req.headers()['accept']?.includes('vnd.pgrst.object');
+      return json(200, umObjeto ? partida : partida ? [partida] : []);
     }
 
     // Catálogo: leitura pública, sem sessão.

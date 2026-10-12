@@ -3,7 +3,8 @@
 import { vi, type Mock } from 'vitest';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Assinatura, Perfil } from '../lib/database.types';
-import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE } from './catalogoDeTeste';
+import type { Partida } from '../lib/database.types';
+import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE, partidaEmDestaqueDeTeste } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
 type Ouvinte = (evento: Evento, sessao: Session | null) => void;
@@ -66,6 +67,7 @@ function criar() {
   let sessao: Session | null = null;
   const perfis = new Map<string, Perfil>();
   const assinaturas: Assinatura[] = [];
+  const partidas: Partida[] = [];
   // RLS: o torcedor só enxerga as próprias assinaturas.
   const minhas = () => assinaturas.filter((a) => a.usuario_id === sessao?.user.id);
   const ouvintes = new Set<Ouvinte>();
@@ -122,6 +124,20 @@ function criar() {
     return consulta;
   }
 
+  // Imita select().or('mandante_id.eq.X,visitante_id.eq.X').in().order().limit().maybeSingle() de partidaEmDestaque.
+  function consultaPartidas() {
+    let clubeId = 0;
+    const consulta = {
+      select: () => consulta,
+      or: (filtro: string) => ((clubeId = Number(/mandante_id\.eq\.(\d+)/.exec(filtro)?.[1])), consulta),
+      in: () => consulta,
+      order: () => consulta,
+      limit: () => consulta,
+      maybeSingle: async () => ok(sessao ? partidaEmDestaqueDeTeste(partidas, clubeId) : null),
+    };
+    return consulta;
+  }
+
   const padroes = {
     onAuthStateChange: (cb: Ouvinte) => {
       ouvintes.add(cb);
@@ -168,13 +184,14 @@ function criar() {
     ouvintes.clear();
     for (const [k, impl] of Object.entries(padroes)) auth[k as keyof typeof padroes].mockReset().mockImplementation(impl);
     assinaturas.length = 0;
+    partidas.length = 0;
     rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number }) => {
       if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
       if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais, args!.limite));
       return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id));
     });
     from.mockReset().mockImplementation((tabela: string) =>
-      tabela === 'assinaturas' ? consultaAssinaturas() : tabela === 'paises' || tabela === 'clubes' ? consultaCatalogo(tabela) : consultaPerfis(),
+      tabela === 'assinaturas' ? consultaAssinaturas() : tabela === 'partidas' ? consultaPartidas() : tabela === 'paises' || tabela === 'clubes' ? consultaCatalogo(tabela) : consultaPerfis(),
     );
     invoke.mockReset().mockImplementation(invocarPadrao);
     setManterConectado.mockReset();
@@ -193,6 +210,8 @@ function criar() {
     /** Grava uma assinatura como o webhook faria. Chame antes de logar para o app já carregar como assinante. */
     assinar: (assinatura: Assinatura = assinaturaDeTeste()) => assinaturas.push(assinatura),
     assinaturas: () => assinaturas,
+    /** Grava um jogo como a sincronização com a BSD faria; altere o objeto para simular o placar mudando. */
+    adicionarPartida: (partida: Partida) => (partidas.push(partida), partida),
     /** Cria a sessão; antes do render vira a sessão salva, depois dispara SIGNED_IN como o Supabase. */
     logar(perfil: Perfil, email = EMAIL_PADRAO) {
       perfis.set(perfil.id, perfil);

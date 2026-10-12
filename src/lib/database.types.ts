@@ -96,6 +96,63 @@ export type Database = {
         Update: { bandeira?: string; codigo?: string; nome?: string; ordem?: number };
         Relationships: [];
       };
+      partidas: {
+        Row: {
+          atualizado_em: string;
+          gols: Json;
+          gols_mandante: number | null;
+          gols_visitante: number | null;
+          id: number;
+          inicio: string;
+          liga_id: number | null;
+          liga_nome: string;
+          mandante_id: number;
+          mandante_nome: string;
+          minuto: number | null;
+          periodo: string | null;
+          rodada: number | null;
+          status: string;
+          visitante_id: number;
+          visitante_nome: string;
+        };
+        Insert: {
+          atualizado_em?: string;
+          gols?: Json;
+          gols_mandante?: number | null;
+          gols_visitante?: number | null;
+          id: number;
+          inicio: string;
+          liga_id?: number | null;
+          liga_nome: string;
+          mandante_id: number;
+          mandante_nome: string;
+          minuto?: number | null;
+          periodo?: string | null;
+          rodada?: number | null;
+          status: string;
+          visitante_id: number;
+          visitante_nome: string;
+        };
+        Update: {
+          atualizado_em?: string;
+          gols?: Json;
+          gols_mandante?: number | null;
+          gols_visitante?: number | null;
+          id?: number;
+          inicio?: string;
+          liga_id?: number | null;
+          liga_nome?: string;
+          mandante_id?: number;
+          mandante_nome?: string;
+          minuto?: number | null;
+          periodo?: string | null;
+          rodada?: number | null;
+          status?: string;
+          visitante_id?: number;
+          visitante_nome?: string;
+        };
+        Relationships: [];
+      };
       perfis: {
         Row: {
           apelido: string | null;
@@ -177,4 +234,8 @@ export type PerfilUpdate = Database['public']['Tables']['perfis']['Update'];
 export type Pais = Database['public']['Tables']['paises']['Row'];
 export type Liga = Database['public']['Tables']['ligas']['Row'];
 export type ClubeRow = Database['public']['Tables']['clubes']['Row'];
+export type PartidaRow = Database['public']['Tables']['partidas']['Row'];
+/** Item da coluna partidas.gols (jsonb), como a sincronização com a BSD grava. */
+export type Gol = { jogador: string; minuto: string; mandante: boolean; contra: boolean; penalti: boolean };
+export type Partida = Omit<PartidaRow, 'gols'> & { gols: Gol[] };
 export type Assinatura = Database['public']['Tables']['assinaturas']['Row'];
