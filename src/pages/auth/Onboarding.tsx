@@ -9,7 +9,7 @@ import { Checkbox } from '../../components/form/Checkbox';
 import { TextField } from '../../components/form/TextField';
 import { Crest } from '../../components/ui/Crest';
 import { Icon } from '../../components/ui/Icon';
-import { buscarCidades, PAISES_COM_CIDADES, rotuloCidade } from '../../data/cidades';
+import { buscarCidades, PAISES_COM_CIDADES, rotuloCidade, semAcento } from '../../data/cidades';
 import { listarClubes, listarPaises, type Clube } from '../../data/clubes';
 import { FLAG, SITE } from '../../data/common';
 import { cidadeAtual } from '../../data/localizacao';
@@ -123,8 +123,9 @@ export function Onboarding() {
       const local = await cidadeAtual();
       if (comCatalogo) {
         // Acha o município do catálogo com o mesmo nome e estado.
-        const achadas = await buscarCidades(local.nome, pais!);
-        const certa = achadas.find((c) => c.nome.toLowerCase() === local.nome.toLowerCase() && (!local.regiao || c.regiao === local.regiao));
+        // Limite maior: nomes comuns ("São José", "Bom Jesus") se repetem em vários estados.
+        const achadas = await buscarCidades(local.nome, pais!, 20);
+        const certa = achadas.find((c) => semAcento(c.nome) === semAcento(local.nome) && (!local.regiao || c.regiao === local.regiao));
         if (!certa) throw new Error('fora_do_catalogo');
         setCidade({ texto: rotuloCidade(certa), cidade: certa });
       } else {

@@ -168,9 +168,9 @@ function criar() {
     ouvintes.clear();
     for (const [k, impl] of Object.entries(padroes)) auth[k as keyof typeof padroes].mockReset().mockImplementation(impl);
     assinaturas.length = 0;
-    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string }) => {
+    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number }) => {
       if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
-      if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais));
+      if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais, args!.limite));
       return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id));
     });
     from.mockReset().mockImplementation((tabela: string) =>
