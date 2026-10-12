@@ -114,15 +114,16 @@ describe('Início · card do jogo', () => {
   });
 
   it('a contagem regressiva anda sozinha', async () => {
-    relogio('2026-10-14T23:50:00Z'); // 40 min para o apito
+    // 39,5 min para o apito: no meio do minuto, para os milissegundos reais do relógio não mudarem o número.
+    relogio('2026-10-14T23:50:30Z');
     supabaseFalso.adicionarPartida(classico());
     supabaseFalso.adicionarPartida(proximo());
     supabaseFalso.logar(perfilDeTeste());
     renderApp('/');
     const jogo = await card();
-    expect(await within(jogo).findByText('40 min')).toBeInTheDocument();
+    expect(await within(jogo).findByText('39 min')).toBeInTheDocument();
     await act(() => vi.advanceTimersByTimeAsync(10 * 60_000));
-    expect(within(jogo).getByText('30 min')).toBeInTheDocument();
+    expect(await within(jogo).findByText('29 min')).toBeInTheDocument();
   });
 
   it('sem nenhum resultado ainda, já mostra o próximo jogo', async () => {
