@@ -4,10 +4,12 @@ import { useAuth } from '../../auth/AuthContext';
 import { useApelido } from '../../auth/validacao';
 import { Alert } from '../../components/form/Alert';
 import { Button } from '../../components/form/Button';
+import { CampoCidade, type ValorCidade } from '../../components/form/CampoCidade';
 import { Checkbox } from '../../components/form/Checkbox';
 import { TextField } from '../../components/form/TextField';
 import { Crest } from '../../components/ui/Crest';
 import { Icon } from '../../components/ui/Icon';
+import { buscarCidades, PAISES_COM_CIDADES, rotuloCidade } from '../../data/cidades';
 import { listarClubes, listarPaises, type Clube } from '../../data/clubes';
 import { FLAG, SITE } from '../../data/common';
 import { cidadeAtual } from '../../data/localizacao';
@@ -74,7 +76,10 @@ export function Onboarding() {
   const [pais, setPais] = useState(perfil?.pais ?? null);
   const [timeId, setTimeId] = useState(perfil?.time_id ?? null);
   const [busca, setBusca] = useState('');
-  const [cidade, setCidade] = useState(perfil?.cidade ?? '');
+  const [cidade, setCidade] = useState<ValorCidade>({
+    texto: perfil?.cidade ?? '',
+    cidade: perfil?.cidade_id ? { id: perfil.cidade_id, nome: perfil.cidade ?? '', regiao: null } : null,
+  });
   const [localizando, setLocalizando] = useState(false);
   const [erroLocalizacao, setErroLocalizacao] = useState(false);
   const [apelidoDigitado, setApelido] = useState(perfil?.apelido ?? '');
@@ -96,7 +101,9 @@ export function Onboarding() {
   const termoBusca = busca.trim().toLowerCase();
   const encontrados = clubes.dados?.filter((c) => !termoBusca || c.nome.toLowerCase().includes(termoBusca)) ?? [];
   const clube = clubes.dados?.find((c) => c.id === timeId);
-  const cidadeOk = cidade.trim().length >= 2;
+  const comCatalogo = !!pais && PAISES_COM_CIDADES.includes(pais);
+  // No Brasil a cidade vem da lista do IBGE; nos outros países, o texto livre vale.
+  const cidadeOk = comCatalogo ? !!cidade.cidade : cidade.texto.trim().length >= 2;
   const extrasOk = (!faltaApelido || apelido.ok) && (!precisaAceites || (maiorDeIdade && aceitouTermos));
   const podeEntrar = !!clube && cidadeOk && extrasOk;
 
@@ -104,6 +111,7 @@ export function Onboarding() {
     if (codigo !== pais) {
       setTimeId(null);
       setBusca('');
+      setCidade({ texto: '', cidade: null });
     }
     setPais(codigo);
   }
@@ -112,7 +120,16 @@ export function Onboarding() {
     setLocalizando(true);
     setErroLocalizacao(false);
     try {
-      setCidade(await cidadeAtual());
+      const local = await cidadeAtual();
+      if (comCatalogo) {
+        // Acha o município do catálogo com o mesmo nome e estado.
+        const achadas = await buscarCidades(local.nome, pais!);
+        const certa = achadas.find((c) => c.nome.toLowerCase() === local.nome.toLowerCase() && (!local.regiao || c.regiao === local.regiao));
+        if (!certa) throw new Error('fora_do_catalogo');
+        setCidade({ texto: rotuloCidade(certa), cidade: certa });
+      } else {
+        setCidade({ texto: rotuloCidade(local), cidade: null });
+      }
     } catch {
       setErroLocalizacao(true);
     } finally {
@@ -129,7 +146,8 @@ export function Onboarding() {
     const error = await atualizarPerfil({
       pais,
       time_id: timeId,
-      cidade: cidade.trim(),
+      cidade: comCatalogo ? rotuloCidade(cidade.cidade!) : cidade.texto.trim(),
+      cidade_id: comCatalogo ? cidade.cidade!.id : null,
       ...(faltaApelido && { apelido: apelido.limpo }),
       ...(precisaAceites && { termos_aceitos_em: agora }),
       onboarding_concluido_em: agora,
@@ -235,21 +253,18 @@ export function Onboarding() {
 
                 <div className={styles.cidadeLinha}>
                   <div>
-                    <TextField
+                    <CampoCidade
                       label="Sua cidade"
-                      icon="search"
-                      value={cidade}
-                      onChange={(e) => setCidade(e.target.value)}
-                      placeholder="Ex.: Florianópolis, SC"
-                      autoComplete="address-level2"
-                      maxLength={80}
+                      valor={cidade}
+                      onChange={setCidade}
+                      comCatalogo={comCatalogo}
+                      pais={pais ?? 'BR'}
                       error={erroLocalizacao ? 'Não deu para descobrir sua cidade. Digite o nome dela.' : null}
                     />
                     <button type="button" className={styles.localizacao} onClick={usarLocalizacao} disabled={localizando}>
                       <Icon name="my_location" size={15} />
                       {localizando ? 'Localizando…' : 'Usar minha localização'}
                     </button>
-                    <p className={styles.dica}>Mostra de onde vem a torcida do clube. Não aparece no seu perfil.</p>
                   </div>
                   <div className={styles.warn}>
                     <Icon name="warning" size={17} color="var(--gold)" />
@@ -311,7 +326,7 @@ export function Onboarding() {
                 ? nomePais
                   ? `${nomePais} selecionado`
                   : 'Escolha um país'
-                : [clube?.nome, cidade.trim()].filter(Boolean).join(' · ') || 'Escolha seu clube'}
+                : [clube?.nome, cidade.texto.trim()].filter(Boolean).join(' · ') || 'Escolha seu clube'}
             </span>
             {/* A key troca o elemento: se o mesmo <button> virasse submit no meio do clique em "Continuar",
                 o navegador submeteria a etapa 2 que acabou de aparecer. */}

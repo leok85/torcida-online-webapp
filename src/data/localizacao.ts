@@ -10,8 +10,8 @@ function posicaoAtual() {
   });
 }
 
-/** "Florianópolis, SC" (com a sigla do estado quando houver) ou só o nome da cidade. */
-export async function cidadeAtual(): Promise<string> {
+/** Nome da cidade e sigla do estado/província (ex.: "Florianópolis" e "SC"), quando houver. */
+export async function cidadeAtual(): Promise<{ nome: string; regiao: string | null }> {
   const { coords } = await posicaoAtual();
   const url = `${GEOCODIFICACAO}?latitude=${coords.latitude}&longitude=${coords.longitude}&localityLanguage=pt`;
   const resposta = await fetch(url);
@@ -21,5 +21,5 @@ export async function cidadeAtual(): Promise<string> {
   if (!cidade) throw new Error('cidade_desconhecida');
   // principalSubdivisionCode vem como "BR-SC"; a sigla só ajuda quando é curta.
   const uf = dados.principalSubdivisionCode?.split('-')[1];
-  return uf && uf.length <= 3 ? `${cidade}, ${uf}` : cidade;
+  return { nome: cidade, regiao: uf && uf.length <= 3 ? uf : null };
 }

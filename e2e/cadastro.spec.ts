@@ -26,7 +26,8 @@ test('cadastro completo: dados, código do e-mail, boas-vindas, país, clube e c
   expect(backend.perfilDe('nova@example.com')?.onboarding_concluido_em).toBeNull();
 
   await page.getByRole('button', { name: 'Corinthians' }).click();
-  await page.getByLabel('Sua cidade').fill('Porto Alegre, RS');
+  await page.getByLabel('Sua cidade').fill('porto ale');
+  await page.getByRole('option', { name: /^Porto Alegre/ }).click();
   await page.getByRole('button', { name: /Entrar na torcida/ }).click();
 
   // Quem não é membro vê a oferta de planos logo depois.
@@ -42,6 +43,7 @@ test('cadastro completo: dados, código do e-mail, boas-vindas, país, clube e c
     pais: 'BR',
     time_id: 167,
     cidade: 'Porto Alegre, RS',
+    cidade_id: 4314902,
     onboarding_concluido_em: expect.any(String),
   });
 });

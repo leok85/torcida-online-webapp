@@ -2,7 +2,7 @@
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
 import type { BrowserContext, Route } from '@playwright/test';
-import { clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE } from '../src/test/catalogoDeTeste';
+import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
   id: string;
@@ -12,6 +12,7 @@ type Perfil = {
   time_id: number | null;
   nascimento: string | null;
   cidade: string | null;
+  cidade_id: number | null;
   quer_avisos: boolean;
   quer_novidades: boolean;
   termos_aceitos_em: string | null;
@@ -36,7 +37,7 @@ type Usuario = { id: string; email: string; senha: string; confirmado: boolean; 
 type Email = { para: string; tipo: 'signup' | 'recovery'; codigo: string };
 
 const APELIDO_VALIDO = /^[A-Za-z0-9._]{3,20}$/;
-const COLUNAS_EDITAVEIS = ['nome', 'apelido', 'pais', 'time_id', 'nascimento', 'cidade', 'quer_avisos', 'quer_novidades', 'termos_aceitos_em', 'onboarding_concluido_em'];
+const COLUNAS_EDITAVEIS = ['nome', 'apelido', 'pais', 'time_id', 'nascimento', 'cidade', 'cidade_id', 'quer_avisos', 'quer_novidades', 'termos_aceitos_em', 'onboarding_concluido_em'];
 
 const base64url = (obj: object) => Buffer.from(JSON.stringify(obj)).toString('base64url');
 const agora = () => new Date().toISOString();
@@ -125,6 +126,7 @@ export class BackendFalso {
       time_id: null,
       nascimento: null,
       cidade: null,
+      cidade_id: null,
       quer_avisos: true,
       quer_novidades: metadata.quer_novidades === true,
       termos_aceitos_em: metadata.aceitou_termos === true ? agora() : null,
@@ -272,6 +274,11 @@ export class BackendFalso {
     if (caminho === '/rpc/apelido_disponivel') {
       const { apelido } = req.postDataJSON();
       return json(200, !this.apelidoEmUso(apelido, usuario?.id));
+    }
+
+    if (caminho === '/rpc/buscar_cidades') {
+      const { termo, pais } = req.postDataJSON();
+      return json(200, buscarCidadesDeTeste(termo, pais));
     }
 
     if (caminho === '/rpc/sou_assinante') {

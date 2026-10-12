@@ -44,6 +44,14 @@ export type Database = {
         };
         Relationships: [];
       };
+      cidades: {
+        Row: { codigo: string; fonte: string; id: number; nome: string; nome_busca: string; pais: string; regiao: string | null };
+        Insert: { codigo: string; fonte: string; id?: never; nome: string; nome_busca: string; pais: string; regiao?: string | null };
+        Update: { codigo?: string; fonte?: string; id?: never; nome?: string; nome_busca?: string; pais?: string; regiao?: string | null };
+        Relationships: [
+          { foreignKeyName: 'cidades_pais_fkey'; columns: ['pais']; isOneToOne: false; referencedRelation: 'paises'; referencedColumns: ['codigo'] },
+        ];
+      };
       clubes: {
         Row: {
           atualizado_em: string;
@@ -93,6 +101,7 @@ export type Database = {
           apelido: string | null;
           atualizado_em: string;
           cidade: string | null;
+          cidade_id: number | null;
           criado_em: string;
           id: string;
           nascimento: string | null;
@@ -108,6 +117,7 @@ export type Database = {
           apelido?: string | null;
           atualizado_em?: string;
           cidade?: string | null;
+          cidade_id?: number | null;
           criado_em?: string;
           id: string;
           nascimento?: string | null;
@@ -123,6 +133,7 @@ export type Database = {
           apelido?: string | null;
           atualizado_em?: string;
           cidade?: string | null;
+          cidade_id?: number | null;
           criado_em?: string;
           id?: string;
           nascimento?: string | null;
@@ -135,6 +146,7 @@ export type Database = {
           time_id?: number | null;
         };
         Relationships: [
+          { foreignKeyName: 'perfis_cidade_id_fkey'; columns: ['cidade_id']; isOneToOne: false; referencedRelation: 'cidades'; referencedColumns: ['id'] },
           { foreignKeyName: 'perfis_pais_fkey'; columns: ['pais']; isOneToOne: false; referencedRelation: 'paises'; referencedColumns: ['codigo'] },
           { foreignKeyName: 'perfis_time_id_fkey'; columns: ['time_id']; isOneToOne: false; referencedRelation: 'clubes'; referencedColumns: ['id'] },
         ];
@@ -145,6 +157,10 @@ export type Database = {
     };
     Functions: {
       apelido_disponivel: { Args: { apelido: string }; Returns: boolean };
+      buscar_cidades: {
+        Args: { limite?: number; pais?: string; termo: string };
+        Returns: { id: number; nome: string; regiao: string }[];
+      };
       sou_assinante: { Args: never; Returns: boolean };
     };
     Enums: {
