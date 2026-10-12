@@ -65,6 +65,19 @@ export function textoDoApelido(alteradoEm: string | null, agora = new Date()) {
   return libera ? `${ultima} · próxima troca em ${dataCurta(libera.toISOString())}` : `${ultima} · pode trocar agora`;
 }
 
+/* ---------- senha ---------- */
+
+/** Linha de apoio da senha: "Alterada hoje", "Alterada há 3 dias", "Alterada há 4 meses". */
+export function textoDaSenha(alteradaEm: string, agora = new Date()) {
+  const dias = Math.floor((agora.getTime() - new Date(alteradaEm).getTime()) / DIA_MS);
+  if (dias < 1) return 'Alterada hoje';
+  if (dias < 30) return `Alterada há ${dias} ${dias === 1 ? 'dia' : 'dias'}`;
+  const meses = Math.floor(dias / 30);
+  if (meses < 12) return `Alterada há ${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  const anos = Math.floor(dias / 365);
+  return `Alterada há ${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+}
+
 /* ---------- formas de entrar ---------- */
 
 export type Provedor = 'email' | 'apple' | 'google';

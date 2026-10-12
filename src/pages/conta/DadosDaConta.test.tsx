@@ -23,10 +23,13 @@ function abrir(perfil = perfilDeTeste()) {
 }
 
 const linha = (rotulo: string) => screen.getByText(rotulo, { selector: 'div' }).parentElement as HTMLElement;
+const aviso = () => screen.findByRole('status');
 
 describe('Dados da conta (W21)', () => {
   it('abre pelo menu de conta e mostra os dados reais do torcedor', async () => {
-    supabaseFalso.logar(perfilDeTeste({ cidade: 'Florianópolis, SC', cidade_id: 4205407, apelido_alterado_em: diasAtras(92) }));
+    supabaseFalso.logar(
+      perfilDeTeste({ cidade: 'Florianópolis, SC', cidade_id: 4205407, apelido_alterado_em: diasAtras(92), senha_alterada_em: diasAtras(125) }),
+    );
     const { user, local } = renderApp('/');
     await user.click(await screen.findByRole('button', { name: /Rafa_9/ }));
     await user.click(screen.getByRole('menuitem', { name: /Dados da conta/ }));
@@ -34,25 +37,28 @@ describe('Dados da conta (W21)', () => {
     expect(local()).toBe('/conta/dados');
     expect(screen.getByRole('heading', { name: 'Dados da conta' })).toBeInTheDocument();
     expect(linha('Nome')).toHaveTextContent('Rafael Andrade');
-    expect(linha('Apelido')).toHaveTextContent('@Rafa_9');
-    expect(linha('Apelido')).toHaveTextContent('Última troca há 92 dias · pode trocar agora');
+    expect(linha('Apelido')).toHaveTextContent('@Rafa_9Última troca há 92 dias · pode trocar agora');
     expect(linha('Cidade')).toHaveTextContent('Florianópolis, SC');
     expect(linha('E-mail')).toHaveTextContent(EMAIL_PADRAO);
+    expect(linha('Senha')).toHaveTextContent('Alterada há 4 meses');
     expect(await screen.findByText('1 forma de entrar')).toBeInTheDocument();
-    expect(await screen.findByText('Este navegador')).toBeInTheDocument();
+    expect(linha('Apple')).toHaveTextContent('Não conectado');
+    expect(linha('Google')).toHaveTextContent('Não conectado');
+    expect(await screen.findByText('ESTE NAVEGADOR')).toBeInTheDocument();
     expect(screen.getByText('Chrome · macOS')).toBeInTheDocument();
   });
 
   describe('perfil', () => {
-    it('troca o nome na própria linha e avisa que salvou', async () => {
+    it('troca o nome no lugar da linha e avisa que salvou', async () => {
       const { user } = abrir();
       await user.click(await screen.findByRole('button', { name: 'Alterar nome' }));
-      const campo = screen.getByLabelText('Nome completo');
+      const edicao = screen.getByRole('form', { name: 'Nome' });
+      const campo = within(edicao).getByLabelText('Nome completo');
       await user.clear(campo);
       await user.type(campo, '  Rafael   Moura ');
-      await user.click(screen.getByRole('button', { name: 'Salvar' }));
+      await user.click(within(edicao).getByRole('button', { name: 'Salvar' }));
 
-      expect(await screen.findByRole('status')).toHaveTextContent('Nome atualizado.');
+      expect(await aviso()).toHaveTextContent('Nome atualizado');
       expect(supabaseFalso.perfil('usuario-1')?.nome).toBe('Rafael Moura');
       expect(linha('Nome')).toHaveTextContent('Rafael Moura');
     });
@@ -66,25 +72,38 @@ describe('Dados da conta (W21)', () => {
       expect(supabaseFalso.perfil('usuario-1')?.nome).toBe('Rafael Andrade');
     });
 
-    it('apelido: avisa quando já está em uso e salva um livre, começando a contar os 30 dias', async () => {
+    it('apelido: mostra se já é seu ou de outro torcedor e salva um livre, começando a contar os 30 dias', async () => {
       supabaseFalso.adicionarPerfil(perfilDeTeste({ id: 'usuario-2', apelido: 'Tricolor' }));
       const { user } = abrir();
       await user.click(await screen.findByRole('button', { name: 'Alterar apelido' }));
-      const campo = screen.getByLabelText('Apelido na torcida');
+      expect(screen.getByText(/O apelido anterior fica reservado por esse período/)).toBeInTheDocument();
+      const campo = screen.getByRole('textbox', { name: 'Novo apelido' });
+      expect(campo).toHaveValue('');
+
+      await user.type(campo, 'rafa_9');
+      expect(await screen.findByText('Esse já é o seu apelido.')).toBeInTheDocument();
       await user.clear(campo);
       await user.type(campo, 'tricolor');
-      expect(await screen.findByText('Esse apelido já está em uso.')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+      expect(await screen.findByText('Esse apelido já é de outro torcedor.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Salvar apelido' })).toBeDisabled();
 
       await user.clear(campo);
       await user.type(campo, 'Rafa.Verdao');
       expect(await screen.findByText('Apelido disponível.')).toBeInTheDocument();
-      await user.click(screen.getByRole('button', { name: 'Salvar' }));
+      await user.click(screen.getByRole('button', { name: 'Salvar apelido' }));
 
-      expect(await screen.findByRole('status')).toHaveTextContent('Apelido atualizado.');
-      expect(supabaseFalso.perfil('usuario-1')).toMatchObject({ apelido: 'Rafa.Verdao', apelido_alterado_em: expect.any(String) });
+      expect(await aviso()).toHaveTextContent('Apelido atualizado para @Rafa.Verdao');
+      expect(supabaseFalso.perfil('usuario-1')).toMatchObject({ apelido: 'Rafa.Verdao', apelido_anterior: 'Rafa_9', apelido_alterado_em: expect.any(String) });
       expect(linha('Apelido')).toHaveTextContent('Trocado hoje · próxima troca em');
       expect(screen.getByRole('button', { name: 'Alterar apelido' })).toBeDisabled();
+    });
+
+    it('o apelido que outro torcedor deixou fica reservado por 30 dias', async () => {
+      supabaseFalso.adicionarPerfil(perfilDeTeste({ id: 'usuario-2', apelido: 'NovoNome', apelido_anterior: 'Verdao10', apelido_alterado_em: diasAtras(5) }));
+      const { user } = abrir();
+      await user.click(await screen.findByRole('button', { name: 'Alterar apelido' }));
+      await user.type(screen.getByRole('textbox', { name: 'Novo apelido' }), 'verdao10');
+      expect(await screen.findByText('Esse apelido já é de outro torcedor.')).toBeInTheDocument();
     });
 
     it('apelido trocado há menos de 30 dias não pode ser alterado', async () => {
@@ -96,12 +115,13 @@ describe('Dados da conta (W21)', () => {
     it('cidade: busca no catálogo e salva o município escolhido', async () => {
       const { user } = abrir();
       await user.click(await screen.findByRole('button', { name: 'Alterar cidade' }));
+      expect(screen.getByRole('button', { name: 'Usar minha localização' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
       await user.type(screen.getByRole('combobox', { name: 'Sua cidade' }), 'curit');
       await user.click(await screen.findByRole('option', { name: /^Curitiba/ }));
       await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
-      expect(await screen.findByRole('status')).toHaveTextContent('Cidade atualizada.');
+      expect(await aviso()).toHaveTextContent('Cidade atualizada');
       expect(supabaseFalso.perfil('usuario-1')).toMatchObject({ cidade: 'Curitiba, PR', cidade_id: 4106902 });
     });
   });
@@ -120,14 +140,15 @@ describe('Dados da conta (W21)', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('uma imagem válida abre o ajuste com zoom e as miniaturas; cancelar fecha', async () => {
+    it('uma imagem válida abre o ajuste com zoom e as miniaturas; fechar cancela', async () => {
       const { user } = abrir();
       await screen.findByRole('button', { name: 'Escolher foto' });
       escolher(arquivo('foto.png', 'image/png'));
       const janela = await screen.findByRole('dialog', { name: 'Ajustar foto' });
       expect(within(janela).getByRole('slider', { name: 'Zoom' })).toHaveValue('1');
+      expect(within(janela).getByText('Assim sua foto aparece no perfil, no ranking e no chat.')).toBeInTheDocument();
       expect(within(janela).getByRole('button', { name: 'Trocar imagem' })).toBeInTheDocument();
-      await user.click(within(janela).getByRole('button', { name: 'Cancelar' }));
+      await user.click(within(janela).getByRole('button', { name: 'Fechar' }));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
@@ -139,7 +160,7 @@ describe('Dados da conta (W21)', () => {
       expect(document.querySelectorAll(`img[src="${url}"]`).length).toBeGreaterThanOrEqual(2);
 
       await user.click(screen.getByRole('button', { name: 'Remover' }));
-      expect(await screen.findByRole('status')).toHaveTextContent('Foto removida.');
+      expect(await aviso()).toHaveTextContent('Foto removida');
       expect(supabaseFalso.perfil('usuario-1')?.foto).toBeNull();
       expect(document.querySelector(`img[src="${url}"]`)).toBeNull();
       expect(screen.getByRole('button', { name: 'Escolher foto' })).toBeInTheDocument();
@@ -147,72 +168,92 @@ describe('Dados da conta (W21)', () => {
   });
 
   describe('e-mail', () => {
+    async function pedirCodigo(user: ReturnType<typeof renderApp>['user'], email: string) {
+      await user.click(await screen.findByRole('button', { name: 'Alterar e-mail' }));
+      await user.type(screen.getByRole('textbox', { name: 'Novo e-mail' }), email);
+      await user.click(screen.getByRole('button', { name: 'Enviar código' }));
+    }
+
     it('troca em duas etapas: o endereço novo e o código enviado para ele', async () => {
       const { user } = abrir();
-      await user.click(await screen.findByRole('button', { name: 'Alterar e-mail' }));
-      await user.type(screen.getByLabelText('Novo e-mail'), 'Rafa.Novo@Example.com');
-      await user.click(screen.getByRole('button', { name: 'Enviar código' }));
+      await pedirCodigo(user, 'Rafa.Novo@Example.com');
 
       expect(auth.updateUser).toHaveBeenCalledWith({ email: 'rafa.novo@example.com' });
-      expect(await screen.findByText(/Seu e-mail atual continua valendo/)).toHaveTextContent('rafa.novo@example.com');
+      expect(await screen.findByRole('form', { name: 'Confirme o novo e-mail' })).toHaveTextContent('rafa.novo@example.com');
+      expect(screen.getByRole('button', { name: 'Confirmar' })).toBeDisabled();
       await user.type(screen.getByLabelText('Código de 6 dígitos'), CODIGO_DE_TESTE);
+      await user.click(screen.getByRole('button', { name: 'Confirmar' }));
 
       expect(auth.verifyOtp).toHaveBeenCalledWith({ email: 'rafa.novo@example.com', token: CODIGO_DE_TESTE, type: 'email_change' });
-      expect(await screen.findByRole('status')).toHaveTextContent('E-mail atualizado.');
+      expect(await aviso()).toHaveTextContent('E-mail confirmado');
       expect(linha('E-mail')).toHaveTextContent('rafa.novo@example.com');
+    });
+
+    it('"Corrigir e-mail" volta para o endereço', async () => {
+      const { user } = abrir();
+      await pedirCodigo(user, 'errado@example.com');
+      await user.click(await screen.findByRole('button', { name: 'Corrigir e-mail' }));
+      expect(screen.getByRole('textbox', { name: 'Novo e-mail' })).toHaveValue('errado@example.com');
     });
 
     it('com a troca segura, pede também o código enviado para o e-mail atual', async () => {
       supabaseFalso.ligarTrocaSegura();
       const { user } = abrir();
-      await user.click(await screen.findByRole('button', { name: 'Alterar e-mail' }));
-      await user.type(screen.getByLabelText('Novo e-mail'), 'novo@example.com');
-      await user.click(screen.getByRole('button', { name: 'Enviar código' }));
+      await pedirCodigo(user, 'novo@example.com');
       await user.type(await screen.findByLabelText('Código de 6 dígitos'), CODIGO_DE_TESTE);
+      await user.click(screen.getByRole('button', { name: 'Confirmar' }));
 
-      expect(await screen.findByText(/Falta confirmar pelo e-mail atual/)).toHaveTextContent(EMAIL_PADRAO);
+      expect(await screen.findByRole('form', { name: 'Confirme pelo e-mail atual' })).toHaveTextContent(EMAIL_PADRAO);
       await user.type(screen.getByLabelText('Código de 6 dígitos'), CODIGO_DE_TESTE);
+      await user.click(screen.getByRole('button', { name: 'Confirmar' }));
       expect(auth.verifyOtp).toHaveBeenLastCalledWith({ email: EMAIL_PADRAO, token: CODIGO_DE_TESTE, type: 'email_change' });
-      expect(await screen.findByRole('status')).toHaveTextContent('E-mail atualizado.');
+      expect(await aviso()).toHaveTextContent('E-mail confirmado');
     });
 
     it('código errado mostra o erro e deixa tentar de novo', async () => {
       const { user } = abrir();
-      await user.click(await screen.findByRole('button', { name: 'Alterar e-mail' }));
-      await user.type(screen.getByLabelText('Novo e-mail'), 'novo@example.com');
-      await user.click(screen.getByRole('button', { name: 'Enviar código' }));
+      await pedirCodigo(user, 'novo@example.com');
       await user.type(await screen.findByLabelText('Código de 6 dígitos'), '000000');
+      await user.click(screen.getByRole('button', { name: 'Confirmar' }));
       expect(await screen.findByRole('alert')).toHaveTextContent('Código inválido ou expirado');
       expect(screen.getByLabelText('Código de 6 dígitos')).toHaveValue('');
-      expect(supabaseFalso.cliente.auth.verifyOtp).toHaveBeenCalledTimes(1);
     });
 
     it('não aceita o mesmo e-mail', async () => {
       const { user } = abrir();
       await user.click(await screen.findByRole('button', { name: 'Alterar e-mail' }));
-      await user.type(screen.getByLabelText('Novo e-mail'), EMAIL_PADRAO);
-      expect(screen.getByRole('alert')).toHaveTextContent('Esse já é o seu e-mail.');
+      await user.type(screen.getByRole('textbox', { name: 'Novo e-mail' }), EMAIL_PADRAO);
+      expect(screen.getByText('Esse já é o seu e-mail.')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Enviar código' })).toBeDisabled();
     });
   });
 
   describe('senha', () => {
-    async function preencher(user: ReturnType<typeof renderApp>['user'], atual: string, nova = 'NovaSenha#2027', repetida = nova) {
+    async function preencher(user: ReturnType<typeof renderApp>['user'], atual: string, nova = 'NovaSenha#2027') {
       await user.click(await screen.findByRole('button', { name: 'Alterar senha' }));
       await user.type(screen.getByLabelText('Senha atual'), atual);
       await user.type(screen.getByLabelText('Nova senha'), nova);
-      await user.type(screen.getByLabelText('Repita a senha'), repetida);
     }
+
+    it('só libera com a senha atual e a nova de 8 caracteres', async () => {
+      const { user } = abrir();
+      await user.click(await screen.findByRole('button', { name: 'Alterar senha' }));
+      expect(screen.getByRole('link', { name: 'Esqueci a senha atual' })).toHaveAttribute('href', '/recuperar-senha');
+      await user.type(screen.getByLabelText('Nova senha'), 'NovaSenha#2027');
+      expect(screen.getByRole('button', { name: 'Salvar nova senha' })).toBeDisabled();
+      await user.type(screen.getByLabelText('Senha atual'), SENHA_DE_TESTE);
+      expect(screen.getByRole('button', { name: 'Salvar nova senha' })).toBeEnabled();
+    });
 
     it('com a senha atual errada, avisa e não troca', async () => {
       const { user } = abrir();
       await preencher(user, 'chute123');
-      await user.click(screen.getByRole('button', { name: 'Alterar senha' }));
+      await user.click(screen.getByRole('button', { name: 'Salvar nova senha' }));
       expect(await screen.findByRole('alert')).toHaveTextContent('A senha atual está incorreta.');
       expect(auth.signOut).not.toHaveBeenCalled();
     });
 
-    it('troca a senha e tira os outros aparelhos da conta', async () => {
+    it('troca a senha, tira os outros aparelhos e atualiza a data', async () => {
       supabaseFalso.definirAparelhos([
         { id: 'sessao-atual', user_agent: CHROME_MAC, criado_em: diasAtras(9), usado_em: new Date().toISOString(), atual: true },
         { id: 'sessao-edge', user_agent: EDGE_WINDOWS, criado_em: diasAtras(9), usado_em: diasAtras(3), atual: false },
@@ -220,32 +261,27 @@ describe('Dados da conta (W21)', () => {
       const { user, local } = abrir();
       expect(await screen.findByText('Edge · Windows')).toBeInTheDocument();
       await preencher(user, SENHA_DE_TESTE);
-      await user.click(screen.getByRole('button', { name: 'Alterar senha' }));
+      await user.click(screen.getByRole('button', { name: 'Salvar nova senha' }));
 
       expect(auth.updateUser).toHaveBeenCalledWith({ password: 'NovaSenha#2027', current_password: SENHA_DE_TESTE });
       expect(auth.signOut).toHaveBeenCalledWith({ scope: 'others' });
-      expect(await screen.findByRole('status')).toHaveTextContent('Senha alterada. Os outros aparelhos saíram da conta.');
+      expect(await aviso()).toHaveTextContent('Senha alterada. Outros aparelhos foram desconectados.');
+      expect(linha('Senha')).toHaveTextContent('Alterada hoje');
       await waitFor(() => expect(screen.queryByText('Edge · Windows')).not.toBeInTheDocument());
       // Este navegador continua logado.
       expect(local()).toBe('/conta/dados');
-    });
-
-    it('não deixa salvar com as senhas diferentes', async () => {
-      const { user } = abrir();
-      await preencher(user, SENHA_DE_TESTE, 'NovaSenha#2027', 'NovaSenha#2028');
-      expect(screen.getByText('As senhas não são iguais.')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Alterar senha' })).toBeDisabled();
     });
 
     it('quando o Supabase pede reautenticação, manda o código e troca com ele', async () => {
       auth.updateUser.mockImplementationOnce(async () => ({ data: { user: null }, error: Object.assign(new Error('reauth'), { code: 'reauthentication_needed', status: 401, __isAuthError: true }) }));
       const { user } = abrir();
       await preencher(user, SENHA_DE_TESTE);
-      await user.click(screen.getByRole('button', { name: 'Alterar senha' }));
+      await user.click(screen.getByRole('button', { name: 'Salvar nova senha' }));
       expect(auth.reauthenticate).toHaveBeenCalled();
       await user.type(await screen.findByLabelText('Código de 6 dígitos'), '445566');
+      await user.click(screen.getByRole('button', { name: 'Confirmar' }));
       expect(auth.updateUser).toHaveBeenLastCalledWith({ password: 'NovaSenha#2027', current_password: SENHA_DE_TESTE, nonce: '445566' });
-      expect(await screen.findByRole('status')).toHaveTextContent('Senha alterada.');
+      expect(await aviso()).toHaveTextContent('Senha alterada.');
     });
   });
 
@@ -253,21 +289,19 @@ describe('Dados da conta (W21)', () => {
     it('quem entra só pelo Google cria uma senha e só então pode desvincular o Google', async () => {
       supabaseFalso.definirFormasDeEntrar([identidadeDeTeste('google')]);
       supabaseFalso.provedoresAtivos.mockResolvedValue({ google: true });
-      const { user } = abrir();
+      const { user } = abrir(perfilDeTeste({ senha_alterada_em: null }));
 
-      const desvincular = await screen.findByRole('button', { name: 'Desvincular Google' });
-      expect(desvincular).toBeDisabled();
-      expect(linha('Senha')).toHaveTextContent('Sem senha');
+      expect(await screen.findByRole('button', { name: 'Desvincular Google' })).toBeDisabled();
+      expect(linha('Senha')).toHaveTextContent('Sem senhaHoje você entra só pelo Google ou pela Apple.');
       expect(linha('Google')).toHaveTextContent(`Conectado${EMAIL_PADRAO}`);
 
       await user.click(screen.getByRole('button', { name: 'Criar senha' }));
       expect(screen.queryByLabelText('Senha atual')).not.toBeInTheDocument();
-      await user.type(screen.getByLabelText('Senha'), 'NovaSenha#2027');
-      await user.type(screen.getByLabelText('Repita a senha'), 'NovaSenha#2027');
+      await user.type(screen.getByLabelText('Nova senha'), 'NovaSenha#2027');
       await user.click(screen.getByRole('button', { name: 'Criar senha' }));
 
       expect(auth.updateUser).toHaveBeenCalledWith({ password: 'NovaSenha#2027' });
-      expect(await screen.findByRole('status')).toHaveTextContent('Senha criada.');
+      expect(await aviso()).toHaveTextContent('Senha criada');
       expect(await screen.findByText('2 formas de entrar')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Desvincular Google' })).toBeEnabled();
     });
@@ -275,18 +309,25 @@ describe('Dados da conta (W21)', () => {
     it('desvincula o Google quando sobra a senha', async () => {
       supabaseFalso.definirFormasDeEntrar([identidadeDeTeste('email'), identidadeDeTeste('google')]);
       const { user } = abrir();
-      await user.click(await screen.findByRole('button', { name: 'Desvincular Google' }));
+      expect(await screen.findByText('2 formas de entrar')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Desvincular Google' }));
       expect(auth.unlinkIdentity).toHaveBeenCalledWith(expect.objectContaining({ provider: 'google' }));
-      expect(await screen.findByRole('status')).toHaveTextContent('Conta Google desvinculada.');
+      expect(await aviso()).toHaveTextContent('Google desvinculado');
       expect(await screen.findByText('1 forma de entrar')).toBeInTheDocument();
     });
 
     it('conectar leva para o provedor e volta para esta tela', async () => {
       supabaseFalso.provedoresAtivos.mockResolvedValue({ google: true });
       const { user } = abrir();
-      expect(screen.queryByText('Apple')).not.toBeInTheDocument();
       await user.click(await screen.findByRole('button', { name: 'Conectar Google' }));
       expect(auth.linkIdentity).toHaveBeenCalledWith({ provider: 'google', options: { redirectTo: 'http://localhost:3000/conta/dados' } });
+    });
+
+    it('avisa quando o provedor ainda não está ligado no Supabase', async () => {
+      const { user } = abrir();
+      await user.click(await screen.findByRole('button', { name: 'Conectar Apple' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Entrar com a Apple ainda não está disponível.');
+      expect(auth.linkIdentity).not.toHaveBeenCalled();
     });
 
     it('explica quando ligar contas ainda está desligado no Supabase', async () => {
@@ -309,18 +350,19 @@ describe('Dados da conta (W21)', () => {
       const lista = await screen.findByRole('list', { name: 'Aparelhos' });
       expect(within(lista).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
         // O ícone Material entra no texto: computador para navegadores, celular para o app.
-        'laptop_macChrome · macOSagoraEste navegador',
-        'smartphoneiPhone · appúltimo uso há 2 hEncerrar',
-        'laptop_macEdge · Windowsúltimo uso há 3 diasEncerrar',
+        'computerChrome · macOSagoraESTE NAVEGADOR',
+        'smartphoneiPhone · apphá 2 hEncerrar',
+        'computerEdge · Windowshá 3 diasEncerrar',
       ]);
 
       await user.click(screen.getByRole('button', { name: 'Encerrar iPhone · app' }));
-      expect(await screen.findByRole('status')).toHaveTextContent('iPhone · app saiu da conta.');
+      expect(await aviso()).toHaveTextContent('Sessão encerrada');
       expect(supabaseFalso.aparelhos().map((a) => a.id)).toEqual(['sessao-atual', 'sessao-edge']);
 
       await user.click(screen.getByRole('button', { name: 'Sair de todos os outros aparelhos' }));
       expect(auth.signOut).toHaveBeenCalledWith({ scope: 'others' });
       await waitFor(() => expect(within(lista).getAllByRole('listitem')).toHaveLength(1));
+      expect(screen.getByRole('status')).toHaveTextContent('Outros aparelhos desconectados');
       expect(screen.queryByRole('button', { name: 'Sair de todos os outros aparelhos' })).not.toBeInTheDocument();
     });
   });
@@ -329,10 +371,11 @@ describe('Dados da conta (W21)', () => {
     it('só libera depois de digitar EXCLUIR, agenda a exclusão e leva para o login com o prazo', async () => {
       const { user, local } = abrir();
       await user.click(await screen.findByRole('button', { name: 'Excluir conta' }));
-      const janela = screen.getByRole('dialog', { name: 'Excluir sua conta?' });
-      expect(janela).toHaveTextContent('Você tem 30 dias para desistir');
-      expect(janela).toHaveTextContent('cancele também na App Store ou no Google Play');
-      const confirmar = within(janela).getByRole('button', { name: 'Excluir minha conta' });
+      const janela = screen.getByRole('dialog', { name: 'Excluir conta' });
+      expect(janela).toHaveTextContent('O apelido @Rafa_9 fica livre para outro torcedor.');
+      expect(janela).toHaveTextContent('Você tem 30 dias para desistir entrando de novo.');
+      expect(janela).toHaveTextContent('cancele também nos ajustes da App Store ou do Google Play');
+      const confirmar = within(janela).getByRole('button', { name: 'Excluir definitivamente' });
       expect(confirmar).toBeDisabled();
 
       await user.type(within(janela).getByLabelText('Digite EXCLUIR para confirmar'), 'excluir');
@@ -344,12 +387,20 @@ describe('Dados da conta (W21)', () => {
       expect(supabaseFalso.perfil('usuario-1')?.exclusao_agendada_para).toEqual(expect.any(String));
     });
 
+    it('"Manter conta" fecha sem excluir', async () => {
+      const { user } = abrir();
+      await user.click(await screen.findByRole('button', { name: 'Excluir conta' }));
+      await user.click(screen.getByRole('button', { name: 'Manter conta' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(functions.invoke).not.toHaveBeenCalled();
+    });
+
     it('se não der para encerrar a assinatura, a conta fica e o motivo aparece', async () => {
       functions.invoke.mockResolvedValueOnce({ data: null, error: { context: new Response(JSON.stringify({ erro: 'falha_ao_encerrar_assinatura' }), { status: 500 }) } });
       const { user, local } = abrir();
       await user.click(await screen.findByRole('button', { name: 'Excluir conta' }));
       await user.type(screen.getByLabelText('Digite EXCLUIR para confirmar'), 'EXCLUIR');
-      await user.click(screen.getByRole('button', { name: 'Excluir minha conta' }));
+      await user.click(screen.getByRole('button', { name: 'Excluir definitivamente' }));
       expect(await screen.findByRole('alert')).toHaveTextContent('Não conseguimos encerrar sua assinatura agora');
       expect(local()).toBe('/conta/dados');
     });

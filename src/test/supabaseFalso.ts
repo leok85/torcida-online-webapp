@@ -26,6 +26,9 @@ export function perfilDeTeste(campos: Partial<Perfil> = {}): Perfil {
     nome: 'Rafael Andrade',
     apelido: 'Rafa_9',
     apelido_alterado_em: null,
+    apelido_anterior: null,
+    // Com senha (trigger ao_trocar_senha); null = entra só pelo Google ou pela Apple.
+    senha_alterada_em: '2026-06-10T12:00:00Z',
     foto: null,
     exclusao_agendada_para: null,
     pais: 'BR',
@@ -104,7 +107,6 @@ function criar() {
   const tabelas: ClassificacaoRow[] = [];
   // Dados da conta: formas de entrar, senha, sessões abertas e fotos no Storage.
   let identidades: UserIdentity[] = [];
-  let temSenha = true;
   let aparelhos: AparelhoDeTeste[] = [];
   const fotos = new Set<string>();
   // Troca de e-mail pendente (updateUser({ email })) e quantos códigos faltam: 2 com a troca segura.
@@ -117,6 +119,16 @@ function criar() {
 
   const apelidoEmUso = (apelido: string, excetoId?: string) =>
     [...perfis.values()].some((p) => p.id !== excetoId && p.apelido?.toLowerCase() === apelido.trim().toLowerCase());
+  // Mesma regra de apelido_reservado(): o apelido anterior de outro torcedor fica reservado por 30 dias.
+  const apelidoReservado = (apelido: string, excetoId?: string) =>
+    [...perfis.values()].some(
+      (p) =>
+        p.id !== excetoId &&
+        p.apelido_anterior?.toLowerCase() === apelido.trim().toLowerCase() &&
+        !!p.apelido_alterado_em &&
+        Date.now() - new Date(p.apelido_alterado_em).getTime() < 30 * DIA_MS,
+    );
+  const temSenha = () => !!(sessao && perfis.get(sessao.user.id)?.senha_alterada_em);
 
   // Imita só as chamadas que o app faz: select().eq().maybeSingle() e update().eq().select().single().
   function consultaPerfis() {
@@ -134,12 +146,15 @@ function criar() {
         if (campos.apelido && apelidoEmUso(campos.apelido, atual.id)) {
           return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } };
         }
+        if (campos.apelido && apelidoReservado(campos.apelido, atual.id)) {
+          return { data: null, error: { code: 'P0001', message: 'Apelido reservado por outro torcedor', hint: 'apelido_reservado' } };
+        }
         // Mesma regra do trigger perfis_antes_de_atualizar: uma troca de apelido a cada 30 dias.
         const trocouApelido = campos.apelido !== undefined && campos.apelido !== atual.apelido && atual.apelido !== null;
         if (trocouApelido && atual.apelido_alterado_em && Date.now() - new Date(atual.apelido_alterado_em).getTime() < 30 * DIA_MS) {
           return { data: null, error: { code: 'P0001', message: 'Apelido trocado há menos de 30 dias', hint: 'apelido_recente' } };
         }
-        const novo = { ...atual, ...campos, ...(trocouApelido && { apelido_alterado_em: new Date().toISOString() }) };
+        const novo = { ...atual, ...campos, ...(trocouApelido && { apelido_alterado_em: new Date().toISOString(), apelido_anterior: atual.apelido }) };
         perfis.set(atual.id, novo);
         return ok(comCatalogo(novo));
       },
@@ -225,7 +240,9 @@ function criar() {
       if (attrs.password) {
         // Como a opção "exigir a senha atual" do Supabase: só confere quando ela vem (a recuperação não manda).
         if (attrs.current_password !== undefined && attrs.current_password !== SENHA_DE_TESTE) return { data: { user: null }, error: erroDeAuth('current_password_mismatch', 422) };
-        temSenha = true;
+        // Trigger ao_trocar_senha: a data da senha vai para o perfil.
+        const perfil = sessao && perfis.get(sessao.user.id);
+        if (perfil) perfis.set(perfil.id, { ...perfil, senha_alterada_em: new Date().toISOString() });
       }
       return ok({ user: sessao?.user ?? null });
     },
@@ -241,7 +258,7 @@ function criar() {
     getUserIdentities: async () => ok({ identities: identidades }),
     linkIdentity: async ({ provider }: { provider: string }) => ok({ provider, url: `https://auth.example.com/${provider}` }),
     unlinkIdentity: async (identidade: UserIdentity) => {
-      if (identidades.length + (temSenha && !identidades.some((i) => i.provider === 'email') ? 1 : 0) <= 1) {
+      if (identidades.length + (temSenha() && !identidades.some((i) => i.provider === 'email') ? 1 : 0) <= 1) {
         return { data: null, error: erroDeAuth('single_identity_not_deletable', 422) };
       }
       identidades = identidades.filter((i) => i.identity_id !== identidade.identity_id);
@@ -292,7 +309,6 @@ function criar() {
     competicoes.length = 0;
     tabelas.length = 0;
     identidades = [identidadeDeTeste('email')];
-    temSenha = true;
     aparelhos = [{ id: 'sessao-atual', user_agent: CHROME_MAC, criado_em: '2026-10-01T12:00:00Z', usado_em: new Date().toISOString(), atual: true }];
     fotos.clear();
     trocaDeEmail = null;
@@ -301,7 +317,6 @@ function criar() {
       if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
       if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais, args!.limite));
       if (fn === 'resumo_do_clube') return ok(resumoDoClubeDeTeste([...perfis.values()], args!.clube!));
-      if (fn === 'tenho_senha') return ok(temSenha);
       if (fn === 'meus_aparelhos') return ok(aparelhos);
       if (fn === 'encerrar_aparelho') {
         const antes = aparelhos.length;
@@ -313,7 +328,7 @@ function criar() {
         if (perfil) perfis.set(perfil.id, { ...perfil, exclusao_agendada_para: null });
         return ok(null);
       }
-      return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id));
+      return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id) && !apelidoReservado(args!.apelido!, sessao?.user.id));
     });
     from.mockReset().mockImplementation((tabela: string) =>
       tabela === 'assinaturas'
@@ -350,12 +365,8 @@ function criar() {
       competicoes.push(...novas);
       tabelas.push(...linhas);
     },
-    /** Formas de entrar da conta (getUserIdentities) e se ela tem senha. Padrão: só e-mail e senha. */
-    definirFormasDeEntrar(novas: UserIdentity[], senha = novas.some((i) => i.provider === 'email')) {
-      identidades = novas;
-      temSenha = senha;
-    },
-    temSenha: () => temSenha,
+    /** Contas ligadas (getUserIdentities). Padrão: só e-mail. Quem não tem senha: perfil com senha_alterada_em null. */
+    definirFormasDeEntrar: (novas: UserIdentity[]) => (identidades = novas),
     /** Sessões abertas (meus_aparelhos). Padrão: só este navegador. */
     definirAparelhos: (novos: AparelhoDeTeste[]) => (aparelhos = novos),
     aparelhos: () => aparelhos,

@@ -1,29 +1,27 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from './Icon';
 import styles from './Modal.module.css';
 
 type ModalProps = {
-  titulo: string;
-  /** Texto abaixo do título, no cabeçalho escuro. */
-  subtitulo?: ReactNode;
+  /** Nome da janela para leitores de tela. */
+  rotulo: string;
   onFechar: () => void;
-  /** Rodapé com os botões. */
-  rodape?: ReactNode;
   largura?: number;
   children: ReactNode;
 };
 
-/** Janela sobre a tela, com o cabeçalho escuro dos modais do web app. Fecha no Esc, no X e clicando fora. */
-export function Modal({ titulo, subtitulo, onFechar, rodape, largura = 520, children }: ModalProps) {
-  const tituloId = useId();
+/**
+ * Janela sobre a tela: fundo escurecido, foco na janela e Esc ou clique fora para fechar.
+ * O conteúdo (cabeçalho, botões) é de cada tela. Fica no body para escurecer também o menu lateral.
+ */
+export function Modal({ rotulo, onFechar, largura = 520, children }: ModalProps) {
   const janela = useRef<HTMLDivElement>(null);
   const fechar = useRef(onFechar);
   fechar.current = onFechar;
 
   useEffect(() => {
     const antes = document.activeElement as HTMLElement | null;
-    janela.current?.focus();
+    if (!janela.current?.contains(document.activeElement)) janela.current?.focus();
     const tecla = (e: KeyboardEvent) => e.key === 'Escape' && fechar.current();
     window.addEventListener('keydown', tecla);
     return () => {
@@ -32,23 +30,10 @@ export function Modal({ titulo, subtitulo, onFechar, rodape, largura = 520, chil
     };
   }, []);
 
-  // No body: fora da área principal (que corta o position: fixed) e escurecendo também o menu lateral.
   return createPortal(
     <div className={styles.fundo} onMouseDown={(e) => e.target === e.currentTarget && onFechar()}>
-      <div ref={janela} className={styles.janela} style={{ width: largura }} role="dialog" aria-modal="true" aria-labelledby={tituloId} tabIndex={-1}>
-        <div className={styles.topo}>
-          <div className={styles.textos}>
-            <h2 id={tituloId} className={styles.titulo}>
-              {titulo}
-            </h2>
-            {subtitulo && <p className={styles.subtitulo}>{subtitulo}</p>}
-          </div>
-          <button type="button" className={styles.fechar} aria-label="Fechar" onClick={onFechar}>
-            <Icon name="close" size={21} />
-          </button>
-        </div>
-        <div className={styles.corpo}>{children}</div>
-        {rodape && <div className={styles.rodape}>{rodape}</div>}
+      <div ref={janela} className={styles.janela} style={{ maxWidth: largura }} role="dialog" aria-modal="true" aria-label={rotulo} tabIndex={-1}>
+        {children}
       </div>
     </div>,
     document.body,

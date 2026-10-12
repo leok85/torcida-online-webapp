@@ -1,23 +1,18 @@
 // E-mail e senha: os dois passam pelo Supabase Auth, com código de 6 dígitos quando ele pede confirmação.
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { mensagemDeErro } from '../../auth/erros';
-import { DIGITOS_CODIGO, emailValido, REENVIO_SEGUNDOS, SENHA_MINIMA } from '../../auth/validacao';
+import { DIGITOS_CODIGO, emailValido, forcaDaSenha, REENVIO_SEGUNDOS, SENHA_MINIMA } from '../../auth/validacao';
 import { Alert } from '../../components/form/Alert';
 import { CodeInput } from '../../components/form/CodeInput';
-import { TextField } from '../../components/form/TextField';
 import { supabase } from '../../lib/supabase';
-import { PasswordStrength } from '../auth/PasswordStrength';
-import { BotoesDaEdicao } from './Linha';
+import type { EdicaoProps } from './EditarPerfil';
+import { Botoes, Campo, Edicao } from './Linha';
 import styles from './DadosDaConta.module.css';
 
-type EdicaoProps = {
-  onFechar: () => void;
-  onSalvo: (mensagem: string) => void;
-};
-
-function useContagem(inicial: number) {
-  const [segundos, setSegundos] = useState(inicial);
+function useContagem() {
+  const [segundos, setSegundos] = useState(0);
   useEffect(() => {
     if (segundos <= 0) return;
     const t = window.setTimeout(() => setSegundos((s) => s - 1), 1000);
@@ -42,44 +37,35 @@ export function EditarEmail({ onFechar, onSalvo }: EdicaoProps) {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [reenvioEm, setReenvioEm] = useContagem(0);
+  const [reenvioEm, setReenvioEm] = useContagem();
   const novoLimpo = novo.trim().toLowerCase();
-  const igual = novoLimpo === atual.toLowerCase();
+  const valido = emailValido(novoLimpo) && novoLimpo !== atual.toLowerCase();
 
-  async function pedirCodigo(e: FormEvent) {
-    e.preventDefault();
-    if (!emailValido(novoLimpo) || igual) return;
+  async function pedirCodigo() {
+    if (!valido) return;
     setEnviando(true);
     setErro(null);
     const { error } = await supabase.auth.updateUser({ email: novoLimpo });
     setEnviando(false);
     if (error) return setErro(mensagemDeErro(error));
+    setCodigo('');
     setEtapa('codigo-novo');
     setReenvioEm(REENVIO_SEGUNDOS);
   }
 
-  async function confirmar(token: string) {
+  async function confirmar() {
+    if (codigo.length !== DIGITOS_CODIGO) return;
     setEnviando(true);
     setErro(null);
     setAviso(null);
     const email = etapa === 'codigo-novo' ? novoLimpo : atual;
-    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email_change' });
+    const { data, error } = await supabase.auth.verifyOtp({ email, token: codigo, type: 'email_change' });
     setEnviando(false);
     setCodigo('');
     if (error) return setErro(mensagemDeErro(error));
     // Na troca segura, o primeiro código só confirma metade: falta o do outro endereço.
-    if (data.user?.email?.toLowerCase() !== novoLimpo && etapa === 'codigo-novo') {
-      setEtapa('codigo-atual');
-      return;
-    }
-    onSalvo('E-mail atualizado.');
-    onFechar();
-  }
-
-  function digitar(valor: string) {
-    setCodigo(valor);
-    if (erro) setErro(null);
-    if (valor.length === DIGITOS_CODIGO && !enviando) confirmar(valor);
+    if (etapa === 'codigo-novo' && data.user?.email?.toLowerCase() !== novoLimpo) return setEtapa('codigo-atual');
+    onSalvo('E-mail confirmado');
   }
 
   async function reenviar() {
@@ -93,71 +79,77 @@ export function EditarEmail({ onFechar, onSalvo }: EdicaoProps) {
 
   if (etapa === 'novo') {
     return (
-      <form onSubmit={pedirCodigo} noValidate className={styles.edicao}>
-        <TextField
-          label="Novo e-mail"
-          icon="mail"
+      <Edicao titulo="Novo e-mail" onSubmit={pedirCodigo}>
+        <Campo
+          icone="mail"
+          rotulo="Novo e-mail"
           type="email"
           value={novo}
           onChange={(e) => setNovo(e.target.value)}
-          placeholder="voce@email.com"
+          placeholder="novo@email.com"
           autoComplete="email"
           autoFocus
-          error={igual ? 'Esse já é o seu e-mail.' : null}
-          hint="Vamos mandar um código para confirmar que o endereço é seu."
+          estado={novoLimpo && !valido ? 'erro' : 'normal'}
         />
+        <div className={styles.ajuda}>
+          {novoLimpo && novoLimpo === atual.toLowerCase()
+            ? 'Esse já é o seu e-mail.'
+            : 'Enviamos um código para o novo endereço. O e-mail atual continua valendo até você confirmar.'}
+        </div>
         {erro && <Alert>{erro}</Alert>}
-        <BotoesDaEdicao onCancelar={onFechar} salvando={enviando} podeSalvar={emailValido(novoLimpo) && !igual} rotulo="Enviar código" />
-      </form>
+        <Botoes onCancelar={onFechar} rotulo="Enviar código" podeSalvar={valido} salvando={enviando} />
+      </Edicao>
     );
   }
 
   return (
-    <div className={styles.edicao}>
+    <Edicao titulo={etapa === 'codigo-novo' ? 'Confirme o novo e-mail' : 'Confirme pelo e-mail atual'} onSubmit={confirmar}>
       <p className={styles.edicaoTexto}>
-        {etapa === 'codigo-novo' ? (
-          <>
-            Digite o código de 6 dígitos que enviamos para <strong>{novoLimpo}</strong>. Seu e-mail atual continua valendo até
-            você confirmar.
-          </>
-        ) : (
-          <>
-            Falta confirmar pelo e-mail atual: digite o código que enviamos para <strong>{atual}</strong>.
-          </>
-        )}
+        Digite o código de 6 dígitos enviado para <strong>{etapa === 'codigo-novo' ? novoLimpo : atual}</strong>.
+        {etapa === 'codigo-atual' && ' Ele confirma que a troca foi pedida por você.'}
       </p>
       <div className={styles.codigo}>
-        <CodeInput length={DIGITOS_CODIGO} value={codigo} onChange={digitar} error={!!erro} disabled={enviando} autoFocus />
+        <CodeInput length={DIGITOS_CODIGO} value={codigo} onChange={setCodigo} error={!!erro} disabled={enviando} autoFocus />
+      </div>
+      <div className={styles.codigoLinks}>
+        <span>
+          Não chegou?{' '}
+          <button type="button" onClick={reenviar} disabled={reenvioEm > 0 || enviando}>
+            {reenvioEm > 0 ? `Reenviar em ${reenvioEm}s` : 'Reenviar'}
+          </button>
+        </span>
+        {etapa === 'codigo-novo' && (
+          <button type="button" onClick={() => setEtapa('novo')} disabled={enviando}>
+            Corrigir e-mail
+          </button>
+        )}
       </div>
       {erro && <Alert>{erro}</Alert>}
       {aviso && <Alert tone="success">{aviso}</Alert>}
-      <button type="button" className={styles.linkPequeno} onClick={reenviar} disabled={reenvioEm > 0 || enviando}>
-        {reenvioEm > 0 ? `Reenviar código em ${reenvioEm}s` : 'Reenviar código'}
-      </button>
-      <BotoesDaEdicao onCancelar={onFechar} salvando={enviando} podeSalvar={false} rotulo={null} />
-    </div>
+      <Botoes onCancelar={onFechar} rotulo="Confirmar" podeSalvar={codigo.length === DIGITOS_CODIGO} salvando={enviando} />
+    </Edicao>
   );
 }
 
 type EditarSenhaProps = EdicaoProps & {
   /** Sem senha (entrou só pelo Google ou pela Apple), o formulário cria uma. */
   temSenha: boolean;
-  /** Depois de salvar: a lista de aparelhos e o "tem senha" mudam. */
+  /** Depois de salvar: a data da senha e a lista de aparelhos mudam. */
   onAlterada: () => void;
 };
 
 /** Alterar (com a senha atual) ou criar a senha. Ao trocar, os outros aparelhos saem da conta. */
 export function EditarSenha({ temSenha, onFechar, onSalvo, onAlterada }: EditarSenhaProps) {
+  const { sessao } = useAuth();
   const [atual, setAtual] = useState('');
   const [nova, setNova] = useState('');
-  const [repetida, setRepetida] = useState('');
   // Com a "troca segura de senha" do Supabase, sessões com mais de 24 h precisam de um código enviado por e-mail.
   const [pedindoCodigo, setPedindoCodigo] = useState(false);
   const [codigo, setCodigo] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const diferentes = !!repetida && repetida !== nova;
-  const valida = nova.length >= SENHA_MINIMA && repetida === nova && (!temSenha || !!atual);
+  const forca = forcaDaSenha(nova);
+  const valida = nova.length >= SENHA_MINIMA && (!temSenha || !!atual);
 
   async function gravar(nonce?: string) {
     setSalvando(true);
@@ -182,61 +174,63 @@ export function EditarSenha({ temSenha, onFechar, onSalvo, onAlterada }: EditarS
     // A senha nova vale para todos os aparelhos: os outros precisam entrar de novo.
     await supabase.auth.signOut({ scope: 'others' });
     setSalvando(false);
-    onSalvo(temSenha ? 'Senha alterada. Os outros aparelhos saíram da conta.' : 'Senha criada. Agora você também entra com e-mail e senha.');
     onAlterada();
-    onFechar();
-  }
-
-  function salvar(e: FormEvent) {
-    e.preventDefault();
-    if (valida) gravar();
-  }
-
-  function digitar(valor: string) {
-    setCodigo(valor);
-    if (erro) setErro(null);
-    if (valor.length === DIGITOS_CODIGO && !salvando) gravar(valor);
+    onSalvo(temSenha ? 'Senha alterada. Outros aparelhos foram desconectados.' : 'Senha criada');
   }
 
   if (pedindoCodigo) {
     return (
-      <div className={styles.edicao}>
-        <p className={styles.edicaoTexto}>Para sua segurança, digite o código de 6 dígitos que enviamos para o seu e-mail.</p>
+      <Edicao titulo="Confirme que é você" onSubmit={() => gravar(codigo)}>
+        <p className={styles.edicaoTexto}>
+          Para sua segurança, digite o código de 6 dígitos enviado para <strong>{sessao?.user.email}</strong>.
+        </p>
         <div className={styles.codigo}>
-          <CodeInput length={DIGITOS_CODIGO} value={codigo} onChange={digitar} error={!!erro} disabled={salvando} autoFocus />
+          <CodeInput length={DIGITOS_CODIGO} value={codigo} onChange={setCodigo} error={!!erro} disabled={salvando} autoFocus />
         </div>
         {erro && <Alert>{erro}</Alert>}
-        <BotoesDaEdicao onCancelar={onFechar} salvando={salvando} podeSalvar={false} rotulo={null} />
-      </div>
+        <Botoes onCancelar={onFechar} rotulo="Confirmar" podeSalvar={codigo.length === DIGITOS_CODIGO} salvando={salvando} />
+      </Edicao>
     );
   }
 
   return (
-    <form onSubmit={salvar} noValidate className={styles.edicao}>
-      {temSenha && (
-        <TextField label="Senha atual" password value={atual} onChange={(e) => setAtual(e.target.value)} autoComplete="current-password" autoFocus />
-      )}
-      <TextField
-        label={temSenha ? 'Nova senha' : 'Senha'}
-        password
-        value={nova}
-        onChange={(e) => setNova(e.target.value)}
-        autoComplete="new-password"
-        autoFocus={!temSenha}
-        below={nova && <PasswordStrength senha={nova} />}
-        hint={`Pelo menos ${SENHA_MINIMA} caracteres.`}
-      />
-      <TextField
-        label="Repita a senha"
-        password
-        value={repetida}
-        onChange={(e) => setRepetida(e.target.value)}
-        autoComplete="new-password"
-        error={diferentes ? 'As senhas não são iguais.' : null}
-      />
-      {temSenha && <p className={styles.edicaoTexto}>Ao trocar a senha, os outros aparelhos saem da conta.</p>}
+    <Edicao titulo={temSenha ? 'Alterar senha' : 'Criar senha'} onSubmit={() => valida && gravar()}>
+      <div className={styles.senhaGrade}>
+        {temSenha && (
+          <div>
+            <Campo icone="lock" rotulo="Senha atual" rotuloVisivel senha value={atual} onChange={(e) => setAtual(e.target.value)} autoComplete="current-password" autoFocus />
+            <Link to="/recuperar-senha" state={{ email: sessao?.user.email }} className={styles.linkPequeno}>
+              Esqueci a senha atual
+            </Link>
+          </div>
+        )}
+        <div>
+          <Campo
+            icone="key"
+            rotulo="Nova senha"
+            rotuloVisivel
+            senha
+            value={nova}
+            onChange={(e) => setNova(e.target.value)}
+            placeholder={`mínimo ${SENHA_MINIMA} caracteres`}
+            autoComplete="new-password"
+            autoFocus={!temSenha}
+          />
+          <div className={styles.forca} aria-live="polite">
+            <div className={styles.forcaBarras}>
+              {[1, 2, 3, 4].map((i) => (
+                <span key={i} style={i <= forca.nivel ? { background: forca.cor } : undefined} />
+              ))}
+            </div>
+            <span className={styles.forcaRotulo} style={{ color: forca.cor }}>
+              {forca.rotulo}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className={styles.ajuda}>Ao trocar, os outros aparelhos saem da conta e precisam entrar de novo.</div>
       {erro && <Alert>{erro}</Alert>}
-      <BotoesDaEdicao onCancelar={onFechar} salvando={salvando} podeSalvar={valida} rotulo={temSenha ? 'Alterar senha' : 'Criar senha'} />
-    </form>
+      <Botoes onCancelar={onFechar} rotulo={temSenha ? 'Salvar nova senha' : 'Criar senha'} podeSalvar={valida} salvando={salvando} />
+    </Edicao>
   );
 }

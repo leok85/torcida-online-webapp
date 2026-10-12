@@ -271,6 +271,7 @@ export type Database = {
         Row: {
           apelido: string | null;
           apelido_alterado_em: string | null;
+          apelido_anterior: string | null;
           atualizado_em: string;
           cidade: string | null;
           cidade_id: number | null;
@@ -284,12 +285,14 @@ export type Database = {
           pais: string | null;
           quer_avisos: boolean;
           quer_novidades: boolean;
+          senha_alterada_em: string | null;
           termos_aceitos_em: string | null;
           time_id: number | null;
         };
         Insert: {
           apelido?: string | null;
           apelido_alterado_em?: string | null;
+          apelido_anterior?: string | null;
           atualizado_em?: string;
           cidade?: string | null;
           cidade_id?: number | null;
@@ -303,12 +306,14 @@ export type Database = {
           pais?: string | null;
           quer_avisos?: boolean;
           quer_novidades?: boolean;
+          senha_alterada_em?: string | null;
           termos_aceitos_em?: string | null;
           time_id?: number | null;
         };
         Update: {
           apelido?: string | null;
           apelido_alterado_em?: string | null;
+          apelido_anterior?: string | null;
           atualizado_em?: string;
           cidade?: string | null;
           cidade_id?: number | null;
@@ -322,6 +327,7 @@ export type Database = {
           pais?: string | null;
           quer_avisos?: boolean;
           quer_novidades?: boolean;
+          senha_alterada_em?: string | null;
           termos_aceitos_em?: string | null;
           time_id?: number | null;
         };
@@ -339,7 +345,6 @@ export type Database = {
       apelido_disponivel: { Args: { apelido: string }; Returns: boolean };
       clubes_com_torcedores: { Args: Record<string, never>; Returns: number[] };
       encerrar_aparelho: { Args: { sessao: string }; Returns: boolean };
-      tenho_senha: { Args: Record<string, never>; Returns: boolean };
       manter_minha_conta: { Args: Record<string, never>; Returns: undefined };
       meus_aparelhos: {
         Args: Record<string, never>;

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useAuth } from '../../auth/AuthContext';
-import { Avatar } from '../../components/ui/Avatar';
+import { Icon } from '../../components/ui/Icon';
 import { apagarFoto, enviarFoto, problemaDaFoto, TIPOS_DE_FOTO, urlDaFoto } from '../../data/conta';
-import { Linha } from './Linha';
 import { RecorteDeFoto } from './RecorteDeFoto';
 import styles from './DadosDaConta.module.css';
 
@@ -14,6 +13,7 @@ export function FotoDoPerfil({ onSalvo }: { onSalvo: (mensagem: string) => void 
   const [erro, setErro] = useState<string | null>(null);
   const [removendo, setRemovendo] = useState(false);
   const atual = perfil?.foto ?? null;
+  const url = urlDaFoto(atual);
 
   // Libera a imagem escolhida da memória quando ela sai de cena.
   useEffect(() => () => void (escolhida && URL.revokeObjectURL(escolhida)), [escolhida]);
@@ -39,7 +39,7 @@ export function FotoDoPerfil({ onSalvo }: { onSalvo: (mensagem: string) => void 
     }
     if (atual) await apagarFoto(atual);
     setEscolhida(null);
-    onSalvo('Foto atualizada.');
+    onSalvo('Foto atualizada');
   }
 
   async function remover() {
@@ -50,45 +50,32 @@ export function FotoDoPerfil({ onSalvo }: { onSalvo: (mensagem: string) => void 
     setRemovendo(false);
     if (error) return setErro('Não foi possível remover a foto agora. Tente de novo.');
     await apagarFoto(atual);
-    onSalvo('Foto removida.');
+    onSalvo('Foto removida');
   }
 
   return (
-    <>
-      <Linha
-        rotulo="Foto"
-        valor={
-          <div className={styles.foto}>
-            <Avatar size={44} iconSize={24} foto={urlDaFoto(atual)} />
-            {/* Dentro da linha: um elemento entre as linhas quebraria o separador (.linha + .linha). */}
-            <input ref={arquivo} type="file" accept={TIPOS_DE_FOTO.join(',')} hidden onChange={escolher} data-testid="arquivo-da-foto" aria-label="Arquivo da foto" />
-            <div className={erro ? styles.erroApoio : styles.apoio} role={erro ? 'alert' : undefined}>
-              {erro ?? 'JPG, PNG ou WebP, até 5 MB. Você ajusta o corte depois de escolher.'}
-            </div>
-          </div>
-        }
-        acoes={
-          <>
-            {atual && (
-              <button type="button" className={styles.acaoVermelha} onClick={remover} disabled={removendo}>
-                Remover
-              </button>
-            )}
-            <button type="button" className={styles.acao} onClick={() => arquivo.current?.click()} aria-label={atual ? 'Trocar foto' : 'Escolher foto'}>
-              {atual ? 'Trocar' : 'Escolher'}
-            </button>
-          </>
-        }
-      />
+    <div className={styles.linha}>
+      <div className={styles.rotulo}>Foto</div>
+      <div className={styles.foto}>
+        <div className={styles.fotoCirculo}>{url ? <img src={url} alt="Sua foto" /> : <Icon name="person" size={26} />}</div>
+        <div className={erro ? styles.fotoErro : styles.fotoMsg} role={erro ? 'alert' : undefined}>
+          {erro ?? 'JPG, PNG ou WebP, até 5 MB. Você ajusta o corte depois de escolher.'}
+        </div>
+        <input ref={arquivo} type="file" accept={TIPOS_DE_FOTO.join(',')} hidden onChange={escolher} data-testid="arquivo-da-foto" aria-label="Arquivo da foto" />
+      </div>
+      <div className={styles.acoes}>
+        <button type="button" className={styles.acao} onClick={() => arquivo.current?.click()} aria-label={atual ? 'Trocar foto' : 'Escolher foto'}>
+          {atual ? 'Trocar' : 'Escolher'}
+        </button>
+        {atual && (
+          <button type="button" className={styles.acaoVermelha} onClick={remover} disabled={removendo}>
+            Remover
+          </button>
+        )}
+      </div>
       {escolhida && (
-        <RecorteDeFoto
-          key={escolhida}
-          imagem={escolhida}
-          onTrocarImagem={() => arquivo.current?.click()}
-          onCancelar={() => setEscolhida(null)}
-          onSalvar={salvar}
-        />
+        <RecorteDeFoto key={escolhida} imagem={escolhida} onTrocarImagem={() => arquivo.current?.click()} onCancelar={() => setEscolhida(null)} onSalvar={salvar} />
       )}
-    </>
+    </div>
   );
 }
