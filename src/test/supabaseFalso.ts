@@ -4,7 +4,7 @@ import { vi, type Mock } from 'vitest';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Assinatura, Perfil } from '../lib/database.types';
 import type { Partida } from '../lib/database.types';
-import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE, partidaEmDestaqueDeTeste } from './catalogoDeTeste';
+import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
 type Ouvinte = (evento: Evento, sessao: Session | null) => void;
@@ -124,16 +124,13 @@ function criar() {
     return consulta;
   }
 
-  // Imita select().or('mandante_id.eq.X,visitante_id.eq.X').in().order().limit().maybeSingle() de partidaEmDestaque.
+  // Imita select().or('mandante_id.eq.X,visitante_id.eq.X').order('inicio') de jogosDoClube.
   function consultaPartidas() {
     let clubeId = 0;
     const consulta = {
       select: () => consulta,
       or: (filtro: string) => ((clubeId = Number(/mandante_id\.eq\.(\d+)/.exec(filtro)?.[1])), consulta),
-      in: () => consulta,
-      order: () => consulta,
-      limit: () => consulta,
-      maybeSingle: async () => ok(sessao ? partidaEmDestaqueDeTeste(partidas, clubeId) : null),
+      order: async () => ok(sessao ? jogosDoClubeDeTeste(partidas, clubeId) : []),
     };
     return consulta;
   }

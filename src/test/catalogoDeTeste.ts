@@ -102,8 +102,6 @@ export function partidaDeTeste(campos: Partial<Partida> = {}): Partida {
   };
 }
 
-/** Mesma consulta de partidaEmDestaque: o jogo do clube ao vivo ou encerrado mais recente. */
-export const partidaEmDestaqueDeTeste = (partidas: Partida[], clubeId: number) =>
-  partidas
-    .filter((p) => (p.mandante_id === clubeId || p.visitante_id === clubeId) && ['ao_vivo', 'encerrada'].includes(p.status))
-    .sort((a, b) => b.inicio.localeCompare(a.inicio))[0] ?? null;
+/** Mesma consulta de jogosDoClube: os jogos do clube, do mais antigo para o mais recente. */
+export const jogosDoClubeDeTeste = (partidas: Partida[], clubeId: number) =>
+  partidas.filter((p) => p.mandante_id === clubeId || p.visitante_id === clubeId).sort((a, b) => a.inicio.localeCompare(b.inicio));

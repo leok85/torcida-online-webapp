@@ -59,7 +59,7 @@ describe('bloqueios de assinante', () => {
     const menu = await screen.findByRole('navigation');
     expect(within(menu).getByRole('link', { name: /Ranking/ })).toHaveTextContent('só para membros');
     expect(within(menu).getByRole('link', { name: /Notícias/ })).not.toHaveTextContent('só para membros');
-    expect(within(menu).getByRole('link', { name: /Jogo ao vivo/ })).not.toHaveTextContent('só para membros');
+    expect(within(menu).getByRole('link', { name: /Jogos/ })).not.toHaveTextContent('só para membros');
   });
 
   it('membro não vê cadeados no menu', async () => {

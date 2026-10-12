@@ -1,54 +1,16 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crest } from '../components/ui/Crest';
 import { Icon } from '../components/ui/Icon';
-import { autoresDosGols, infoDaPartida, partidaEmDestaque, seloDaPartida, type Partida } from '../data/partidas';
+import { autoresDosGols, infoDaPartida, seloDaPartida, separarJogos } from '../data/partidas';
+import { useJogosDoClube } from '../partidas/JogosDoClube';
 import ui from '../styles/ui.module.css';
 import styles from './Inicio.module.css';
 
-/** Com jogo em andamento a página consulta de novo a cada 30 s; fora dele, a cada 5 min (para pegar o próximo começando). */
-export const ATUALIZAR_AO_VIVO_MS = 30_000;
-export const ATUALIZAR_SEM_JOGO_MS = 300_000;
-
-function usePartidaEmDestaque(clubeId: number | null) {
-  const [estado, setEstado] = useState<{ clubeId: number; partida?: Partida | null; erro?: boolean } | null>(null);
-  const [tentativa, setTentativa] = useState(0);
-
-  useEffect(() => {
-    if (!clubeId) return;
-    let ativo = true;
-    let timer: number | undefined;
-    const agendar = (ms: number) => (timer = window.setTimeout(carregar, ms));
-    function carregar() {
-      partidaEmDestaque(clubeId!).then(
-        (partida) => {
-          if (!ativo) return;
-          setEstado({ clubeId: clubeId!, partida });
-          agendar(partida?.status === 'ao_vivo' ? ATUALIZAR_AO_VIVO_MS : ATUALIZAR_SEM_JOGO_MS);
-        },
-        () => {
-          if (!ativo) return;
-          // Se uma atualização falha, o card segue com o último placar e tenta de novo depois.
-          setEstado((anterior) => (anterior?.clubeId === clubeId && anterior.partida !== undefined ? anterior : { clubeId: clubeId!, erro: true }));
-          agendar(ATUALIZAR_AO_VIVO_MS);
-        },
-      );
-    }
-    carregar();
-    return () => {
-      ativo = false;
-      window.clearTimeout(timer);
-    };
-  }, [clubeId, tentativa]);
-
-  const atual = clubeId && estado?.clubeId === clubeId ? estado : null;
-  return { partida: atual?.partida, erro: !!atual?.erro && atual.partida === undefined, tentarDeNovo: () => setTentativa((t) => t + 1) };
-}
-
 /** W01 · placar do clube: o jogo em andamento ou, sem jogo agora, o último resultado. */
-export function CardPartida({ clubeId, clubeNome }: { clubeId: number | null; clubeNome: string }) {
+export function CardPartida({ clubeNome }: { clubeNome: string }) {
   const navigate = useNavigate();
-  const { partida, erro, tentarDeNovo } = usePartidaEmDestaque(clubeId);
+  const { jogos, erro, tentarDeNovo } = useJogosDoClube();
+  const partida = jogos && separarJogos(jogos).destaque;
   const titulo = `Jogo do ${clubeNome}`;
 
   if (erro) {

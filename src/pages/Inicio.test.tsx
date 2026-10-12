@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderApp } from '../test/renderApp';
 import { partidaDeTeste } from '../test/catalogoDeTeste';
 import { perfilDeTeste, supabaseFalso } from '../test/supabaseFalso';
-import { ATUALIZAR_AO_VIVO_MS } from './CardPartida';
+import { ATUALIZAR_AO_VIVO_MS } from '../partidas/JogosDoClube';
 
 // O perfil de teste torce para o Palmeiras (162).
 const card = async () => screen.findByRole('region', { name: 'Jogo do Palmeiras' });
@@ -100,7 +100,7 @@ describe('Início · jogo do clube', () => {
     const original = supabaseFalso.cliente.from.getMockImplementation()!;
     supabaseFalso.cliente.from.mockImplementation((tabela: string) =>
       tabela === 'partidas'
-        ? { select: () => ({ or: () => ({ in: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: null, error: { message: 'offline' } }) }) }) }) }) }) }
+        ? { select: () => ({ or: () => ({ order: async () => ({ data: null, error: { message: 'offline' } }) }) }) }
         : original(tabela),
     );
     const { user } = renderApp('/');

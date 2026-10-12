@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Icon } from '../components/ui/Icon';
-import { NAV_MAIN } from '../routes';
+import { NAV_MAIN, TELAS_DO_JOGO } from '../routes';
 import { anualPorMes, BENEFICIOS, formatarPreco } from './planos';
 import styles from './Bloqueio.module.css';
 
@@ -10,7 +10,7 @@ export function ApenasAssinante() {
   const { assinante } = useAuth();
   const { pathname } = useLocation();
   if (assinante) return <Outlet />;
-  const recurso = NAV_MAIN.find((i) => i.path === pathname);
+  const recurso = [...NAV_MAIN, ...TELAS_DO_JOGO].find((i) => i.path === pathname);
   return <Bloqueio titulo={recurso?.label ?? 'Este recurso'} icone={recurso?.icon ?? 'lock'} />;
 }
 

@@ -3,7 +3,7 @@
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
 import type { BrowserContext, Route } from '@playwright/test';
 import type { Partida } from '../src/lib/database.types';
-import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, partidaEmDestaqueDeTeste } from '../src/test/catalogoDeTeste';
+import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
   id: string;
@@ -303,11 +303,9 @@ export class BackendFalso {
 
     if (caminho === '/partidas') {
       if (!usuario) return json(401, { code: '42501', message: 'permission denied for table partidas' });
-      // O app só pede o jogo em destaque de um clube: or=(mandante_id.eq.X,visitante_id.eq.X)&status=in.(ao_vivo,encerrada).
+      // O app pede os jogos de um clube: or=(mandante_id.eq.X,visitante_id.eq.X)&order=inicio.asc.
       const clubeId = Number(/mandante_id\.eq\.(\d+)/.exec(url.searchParams.get('or') ?? '')?.[1]);
-      const partida = partidaEmDestaqueDeTeste(this.partidas, clubeId);
-      const umObjeto = req.headers()['accept']?.includes('vnd.pgrst.object');
-      return json(200, umObjeto ? partida : partida ? [partida] : []);
+      return json(200, jogosDoClubeDeTeste(this.partidas, clubeId));
     }
 
     // Catálogo: leitura pública, sem sessão.
