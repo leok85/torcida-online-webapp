@@ -153,7 +153,10 @@ export async function sincronizar(req: Request, deps: Dependencias): Promise<Res
   }
 
   const { clubes, ligas } = await banco.catalogo();
-  const doCatalogo = eventos.filter((e) => clubes.has(e.home_team_id) || clubes.has(e.away_team_id));
+  // Do mais recente para o mais antigo: com o teto de incidentes, os gols que aparecem no card vêm primeiro.
+  const doCatalogo = eventos
+    .filter((e) => clubes.has(e.home_team_id) || clubes.has(e.away_team_id))
+    .sort((a, b) => b.event_date.localeCompare(a.event_date));
   const salvas = await banco.partidas(doCatalogo.map((e) => e.id));
   const nomesDeLiga = new Map(ligas);
   let incidentesPedidos = 0;
