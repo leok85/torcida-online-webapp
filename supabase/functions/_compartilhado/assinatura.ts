@@ -37,7 +37,29 @@ export interface Banco {
   /** Assinatura do web app mais recente que ainda não acabou (pendente, ativa, atrasada ou cancelada no prazo). */
   assinaturaWebEmAndamento(usuarioId: string): Promise<{ id_externo: string; status: Status } | null>;
   gravarAssinatura(linha: LinhaAssinatura): Promise<void>;
+  /** Código pendente do e-mail de cobrança (um por torcedor; um pedido novo substitui o anterior). */
+  guardarCodigoDeEmail(usuarioId: string, codigo: { email: string; hash: string; expiraEm: string }): Promise<void>;
+  codigoDeEmail(usuarioId: string): Promise<CodigoDeEmail | null>;
+  errouCodigoDeEmail(usuarioId: string): Promise<void>;
+  apagarCodigoDeEmail(usuarioId: string): Promise<void>;
 }
+
+export type CodigoDeEmail = { email: string; hash: string; tentativas: number; expiraEm: string };
+
+/** Envio de e-mails fora do Supabase Auth (código do e-mail de cobrança). */
+export interface Correio {
+  /** Lança CorreioIndisponivel quando não há chave do provedor configurada. */
+  enviarCodigoDeCobranca(para: string, codigo: string): Promise<void>;
+}
+
+export class CorreioIndisponivel extends Error {
+  constructor() {
+    super('RESEND_API_KEY não configurada');
+  }
+}
+
+/** Prévia da troca de plano, em centavos: o plano novo, o crédito do que sobrou do atual e o total de hoje. */
+export type PreviaStripe = { valor: number; credito: number; total: number; moeda: string; renovaEm: number | null };
 
 /** Forma de pagamento como o Stripe devolve (PaymentMethod, só o que a tela mostra). */
 export type MetodoStripe = {
@@ -70,7 +92,15 @@ export interface Pagamentos {
   buscarAssinatura(id: string): Promise<AssinaturaStripe>;
   cancelarNoFimDoPeriodo(id: string, cancelar: boolean): Promise<void>;
   cancelarAgora(id: string): Promise<void>;
-  criarPortal(customer: string, retorno: string): Promise<string>;
+  /** Quanto custa trocar a assinatura para o preço novo agora (o Stripe cobra na hora quando o período muda). */
+  previaDaTroca(assinaturaId: string, preco: string): Promise<PreviaStripe>;
+  /** Troca o preço da assinatura e cobra a diferença na hora; 'recusado' quando o cartão não passa. */
+  trocarPlano(assinaturaId: string, preco: string): Promise<'ok' | 'recusado'>;
+  /** Checkout Session em modo setup para cadastrar um cartão novo. */
+  criarSessaoDeCartao(dados: { customer: string; assinaturaId: string; retorno: string }): Promise<string>;
+  /** Usa o cartão da sessão concluída na assinatura (e tenta pagar a fatura em aberto, se houver). */
+  definirCartao(customer: string, sessaoId: string, assinaturaId: string): Promise<boolean>;
+  trocarEmailDeCobranca(customer: string, email: string): Promise<void>;
   /** Preço e forma de pagamento da assinatura (se houver), e-mail de cobrança e as últimas faturas pagas. */
   buscarCobranca(customer: string, assinaturaId: string | null): Promise<CobrancaStripe>;
 }

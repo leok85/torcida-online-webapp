@@ -116,6 +116,10 @@ function criar() {
   // Troca de e-mail pendente (updateUser({ email })) e quantos códigos faltam: 2 com a troca segura.
   let trocaDeEmail: { novo: string; faltam: Set<string> } | null = null;
   let trocaSegura = false;
+  // Minha assinatura: e-mail de cobrança (null = o da conta), código pendente e cartão recusado na troca de plano.
+  let emailDeCobranca: string | null = null;
+  let codigoDeCobranca: string | null = null;
+  let recusarTroca = false;
   // RLS: o torcedor só enxerga as próprias assinaturas.
   const minhas = () => assinaturas.filter((a) => a.usuario_id === sessao?.user.id);
   const ouvintes = new Set<Ouvinte>();
@@ -339,23 +343,66 @@ function criar() {
       return ok({ ok: true, exclui_em });
     }
     if (nome === 'gerenciar-assinatura') {
-      if (body.acao === 'portal') return ok({ url: 'https://billing.stripe.com/p/session/teste' });
-      if (body.acao === 'resumo') {
+      const erro = (status: number, codigo: string) => ({ data: null, error: { context: new Response(JSON.stringify({ erro: codigo }), { status }) } });
+      const pedido = body as { acao?: string; email?: string; codigo?: string; plano?: string; sessao?: string };
+      if (pedido.acao === 'resumo') {
         // Quem assinou pelo web app tem o cartão e a primeira cobrança no Stripe; os outros, nada.
         const doWeb = minhas().find((a) => a.origem === 'web');
         if (!doWeb) return ok({ email: null, plano: null, pagamento: null, cobrancas: [] });
         const anual = doWeb.plano === 'anual';
         return ok({
-          email: sessao.user.email,
+          email: emailDeCobranca ?? sessao.user.email,
           plano: { valor: anual ? 149 : 14.9, moeda: 'BRL', intervalo: anual ? 'ano' : 'mes' },
           pagamento: { tipo: 'cartao', bandeira: 'Visa', final: '4242', expira: '08/2029' },
           cobrancas: [{ data: doWeb.criado_em, descricao: `Plano ${doWeb.plano} · cartão •••• 4242`, valor: anual ? 149 : 14.9, moeda: 'BRL', recibo: null }],
         });
       }
+      // E-mail de cobrança: o código que "chega" no e-mail novo é sempre CODIGO_DE_TESTE.
+      if (pedido.acao === 'email-da-conta') {
+        emailDeCobranca = null;
+        return ok({ email: sessao.user.email });
+      }
+      if (pedido.acao === 'codigo-email') {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pedido.email?.trim() ?? '')) return erro(400, 'email_invalido');
+        codigoDeCobranca = pedido.email!.trim().toLowerCase();
+        return ok({ ok: true });
+      }
+      if (pedido.acao === 'confirmar-email') {
+        if (!codigoDeCobranca) return erro(410, 'codigo_expirado');
+        if (pedido.codigo !== CODIGO_DE_TESTE) return erro(400, 'codigo_invalido');
+        emailDeCobranca = codigoDeCobranca;
+        codigoDeCobranca = null;
+        return ok({ email: emailDeCobranca });
+      }
       const web = minhas().find((a) => a.origem === 'web' && ['ativa', 'cancelada', 'atrasada'].includes(a.status));
-      if (!web) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'sem_assinatura_web' }), { status: 404 }) } };
-      web.status = body.acao === 'cancelar' ? 'cancelada' : 'ativa';
-      return ok({ status: web.status, expira_em: web.expira_em });
+      if (!web) return erro(404, 'sem_assinatura_web');
+      if (pedido.acao === 'cancelar' || pedido.acao === 'reativar') {
+        web.status = pedido.acao === 'cancelar' ? 'cancelada' : 'ativa';
+        return ok({ status: web.status, expira_em: web.expira_em });
+      }
+      if (pedido.acao === 'previa-troca' || pedido.acao === 'trocar-plano') {
+        if (web.status !== 'ativa') return erro(409, 'assinatura_nao_ativa');
+        if (pedido.plano === web.plano) return erro(409, 'mesmo_plano');
+        const anual = pedido.plano === 'anual';
+        if (pedido.acao === 'previa-troca') {
+          // Mensal → anual: R$ 149,00 menos R$ 7,45 que sobraram do mês. Anual → mensal: o crédito cobre o mês.
+          return ok(
+            anual
+              ? { plano: 'anual', valor: 149, credito: 7.45, total: 141.55, moeda: 'BRL', renova_em: '2027-10-12T12:00:00.000Z' }
+              : { plano: 'mensal', valor: 14.9, credito: 74.5, total: 0, moeda: 'BRL', renova_em: '2026-11-12T12:00:00.000Z' },
+          );
+        }
+        if (recusarTroca) return erro(402, 'recusado');
+        web.plano = anual ? 'anual' : 'mensal';
+        return ok({ plano: web.plano, status: web.status, expira_em: web.expira_em });
+      }
+      if (pedido.acao === 'sessao-cartao') return ok({ clientSecret: 'cs_setup_secret_teste' });
+      if (pedido.acao === 'definir-cartao') {
+        if (!pedido.sessao?.startsWith('cs_')) return erro(400, 'sessao_invalida');
+        if (web.status === 'atrasada') web.status = 'ativa';
+        return ok({ status: web.status });
+      }
+      return erro(400, 'acao_invalida');
     }
     return { data: null, error: { context: new Response(JSON.stringify({ erro: 'funcao_desconhecida' }), { status: 404 }) } };
   }
@@ -384,6 +431,9 @@ function criar() {
     feedbacks.length = 0;
     trocaDeEmail = null;
     trocaSegura = false;
+    emailDeCobranca = null;
+    codigoDeCobranca = null;
+    recusarTroca = false;
     rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number; sessao?: string }) => {
       if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
       if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais, args!.limite));
@@ -448,6 +498,10 @@ function criar() {
     feedbacks: () => feedbacks,
     /** Liga a "troca segura de e-mail" do Supabase: o e-mail atual também precisa confirmar com código. */
     ligarTrocaSegura: () => (trocaSegura = true),
+    /** O banco recusa o cartão na próxima troca de plano. */
+    recusarTrocaDePlano: () => (recusarTroca = true),
+    /** E-mail que recebe os avisos de cobrança no Stripe (null = o da conta). */
+    emailDeCobranca: () => emailDeCobranca,
     /** Cria a sessão; antes do render vira a sessão salva, depois dispara SIGNED_IN como o Supabase. */
     logar(perfil: Perfil, email = EMAIL_PADRAO) {
       perfis.set(perfil.id, perfil);
