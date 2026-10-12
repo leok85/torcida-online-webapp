@@ -335,6 +335,17 @@ export class BackendFalso {
     }
     if (nome === 'gerenciar-assinatura') {
       if (corpo.acao === 'portal') return json(200, { url: 'https://billing.stripe.com/p/session/e2e' });
+      if (corpo.acao === 'resumo') {
+        const doWeb = this.assinaturas.find((a) => a.usuario_id === usuario.id && a.origem === 'web');
+        if (!doWeb) return json(200, { email: null, plano: null, pagamento: null, cobrancas: [] });
+        const anual = doWeb.plano === 'anual';
+        return json(200, {
+          email: usuario.email,
+          plano: { valor: anual ? 149 : 14.9, moeda: 'BRL', intervalo: anual ? 'ano' : 'mes' },
+          pagamento: { tipo: 'cartao', bandeira: 'Visa', final: '4242', expira: '08/2029' },
+          cobrancas: [{ data: doWeb.criado_em, descricao: `Plano ${doWeb.plano} · cartão •••• 4242`, valor: anual ? 149 : 14.9, moeda: 'BRL', recibo: null }],
+        });
+      }
       const web = this.assinaturas.find((a) => a.usuario_id === usuario.id && a.origem === 'web' && ['ativa', 'cancelada', 'atrasada'].includes(a.status));
       if (!web || !['cancelar', 'reativar'].includes(corpo.acao)) return json(404, { erro: 'sem_assinatura_web' });
       web.status = corpo.acao === 'cancelar' ? 'cancelada' : 'ativa';

@@ -70,3 +70,41 @@ describe('gerenciar-assinatura', () => {
     ).toBe(401);
   });
 });
+
+describe('gerenciar-assinatura: resumo de cobrança (Minha assinatura)', () => {
+  it('devolve preço, cartão, e-mail e as faturas pagas com plano e forma de pagamento', async () => {
+    const f = await comAssinatura();
+    const resposta = await gerenciarAssinatura(pedido(URL_FUNCAO, { corpo: { acao: 'resumo' } }), f.banco, f.pagamentos);
+    expect(resposta.status).toBe(200);
+    expect(f.pagamentos.buscarCobranca).toHaveBeenCalledWith('cus_1', 'sub_1');
+    expect(await resposta.json()).toEqual({
+      email: 'rafa@example.com',
+      plano: { valor: 149, moeda: 'BRL', intervalo: 'ano' },
+      pagamento: { tipo: 'cartao', bandeira: 'Visa', final: '4242', expira: '08/2029' },
+      cobrancas: [
+        { data: '2026-10-11T12:00:00.000Z', descricao: 'Plano anual · cartão •••• 4242', valor: 149, moeda: 'BRL', recibo: 'https://invoice.stripe.com/i/1' },
+        { data: '2026-09-11T12:00:00.000Z', descricao: 'Plano mensal · Pix', valor: 14.9, moeda: 'BRL', recibo: null },
+      ],
+    });
+  });
+
+  it('sem cliente no Stripe, responde vazio sem chamar o Stripe', async () => {
+    const f = criarFalsos();
+    const resposta = await gerenciarAssinatura(pedido(URL_FUNCAO, { corpo: { acao: 'resumo' } }), f.banco, f.pagamentos);
+    expect(await resposta.json()).toEqual({ email: null, plano: null, pagamento: null, cobrancas: [] });
+    expect(f.pagamentos.buscarCobranca).not.toHaveBeenCalled();
+  });
+
+  it('cliente sem assinatura em andamento ainda vê as cobranças antigas', async () => {
+    const f = criarFalsos();
+    f.clientes.set(RAFA.id, 'cus_1');
+    await gerenciarAssinatura(pedido(URL_FUNCAO, { corpo: { acao: 'resumo' } }), f.banco, f.pagamentos);
+    expect(f.pagamentos.buscarCobranca).toHaveBeenCalledWith('cus_1', null);
+  });
+
+  it('pede sessão', async () => {
+    const f = criarFalsos();
+    const resposta = await gerenciarAssinatura(pedido(URL_FUNCAO, { corpo: { acao: 'resumo' }, headers: { Authorization: '' } }), f.banco, f.pagamentos);
+    expect(resposta.status).toBe(401);
+  });
+});
