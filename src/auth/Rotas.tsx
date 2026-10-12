@@ -42,7 +42,7 @@ export function ApenasVisitante() {
   return <Outlet />;
 }
 
-/** Exige sessão. Com `torcedor`, exige também o onboarding concluído (país, time e dados). */
+/** Exige sessão. Com `torcedor`, exige também o onboarding concluído (país, clube e cidade). */
 export function ApenasLogado({ torcedor = false }: { torcedor?: boolean }) {
   const { carregando, sessao, perfil, erroPerfil } = useAuth();
   const { pathname, search } = useLocation();

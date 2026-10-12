@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 
-test('cadastro completo: dados, código do e-mail, boas-vindas, onboarding e app', async ({ page, backend }) => {
+test('cadastro completo: dados, código do e-mail, boas-vindas, país, clube e cidade, planos e app', async ({ page, backend }) => {
   await page.goto('/criar-conta');
   await page.getByLabel('Nome').fill('Nova Torcedora');
   await page.getByLabel('Apelido na torcida').fill('Nova.Torcedora');
@@ -15,25 +15,24 @@ test('cadastro completo: dados, código do e-mail, boas-vindas, onboarding e app
   await page.getByLabel('Código de 6 dígitos').fill(backend.ultimoCodigo('nova@example.com', 'signup'));
 
   await expect(page.getByRole('heading', { name: /Bem-vindo/ })).toContainText('Nova.Torcedora');
-  const checagemDoApelido = page.waitForResponse(/rpc\/apelido_disponivel/);
   await page.getByRole('button', { name: 'Escolher meu clube' }).click();
 
   await page.getByRole('button', { name: 'Brasil' }).click();
   await page.getByRole('button', { name: /Continuar/ }).click();
-  await page.getByRole('button', { name: 'Corinthians' }).click();
-  // Uma pessoa leva mais que o debounce até aqui; sem esperar, a etapa 3 ainda não pode concluir e o bug não aparece.
-  await checagemDoApelido;
-  await page.evaluate(() => new Promise(requestAnimationFrame));
-  await page.getByRole('button', { name: /Continuar/ }).click();
 
-  // Regressão: o mesmo <button> virava submit no meio do clique e o navegador concluía o onboarding sem mostrar a etapa 3.
-  // Só reproduz em navegador real (no jsdom o React re-renderiza depois da ação padrão do clique).
-  await expect(page.getByRole('heading', { name: 'Seus dados' })).toBeVisible();
+  // Regressão: um botão que vira submit no meio do clique faz o navegador enviar o formulário da etapa seguinte.
+  // O cartão inteiro é um <form>; "Continuar" não pode concluir o onboarding. Só reproduz em navegador real.
+  await expect(page.getByText('Etapa 2 de 2 · clube e cidade')).toBeVisible();
   expect(backend.perfilDe('nova@example.com')?.onboarding_concluido_em).toBeNull();
 
-  await expect(page.getByLabel('Apelido na torcida')).toHaveValue('Nova.Torcedora');
-  await page.getByLabel('Cidade').fill('Porto Alegre');
-  await page.getByRole('button', { name: /Concluir/ }).click();
+  await page.getByRole('button', { name: 'Corinthians' }).click();
+  await page.getByLabel('Sua cidade').fill('Porto Alegre, RS');
+  await page.getByRole('button', { name: /Entrar na torcida/ }).click();
+
+  // Quem não é membro vê a oferta de planos logo depois.
+  await expect(page).toHaveURL('/assinar');
+  await expect(page.getByRole('heading', { name: 'Seja membro' })).toBeVisible();
+  await page.getByRole('button', { name: 'Agora não' }).click();
 
   await expect(page).toHaveURL('/');
   const header = page.getByRole('banner');
@@ -42,7 +41,7 @@ test('cadastro completo: dados, código do e-mail, boas-vindas, onboarding e app
   expect(backend.perfilDe('nova@example.com')).toMatchObject({
     pais: 'BR',
     time_id: 167,
-    cidade: 'Porto Alegre',
+    cidade: 'Porto Alegre, RS',
     onboarding_concluido_em: expect.any(String),
   });
 });
