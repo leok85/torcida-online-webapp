@@ -45,8 +45,18 @@
   background: var(--green-dark);
 }
 
+.danger {
+  composes: base;
+  background: var(--red-dark);
+}
+
+.danger:hover:not(:disabled) {
+  background: #a02a23;
+}
+
 .primary:disabled:not([aria-busy]),
-.success:disabled:not([aria-busy]) {
+.success:disabled:not([aria-busy]),
+.danger:disabled:not([aria-busy]) {
   background: var(--line-3);
 }
 

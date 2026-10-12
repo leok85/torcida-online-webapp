@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { urlDaFoto } from '../../data/conta';
 import { Avatar } from '../ui/Avatar';
 import { Icon } from '../ui/Icon';
 import { Progress } from '../ui/Progress';
@@ -24,7 +25,7 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
       action: () => { navigate('/conta/assinatura'); onClose(); },
     },
     { id: 'convite', label: 'Convidar amigos', sub: '3 ativos · 1.840 XP rendidos', icon: 'group_add', action: onOpenInvite },
-    { id: 'conta', label: 'Dados da conta', sub: 'nome, e-mail e senha', icon: 'badge', action: onClose },
+    { id: 'conta', label: 'Dados da conta', sub: 'nome, e-mail e senha', icon: 'badge', action: () => { navigate('/conta/dados'); onClose(); } },
     { id: 'notif', label: 'Preferências de notificação', sub: 'o que você recebe', icon: 'notifications_active', action: onOpenNotif },
     { id: 'time', label: 'Trocar de time', sub: 'uma única vez · vira-casaca', icon: 'swap_horiz', danger: true, action: onClose },
     { id: 'feedback', label: 'Enviar feedback', sub: '+50 XP por envio', icon: 'lightbulb', action: onClose },
@@ -33,7 +34,7 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
   return (
     <div className={styles.menu} role="menu">
       <div className={styles.head}>
-        <Avatar size={46} iconSize={25} level={24} />
+        <Avatar size={46} iconSize={25} level={24} foto={urlDaFoto(perfil?.foto)} />
         <div className={styles.info}>
           <div className={styles.nick}>{perfil?.apelido}</div>
           <div className={styles.meta}>{perfil?.clube?.nome} · 12º na temporada</div>

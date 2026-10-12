@@ -17,6 +17,14 @@ const MENSAGENS: Record<string, string> = {
   user_banned: 'Esta conta está suspensa. Fale com o suporte.',
   session_expired: 'Sua sessão expirou. Entre de novo.',
   validation_failed: 'Confira os dados informados.',
+  // Dados da conta
+  current_password_mismatch: 'A senha atual está incorreta.',
+  current_password_required: 'Digite sua senha atual.',
+  reauthentication_not_valid: 'Código inválido ou expirado. Confira os números ou peça um novo.',
+  identity_already_exists: 'Essa conta já está ligada a outro torcedor.',
+  manual_linking_disabled: 'Ligar outra forma de entrar ainda não está liberado. Tente mais tarde.',
+  single_identity_not_deletable: 'Essa é a única forma de entrar da conta. Crie uma senha antes de desvincular.',
+  email_conflict_identity_not_deletable: 'Não dá para desvincular: o e-mail da conta veio dela. Troque o e-mail antes.',
 };
 
 export function mensagemDeErro(erro: unknown): string {

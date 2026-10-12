@@ -3,7 +3,7 @@ import { Icon } from '../ui/Icon';
 import styles from './Button.module.css';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'success' | 'neutral';
+  variant?: 'primary' | 'success' | 'neutral' | 'danger';
   loading?: boolean;
   icon?: string;
   iconRight?: string;

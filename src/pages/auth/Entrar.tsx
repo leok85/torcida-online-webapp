@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { lerAvisoDeEntrada, limparAvisoDeEntrada } from '../../auth/avisoDeEntrada';
 import { guardarEmailPendente } from '../../auth/emailPendente';
 import { mensagemDeErro } from '../../auth/erros';
 import { GoogleLogin } from '../../auth/GoogleLogin';
@@ -22,6 +23,9 @@ export function Entrar() {
   const [erro, setErro] = useState<string | null>(null);
   const [naoConfirmado, setNaoConfirmado] = useState(false);
   const [reenviando, setReenviando] = useState(false);
+  const [aviso] = useState(lerAvisoDeEntrada);
+
+  useEffect(() => limparAvisoDeEntrada(), []);
 
   const emailLimpo = email.trim().toLowerCase();
 
@@ -67,6 +71,7 @@ export function Entrar() {
       }
     >
       <form className={styles.form} onSubmit={entrar} noValidate>
+        {aviso && <Alert tone="info">{aviso}</Alert>}
         {naoConfirmado && (
           <Alert
             tone="warn"
