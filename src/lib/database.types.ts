@@ -52,6 +52,56 @@ export type Database = {
           { foreignKeyName: 'cidades_pais_fkey'; columns: ['pais']; isOneToOne: false; referencedRelation: 'paises'; referencedColumns: ['codigo'] },
         ];
       };
+      classificacao: {
+        Row: {
+          atualizado_em: string;
+          clube_id: number;
+          derrotas: number;
+          empates: number;
+          forma: string | null;
+          gols_contra: number;
+          gols_pro: number;
+          grupo: string;
+          jogos: number;
+          liga_id: number;
+          pontos: number;
+          posicao: number;
+          vitorias: number;
+        };
+        Insert: {
+          atualizado_em?: string;
+          clube_id: number;
+          derrotas: number;
+          empates: number;
+          forma?: string | null;
+          gols_contra: number;
+          gols_pro: number;
+          grupo?: string;
+          jogos: number;
+          liga_id: number;
+          pontos: number;
+          posicao: number;
+          vitorias: number;
+        };
+        Update: {
+          atualizado_em?: string;
+          clube_id?: number;
+          derrotas?: number;
+          empates?: number;
+          forma?: string | null;
+          gols_contra?: number;
+          gols_pro?: number;
+          grupo?: string;
+          jogos?: number;
+          liga_id?: number;
+          pontos?: number;
+          posicao?: number;
+          vitorias?: number;
+        };
+        Relationships: [
+          { foreignKeyName: 'classificacao_liga_id_fkey'; columns: ['liga_id']; isOneToOne: false; referencedRelation: 'ligas'; referencedColumns: ['id'] },
+        ];
+      };
       clubes: {
         Row: {
           atualizado_em: string;
@@ -83,9 +133,9 @@ export type Database = {
         ];
       };
       ligas: {
-        Row: { divisao: number; id: number; nome: string; pais: string; temporada: string | null };
-        Insert: { divisao?: number; id: number; nome: string; pais: string; temporada?: string | null };
-        Update: { divisao?: number; id?: number; nome?: string; pais?: string; temporada?: string | null };
+        Row: { artigo: string; divisao: number; id: number; nome: string; pais: string; temporada: string | null };
+        Insert: { artigo?: string; divisao?: number; id: number; nome: string; pais: string; temporada?: string | null };
+        Update: { artigo?: string; divisao?: number; id?: number; nome?: string; pais?: string; temporada?: string | null };
         Relationships: [
           { foreignKeyName: 'ligas_pais_fkey'; columns: ['pais']; isOneToOne: false; referencedRelation: 'paises'; referencedColumns: ['codigo'] },
         ];
@@ -214,6 +264,10 @@ export type Database = {
     };
     Functions: {
       apelido_disponivel: { Args: { apelido: string }; Returns: boolean };
+      resumo_do_clube: {
+        Args: { clube: number };
+        Returns: { artigo: string | null; liga: string | null; posicao: number | null; torcedores: number }[];
+      };
       buscar_cidades: {
         Args: { limite?: number; pais?: string; termo: string };
         Returns: { id: number; nome: string; regiao: string }[];

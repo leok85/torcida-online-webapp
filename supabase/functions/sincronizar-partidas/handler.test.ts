@@ -1,5 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
-import { golsDe, MAX_INCIDENTES, periodoDe, sincronizar, type Banco, type Bsd, type EventoBsd, type IncidenteBsd, type Partida, type PartidaSalva } from './handler';
+import {
+  golsDe,
+  linhasDaClassificacao,
+  MAX_INCIDENTES,
+  periodoDe,
+  sincronizar,
+  type Banco,
+  type Bsd,
+  type ClassificacaoBsd,
+  type EventoBsd,
+  type IncidenteBsd,
+  type LinhaDaClassificacao,
+  type Partida,
+  type PartidaSalva,
+} from './handler';
 
 const AGORA = new Date('2026-10-11T21:00:00Z');
 
@@ -22,28 +36,37 @@ const evento = (campos: Partial<EventoBsd> = {}): EventoBsd => ({
 
 const gol = (campos: Partial<IncidenteBsd> = {}): IncidenteBsd => ({ type: 'goal', minute: 16, player: 'A. Barboza', is_home: true, goal_type: 'regular', ...campos });
 
-function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[], salvas = new Map<number, PartidaSalva>(), idsAoVivo = [] as number[], finais = new Map<number, EventoBsd>(), incidentes = [gol()] as IncidenteBsd[], naJanela = true } = {}) {
+function montar({ aoVivo = [evento()] as EventoBsd[], agenda = [] as EventoBsd[], salvas = new Map<number, PartidaSalva>(), idsAoVivo = [] as number[], finais = new Map<number, EventoBsd>(), incidentes = [gol()] as IncidenteBsd[], naJanela = true, tabelas = new Map<number, ClassificacaoBsd>(), ligasRecentes = [] as number[] } = {}) {
   const bsd = {
     aoVivo: vi.fn(async () => [...aoVivo]),
     eventos: vi.fn(async (_de: string, _ate: string) => [...agenda]),
     evento: vi.fn(async (id: number) => finais.get(id) ?? null),
     incidentes: vi.fn(async (_id: number) => incidentes),
     nomeDaLiga: vi.fn(async (_id: number) => 'Copa Libertadores'),
+    classificacao: vi.fn(async (id: number) => {
+      const tabela = tabelas.get(id);
+      if (!tabela) throw new Error('BSD 404');
+      return tabela;
+    }),
   } satisfies Bsd;
+  const salvarClassificacao = vi.fn(async (_liga: number, _linhas: LinhaDaClassificacao[]) => {});
+  const ligasComJogoDesde = vi.fn(async (_desde: Date) => ligasRecentes);
   const salvar = vi.fn(async (_p: Partida[]) => {});
   const haJogoNaJanela = vi.fn(async (_de: Date, _ate: Date) => naJanela);
   const banco: Banco = {
     catalogo: async () => ({
       clubes: new Map([[162, 'Palmeiras'], [167, 'Corinthians'], [160, 'Flamengo']]),
-      ligas: new Map([[9, 'Brasileirão Série A']]),
+      ligas: new Map([[9, 'Brasileirão Série A'], [34, 'Brasileirão Série B']]),
     }),
     partidas: async (ids) => new Map([...salvas].filter(([id]) => ids.includes(id))),
     idsAoVivo: async () => idsAoVivo,
     haJogoNaJanela,
     salvar,
+    ligasComJogoDesde,
+    salvarClassificacao,
   };
   const salvasNaChamada = () => salvar.mock.calls.at(-1)?.[0] ?? [];
-  return { bsd, banco, salvar, haJogoNaJanela, salvasNaChamada };
+  return { bsd, banco, salvar, haJogoNaJanela, salvasNaChamada, salvarClassificacao, ligasComJogoDesde };
 }
 
 const pedido = (corpo: object = { modo: 'ao_vivo' }, segredo = 'segredo-cron') =>
@@ -203,6 +226,43 @@ describe('sincronizar-partidas', () => {
     const resposta = await rodar(m);
     expect(resposta.status).toBe(502);
     expect(m.salvar).not.toHaveBeenCalled();
+  });
+});
+
+describe('sincronizar-partidas · classificação', () => {
+  const linha = (position: number, team_id: number, pts: number) => ({ position, team_id, played: 30, won: 10, drawn: 5, lost: 15, gf: 40, ga: 45, pts, form: 'WDLWW' });
+
+  it('atualiza só as ligas do catálogo com jogo nas últimas 6 h', async () => {
+    const m = montar({ ligasRecentes: [9, 384], tabelas: new Map([[9, { standings: [linha(1, 160, 60), linha(2, 162, 58)] }]]) });
+    const resposta = await rodar(m, pedido({ modo: 'classificacao' }));
+    expect(await resposta.json()).toEqual({ ok: true, modo: 'classificacao', ligas: 1, linhas: 2, falhas: [] });
+    expect(m.ligasComJogoDesde).toHaveBeenCalledWith(new Date('2026-10-11T15:00:00Z'));
+    expect(m.bsd.classificacao).toHaveBeenCalledTimes(1);
+    expect(m.salvarClassificacao).toHaveBeenCalledWith(9, [
+      expect.objectContaining({ liga_id: 9, grupo: '', clube_id: 160, posicao: 1, pontos: 60, jogos: 30, gols_pro: 40, gols_contra: 45, forma: 'WDLWW' }),
+      expect.objectContaining({ clube_id: 162, posicao: 2 }),
+    ]);
+  });
+
+  it('com "todas", passa por todas as ligas do catálogo e segue quando uma falha', async () => {
+    const m = montar({ tabelas: new Map([[34, { standings: [linha(1, 809, 70)] }]]) });
+    const corpo = await (await rodar(m, pedido({ modo: 'classificacao', todas: true }))).json();
+    expect(corpo).toEqual({ ok: true, modo: 'classificacao', ligas: 2, linhas: 1, falhas: [9] });
+    expect(m.ligasComJogoDesde).not.toHaveBeenCalled();
+  });
+
+  it('liga sem tabela não apaga a que já existe', async () => {
+    const m = montar({ ligasRecentes: [9], tabelas: new Map([[9, { standings: [] }]]) });
+    await rodar(m, pedido({ modo: 'classificacao' }));
+    expect(m.salvarClassificacao).not.toHaveBeenCalled();
+  });
+
+  it('ligas com grupos guardam o grupo de cada linha', () => {
+    const linhas = linhasDaClassificacao(18, { groups: { Leste: [linha(1, 293, 50)], Oeste: [linha(1, 278, 51)] } }, AGORA);
+    expect(linhas.map((l) => [l.grupo, l.clube_id, l.posicao])).toEqual([
+      ['Leste', 293, 1],
+      ['Oeste', 278, 1],
+    ]);
   });
 });
 

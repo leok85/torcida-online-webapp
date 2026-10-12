@@ -10,10 +10,10 @@ export const PAISES_DE_TESTE: Pais[] = [
 ];
 
 export const LIGAS_DE_TESTE: Liga[] = [
-  { id: 9, nome: 'Brasileirão Série A', pais: 'BR', divisao: 1, temporada: '2026' },
-  { id: 34, nome: 'Brasileirão Série B', pais: 'BR', divisao: 2, temporada: '2026' },
-  { id: 85, nome: 'Liga Profesional', pais: 'AR', divisao: 1, temporada: '2026' },
-  { id: 3, nome: 'LaLiga', pais: 'ES', divisao: 1, temporada: '26/27' },
+  { id: 9, nome: 'Brasileirão Série A', pais: 'BR', divisao: 1, temporada: '2026', artigo: 'o' },
+  { id: 34, nome: 'Brasileirão Série B', pais: 'BR', divisao: 2, temporada: '2026', artigo: 'o' },
+  { id: 85, nome: 'Liga Profesional', pais: 'AR', divisao: 1, temporada: '2026', artigo: 'a' },
+  { id: 3, nome: 'LaLiga', pais: 'ES', divisao: 1, temporada: '26/27', artigo: 'a' },
 ];
 
 const clube = (id: number, nome: string, pais: string, liga_id: number): ClubeRow => ({
@@ -105,3 +105,26 @@ export function partidaDeTeste(campos: Partial<Partida> = {}): Partida {
 /** Mesma consulta de jogosDoClube: os jogos do clube, do mais antigo para o mais recente. */
 export const jogosDoClubeDeTeste = (partidas: Partida[], clubeId: number) =>
   partidas.filter((p) => p.mandante_id === clubeId || p.visitante_id === clubeId).sort((a, b) => a.inicio.localeCompare(b.inicio));
+
+/** Posições na liga principal (tabela classificacao): Palmeiras 2º no Brasileirão, Real Madrid 1º na LaLiga. */
+export const CLASSIFICACAO_DE_TESTE: { liga_id: number; clube_id: number; posicao: number }[] = [
+  { liga_id: 9, clube_id: 160, posicao: 1 },
+  { liga_id: 9, clube_id: 162, posicao: 2 },
+  { liga_id: 3, clube_id: 9101, posicao: 1 },
+];
+
+/** Mesma regra de resumo_do_clube(): torcedores com onboarding concluído e a posição na liga do clube no catálogo. */
+export function resumoDoClubeDeTeste(perfis: { time_id: number | null; onboarding_concluido_em: string | null }[], clubeId: number) {
+  const clube = CLUBES_DE_TESTE.find((c) => c.id === clubeId);
+  if (!clube) return [];
+  const liga = LIGAS_DE_TESTE.find((l) => l.id === clube.liga_id);
+  const linha = CLASSIFICACAO_DE_TESTE.find((c) => c.liga_id === clube.liga_id && c.clube_id === clubeId);
+  return [
+    {
+      torcedores: perfis.filter((p) => p.time_id === clubeId && p.onboarding_concluido_em).length,
+      posicao: linha?.posicao ?? null,
+      liga: liga?.nome ?? null,
+      artigo: liga?.artigo ?? null,
+    },
+  ];
+}

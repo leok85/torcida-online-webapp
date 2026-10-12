@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
+import { resumoDoClube, textoPosicao, textoTorcedores, type ResumoDoClube } from '../../data/clubes';
 import { Avatar } from '../ui/Avatar';
 import { Crest } from '../ui/Crest';
 import { Icon } from '../ui/Icon';
@@ -12,10 +14,37 @@ type HeaderProps = {
   onToggleAccount: () => void;
 };
 
+/** Atualiza o resumo do clube a cada 10 min (torcedores e classificação mudam devagar). */
+export const ATUALIZAR_RESUMO_MS = 600_000;
+
+function useResumoDoClube(clubeId: number | undefined) {
+  const [resumo, setResumo] = useState<{ clubeId: number; dados: ResumoDoClube | null } | null>(null);
+  useEffect(() => {
+    if (!clubeId) return;
+    let ativo = true;
+    const carregar = () =>
+      resumoDoClube(clubeId).then(
+        (dados) => ativo && setResumo({ clubeId, dados }),
+        // Sem o resumo, o topo só não mostra os números; tenta de novo na próxima rodada.
+        () => {},
+      );
+    carregar();
+    const timer = window.setInterval(carregar, ATUALIZAR_RESUMO_MS);
+    return () => {
+      ativo = false;
+      window.clearInterval(timer);
+    };
+  }, [clubeId]);
+  return resumo && resumo.clubeId === clubeId ? resumo.dados : null;
+}
+
 export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount }: HeaderProps) {
   const { perfil } = useAuth();
   const clube = perfil?.clube;
   const pais = perfil?.pais_dados;
+  const resumo = useResumoDoClube(clube?.id);
+  const meta = resumo
+    ? [textoTorcedores(resumo.torcedores), textoPosicao(resumo)].filter(Boolean).join(' · ') : '';
   return (
     <header className={styles.header}>
       <Crest width={34} height={38} tone="lightHome" clubeId={clube?.id} />
@@ -23,7 +52,7 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
         <div className={styles.clubName}>{clube?.nome}</div>
         <div className={styles.clubMeta}>
           {pais && <img src={FLAG(pais.bandeira)} alt="" className={styles.flag} />}
-          <span>28.640 torcedores · 3º no Brasileirão</span>
+          <span>{meta}</span>
         </div>
       </div>
       <label className={styles.search}>
