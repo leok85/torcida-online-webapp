@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { anualPorMes, BENEFICIOS, formatarPreco, lerMoeda, lerPlano, PRECOS, type Plano } from '../../assinatura/planos';
-import { Button } from '../../components/form/Button';
 import { Icon } from '../../components/ui/Icon';
-import ui from '../../styles/ui.module.css';
 import { Passos } from './Passos';
 import styles from './Assinatura.module.css';
 
@@ -32,10 +30,10 @@ export function Planos() {
   const resumo = plano === 'anual' ? `Plano anual · ${formatarPreco(precos.anual, moeda)} por ano` : `Plano mensal · ${formatarPreco(precos.mensal, moeda)} por mês`;
 
   return (
-    <div className={styles.page}>
-      <div className={ui.pageHead}>
-        <h2 className={ui.pageTitle}>Seja membro</h2>
-        <span className={ui.pageSub}>Um plano libera tudo no app e no web app, com o mesmo login.</span>
+    <div className={styles.pagePlanos}>
+      <div className={styles.cabecalho}>
+        <h2>Seja membro</h2>
+        <span>Um plano libera tudo no app e no web app, com o mesmo login.</span>
       </div>
       <Passos atual={1} />
 
@@ -67,11 +65,11 @@ export function Planos() {
       </div>
 
       <section className={styles.liberam}>
-        <h3 className={ui.title}>Os dois planos liberam</h3>
+        <h3 className={styles.liberamTitulo}>Os dois planos liberam</h3>
         <ul className={styles.beneficios}>
           {BENEFICIOS.map((b) => (
             <li key={b.titulo}>
-              <Icon name={b.icone} size={19} color="var(--green)" />
+              <Icon name={b.icone} size={21} color="var(--green)" />
               <div>
                 <div className={styles.beneficio}>{b.titulo}</div>
                 <div className={styles.beneficioTexto}>{b.texto}</div>
@@ -89,9 +87,10 @@ export function Planos() {
         <button type="button" className={styles.agoraNao} onClick={() => navigate('/')}>
           Agora não
         </button>
-        <Button fullWidth={false} iconRight="arrow_forward" onClick={() => navigate(`/assinar/pagamento?plano=${plano}&moeda=${moeda}`)}>
+        <button type="button" className={styles.continuar} onClick={() => navigate(`/assinar/pagamento?plano=${plano}&moeda=${moeda}`)}>
           Continuar para pagamento
-        </Button>
+          <Icon name="arrow_forward" size={19} />
+        </button>
       </div>
     </div>
   );

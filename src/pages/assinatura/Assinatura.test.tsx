@@ -103,6 +103,15 @@ describe('planos (/assinar)', () => {
     expect(screen.getByText('Plano anual · R$ 149,00 por ano')).toBeInTheDocument();
   });
 
+  it('lista os benefícios com os textos do design (W13)', async () => {
+    torcedor();
+    renderApp('/assinar');
+    expect(await screen.findByRole('heading', { name: 'Os dois planos liberam' })).toBeInTheDocument();
+    expect(screen.getByText('Moedas para a loja')).toBeInTheDocument();
+    expect(screen.getByText('Troque por produtos oficiais e prêmios do clube.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Continuar para pagamento/ })).toBeInTheDocument();
+  });
+
   it('respeita o plano e a moeda que vêm do site', async () => {
     torcedor();
     renderApp('/assinar?plano=mensal&moeda=USD');
