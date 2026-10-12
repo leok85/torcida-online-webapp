@@ -2,7 +2,8 @@
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
 import type { BrowserContext, Route } from '@playwright/test';
-import type { ClassificacaoRow, CompeticaoRow, Partida } from '../src/lib/database.types';
+import type { ClassificacaoRow, CompeticaoRow, FeedbackRow, Partida } from '../src/lib/database.types';
+import { inicioDaSemana } from '../src/data/semana';
 import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
@@ -83,6 +84,9 @@ export class BackendFalso {
   private readonly trocasDeEmail = new Map<string, string>();
   /** Arquivos do bucket avatares (caminho → bytes e tipo), servidos pela URL pública. */
   readonly fotos = new Map<string, { corpo: Buffer; tipo: string }>();
+  /** Feedbacks enviados (tabela feedbacks) e os prints do bucket feedback. */
+  readonly feedbacks: FeedbackRow[] = [];
+  readonly prints = new Map<string, { corpo: Buffer; tipo: string }>();
   private sequencia = 0;
   /** Provedores sociais ligados (resposta de /auth/v1/settings). */
   provedores: Record<string, boolean> = { email: true, google: false };
@@ -94,6 +98,7 @@ export class BackendFalso {
     await contexto.route('**/storage/v1/object/public/escudos/**', (rota) => rota.fulfill({ status: 404, body: '' }));
     await contexto.route('**/storage/v1/object/**/avatares/**', (rota) => this.avatares(rota));
     await contexto.route('**/storage/v1/object/avatares', (rota) => this.avatares(rota));
+    await contexto.route('**/storage/v1/object/feedback/**', (rota) => this.printDoFeedback(rota));
     await contexto.route('**/functions/v1/**', (rota) => this.funcoes(rota));
     // Nenhum teste fala com o Stripe de verdade: o Stripe.js nem carrega.
     await contexto.route('https://js.stripe.com/**', (rota) => rota.abort());
@@ -365,6 +370,18 @@ export class BackendFalso {
     return rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: `avatares/${caminho}` }) });
   }
 
+  private async printDoFeedback(rota: Route) {
+    const req = rota.request();
+    const usuario = this.usuarioDoToken(rota);
+    const caminho = decodeURIComponent(new URL(req.url()).pathname.replace(/^.*\/object\/feedback\//, ''));
+    // Bucket privado: só grava na pasta do próprio torcedor.
+    if (!usuario || !caminho.startsWith(`${usuario.id}/`)) return rota.fulfill({ status: 403, contentType: 'application/json', body: '{"message":"new row violates row-level security policy"}' });
+    const arquivo = arquivoDoMultipart(req.postDataBuffer() ?? Buffer.alloc(0), req.headers()['content-type'] ?? '');
+    if (!arquivo) return rota.fulfill({ status: 400, contentType: 'application/json', body: '{"message":"Arquivo não encontrado no corpo"}' });
+    this.prints.set(caminho, arquivo);
+    return rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: `feedback/${caminho}` }) });
+  }
+
   // ---------- /rest/v1 ----------
 
   private async rest(rota: Route) {
@@ -404,6 +421,36 @@ export class BackendFalso {
         (a) => a.usuario_id === usuario?.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
       );
       return json(200, valida);
+    }
+
+    if (caminho === '/feedbacks') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for table feedbacks' });
+      const meus = () => this.feedbacks.filter((f) => f.usuario_id === usuario.id).sort((a, b) => b.criado_em.localeCompare(a.criado_em));
+      if (req.method() === 'POST') {
+        // Trigger feedbacks_antes_de_inserir: quem envia, e-mail, estado e XP são do servidor.
+        const corpo = req.postDataJSON() as Partial<FeedbackRow>;
+        const comXp = meus().filter((f) => f.xp > 0 && new Date(f.criado_em) >= inicioDaSemana()).length;
+        const linha: FeedbackRow = {
+          id: crypto.randomUUID(),
+          usuario_id: usuario.id,
+          tipo: corpo.tipo!,
+          area: corpo.area!,
+          texto: corpo.texto!.trim(),
+          anexo: corpo.anexo ?? null,
+          dados_navegador: corpo.dados_navegador ?? null,
+          pode_responder: !!corpo.pode_responder,
+          email: corpo.pode_responder ? usuario.email : null,
+          estado: 'recebido',
+          resposta: null,
+          xp: comXp < 2 ? 50 : 0,
+          criado_em: agora(),
+          atualizado_em: agora(),
+        };
+        this.feedbacks.push(linha);
+        const umObjeto = req.headers()['accept']?.includes('vnd.pgrst.object');
+        return json(201, umObjeto ? linha : [linha]);
+      }
+      return json(200, meus());
     }
 
     if (caminho === '/assinaturas') {

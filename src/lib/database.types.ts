@@ -109,6 +109,37 @@ export type Database = {
         };
         Relationships: [];
       };
+      feedbacks: {
+        Row: {
+          anexo: string | null;
+          area: string;
+          atualizado_em: string;
+          criado_em: string;
+          dados_navegador: Json | null;
+          email: string | null;
+          estado: string;
+          id: string;
+          pode_responder: boolean;
+          resposta: string | null;
+          texto: string;
+          tipo: string;
+          usuario_id: string;
+          xp: number;
+        };
+        Insert: {
+          anexo?: string | null;
+          area: string;
+          dados_navegador?: Json | null;
+          pode_responder?: boolean;
+          texto: string;
+          tipo: string;
+        };
+        Update: {
+          estado?: string;
+          resposta?: string | null;
+        };
+        Relationships: [];
+      };
       competicoes: {
         Row: {
           atualizado_em: string;
@@ -381,3 +412,4 @@ export type Partida = Omit<PartidaRow, 'gols'> & { gols: Gol[] };
 export type ClassificacaoRow = Database['public']['Tables']['classificacao']['Row'];
 export type CompeticaoRow = Database['public']['Tables']['competicoes']['Row'];
 export type Assinatura = Database['public']['Tables']['assinaturas']['Row'];
+export type FeedbackRow = Database['public']['Tables']['feedbacks']['Row'];

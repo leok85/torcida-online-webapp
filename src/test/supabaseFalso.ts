@@ -3,7 +3,8 @@
 import { vi, type Mock } from 'vitest';
 import { AuthApiError } from '@supabase/supabase-js';
 import type { Session, User, UserIdentity } from '@supabase/supabase-js';
-import type { Assinatura, Perfil } from '../lib/database.types';
+import type { Assinatura, FeedbackRow, Perfil } from '../lib/database.types';
+import { inicioDaSemana } from '../data/semana';
 import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.types';
 import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
 
@@ -109,6 +110,7 @@ function criar() {
   let identidades: UserIdentity[] = [];
   let aparelhos: AparelhoDeTeste[] = [];
   const fotos = new Set<string>();
+  const feedbacks: FeedbackRow[] = [];
   // Troca de e-mail pendente (updateUser({ email })) e quantos códigos faltam: 2 com a troca segura.
   let trocaDeEmail: { novo: string; faltam: Set<string> } | null = null;
   let trocaSegura = false;
@@ -157,6 +159,44 @@ function criar() {
         const novo = { ...atual, ...campos, ...(trocouApelido && { apelido_alterado_em: new Date().toISOString(), apelido_anterior: atual.apelido }) };
         perfis.set(atual.id, novo);
         return ok(comCatalogo(novo));
+      },
+    };
+    return consulta;
+  }
+
+  // Imita insert().select().single() e select().order() de feedbacks, com as regras do trigger
+  // feedbacks_antes_de_inserir: +50 XP nos 2 primeiros envios da semana, até 10 por dia, e-mail só com resposta.
+  function consultaFeedbacks() {
+    let novo: Partial<FeedbackRow> | null = null;
+    const meus = () => feedbacks.filter((f) => f.usuario_id === sessao?.user.id).sort((a, b) => b.criado_em.localeCompare(a.criado_em));
+    const consulta = {
+      insert: (linha: Partial<FeedbackRow>) => ((novo = linha), consulta),
+      select: () => consulta,
+      order: async () => ok(meus()),
+      single: async () => {
+        if (!sessao || !novo) return { data: null, error: { code: '42501', message: 'permission denied' } };
+        const agora = new Date();
+        const doDia = meus().filter((f) => agora.getTime() - new Date(f.criado_em).getTime() < DIA_MS).length;
+        if (doDia >= 10) return { data: null, error: { code: 'P0001', message: 'Muitos envios hoje', hint: 'limite_diario' } };
+        const comXp = meus().filter((f) => f.xp > 0 && new Date(f.criado_em) >= inicioDaSemana(agora)).length;
+        const linha: FeedbackRow = {
+          id: `feedback-${feedbacks.length + 1}`,
+          usuario_id: sessao.user.id,
+          tipo: novo.tipo!,
+          area: novo.area!,
+          texto: novo.texto!.trim(),
+          anexo: novo.anexo ?? null,
+          dados_navegador: novo.dados_navegador ?? null,
+          pode_responder: !!novo.pode_responder,
+          email: novo.pode_responder ? (sessao.user.email ?? null) : null,
+          estado: 'recebido',
+          resposta: null,
+          xp: comXp < 2 ? 50 : 0,
+          criado_em: agora.toISOString(),
+          atualizado_em: agora.toISOString(),
+        };
+        feedbacks.push(linha);
+        return ok(linha);
       },
     };
     return consulta;
@@ -311,6 +351,7 @@ function criar() {
     identidades = [identidadeDeTeste('email')];
     aparelhos = [{ id: 'sessao-atual', user_agent: CHROME_MAC, criado_em: '2026-10-01T12:00:00Z', usado_em: new Date().toISOString(), atual: true }];
     fotos.clear();
+    feedbacks.length = 0;
     trocaDeEmail = null;
     trocaSegura = false;
     rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number; sessao?: string }) => {
@@ -331,7 +372,9 @@ function criar() {
       return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id) && !apelidoReservado(args!.apelido!, sessao?.user.id));
     });
     from.mockReset().mockImplementation((tabela: string) =>
-      tabela === 'assinaturas'
+      tabela === 'feedbacks'
+        ? consultaFeedbacks()
+        : tabela === 'assinaturas'
         ? consultaAssinaturas()
         : tabela === 'partidas'
           ? consultaPartidas()
@@ -371,6 +414,8 @@ function criar() {
     definirAparelhos: (novos: AparelhoDeTeste[]) => (aparelhos = novos),
     aparelhos: () => aparelhos,
     fotos: () => [...fotos],
+    /** Feedbacks gravados (de todos os torcedores); empurre linhas para simular envios antigos e respostas da equipe. */
+    feedbacks: () => feedbacks,
     /** Liga a "troca segura de e-mail" do Supabase: o e-mail atual também precisa confirmar com código. */
     ligarTrocaSegura: () => (trocaSegura = true),
     /** Cria a sessão; antes do render vira a sessão salva, depois dispara SIGNED_IN como o Supabase. */

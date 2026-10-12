@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { urlDaFoto } from '../../data/conta';
 import { Avatar } from '../ui/Avatar';
@@ -14,6 +14,7 @@ type AccountMenuProps = {
 
 export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { perfil, assinante, sair } = useAuth();
   const items = [
     { id: 'perfil', label: 'Meu perfil', sub: 'nível, conquistas e histórico', icon: 'person', action: () => { navigate('/perfil'); onClose(); } },
@@ -28,7 +29,14 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
     { id: 'conta', label: 'Dados da conta', sub: 'nome, e-mail e senha', icon: 'badge', action: () => { navigate('/conta/dados'); onClose(); } },
     { id: 'notif', label: 'Preferências de notificação', sub: 'o que você recebe', icon: 'notifications_active', action: onOpenNotif },
     { id: 'time', label: 'Trocar de time', sub: 'uma única vez · vira-casaca', icon: 'swap_horiz', danger: true, action: onClose },
-    { id: 'feedback', label: 'Enviar feedback', sub: '+50 XP por envio', icon: 'lightbulb', action: onClose },
+    {
+      id: 'feedback',
+      label: 'Enviar feedback',
+      sub: '+50 XP por envio',
+      icon: 'lightbulb',
+      // A tela de origem já marca a área do feedback.
+      action: () => { navigate('/conta/feedback', { state: { de: pathname } }); onClose(); },
+    },
   ];
 
   return (

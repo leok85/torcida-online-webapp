@@ -21,8 +21,11 @@ async function contasVencidas(agora: Date) {
 }
 
 async function apagarArquivos(usuarioId: string) {
-  const { data } = await admin.storage.from('avatares').list(usuarioId);
-  if (data?.length) await admin.storage.from('avatares').remove(data.map((f) => `${usuarioId}/${f.name}`));
+  // Foto do perfil e prints dos feedbacks.
+  for (const bucket of ['avatares', 'feedback']) {
+    const { data } = await admin.storage.from(bucket).list(usuarioId);
+    if (data?.length) await admin.storage.from(bucket).remove(data.map((f) => `${usuarioId}/${f.name}`));
+  }
 }
 
 Deno.serve((req) =>
