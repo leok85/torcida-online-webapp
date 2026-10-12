@@ -1,5 +1,6 @@
 // Catálogo de futebol dos testes (Vitest e Playwright): um recorte das tabelas paises, ligas e clubes.
 // Os ids do Brasil são os da BSD; os demais são inventados.
+import type { Partida } from '../lib/database.types';
 import type { ClubeRow, Liga, Pais } from '../lib/database.types';
 
 export const PAISES_DE_TESTE: Pais[] = [
@@ -77,3 +78,32 @@ export function buscarCidadesDeTeste(termo: string, pais = 'BR', limite = 8) {
     .sort((a, b) => Number(semAcento(b.nome).startsWith(q)) - Number(semAcento(a.nome).startsWith(q)) || a.nome.length - b.nome.length || a.nome.localeCompare(b.nome))
     .slice(0, limite);
 }
+
+/** Palmeiras 1 × 0 Corinthians ao vivo, no 2º tempo. Sobrescreva o que importa para o teste. */
+export function partidaDeTeste(campos: Partial<Partida> = {}): Partida {
+  return {
+    id: 7290,
+    liga_id: 9,
+    liga_nome: 'Brasileirão Série A',
+    rodada: 30,
+    inicio: '2026-10-11T20:30:00+00:00',
+    status: 'ao_vivo',
+    periodo: '2T',
+    minuto: 67,
+    mandante_id: 162,
+    mandante_nome: 'Palmeiras',
+    visitante_id: 167,
+    visitante_nome: 'Corinthians',
+    gols_mandante: 1,
+    gols_visitante: 0,
+    gols: [{ jogador: 'A. Barboza', minuto: '16', mandante: true, contra: false, penalti: false }],
+    atualizado_em: '2026-10-11T21:40:00Z',
+    ...campos,
+  };
+}
+
+/** Mesma consulta de partidaEmDestaque: o jogo do clube ao vivo ou encerrado mais recente. */
+export const partidaEmDestaqueDeTeste = (partidas: Partida[], clubeId: number) =>
+  partidas
+    .filter((p) => (p.mandante_id === clubeId || p.visitante_id === clubeId) && ['ao_vivo', 'encerrada'].includes(p.status))
+    .sort((a, b) => b.inicio.localeCompare(a.inicio))[0] ?? null;
