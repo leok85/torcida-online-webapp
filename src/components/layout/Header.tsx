@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { resumoDoClube, textoPosicao, textoTorcedores, type ResumoDoClube } from '../../data/clubes';
+import { urlDaFoto } from '../../data/conta';
 import { Avatar } from '../ui/Avatar';
 import { Crest } from '../ui/Crest';
 import { Carregando, Skeleton } from '../ui/Skeleton';
@@ -92,7 +93,7 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
         className={accountOpen ? `${styles.account} ${styles.open}` : styles.account}
         onClick={onToggleAccount}
       >
-        <Avatar size={32} iconSize={19} level={24} />
+        <Avatar size={32} iconSize={19} level={24} foto={urlDaFoto(perfil?.foto)} />
         <span className={styles.who}>
           <span className={styles.nick}>{perfil?.apelido}</span>
           <span className={styles.rank}>12º · 5.910 XP</span>

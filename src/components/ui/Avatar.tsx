@@ -1,12 +1,18 @@
 import { Icon } from './Icon';
 import styles from './Avatar.module.css';
 
-type AvatarProps = { size: number; iconSize: number; level?: number };
+type AvatarProps = {
+  size: number;
+  iconSize: number;
+  level?: number;
+  /** URL da foto do torcedor; sem ela, mostra o boneco. */
+  foto?: string | null;
+};
 
-export function Avatar({ size, iconSize, level }: AvatarProps) {
+export function Avatar({ size, iconSize, level, foto }: AvatarProps) {
   const circle = (
     <div className={styles.avatar} style={{ width: size, height: size }}>
-      <Icon name="person" size={iconSize} />
+      {foto ? <img src={foto} alt="" className={styles.foto} /> : <Icon name="person" size={iconSize} />}
     </div>
   );
   if (level === undefined) return circle;

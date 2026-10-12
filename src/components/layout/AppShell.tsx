@@ -22,6 +22,7 @@ import { Perfil } from '../../pages/Perfil';
 import { PosJogo } from '../../pages/PosJogo';
 import { Ranking } from '../../pages/Ranking';
 import { Cancelamento } from '../../pages/assinatura/Cancelamento';
+import { DadosDaConta } from '../../pages/conta/DadosDaConta';
 import { MinhaAssinatura } from '../../pages/assinatura/MinhaAssinatura';
 import { Pagamento } from '../../pages/assinatura/Pagamento';
 import { Planos } from '../../pages/assinatura/Planos';
@@ -77,6 +78,7 @@ export function AppShell() {
             <Route path="/assinar" element={<Planos />} />
             <Route path="/assinar/pagamento" element={<Pagamento />} />
             <Route path="/assinar/retorno" element={<Retorno />} />
+            <Route path="/conta/dados" element={<DadosDaConta />} />
             <Route path="/conta/assinatura" element={<MinhaAssinatura />} />
             <Route path="/conta/assinatura/cancelar" element={<Cancelamento />} />
             <Route path="*" element={<Inicio />} />

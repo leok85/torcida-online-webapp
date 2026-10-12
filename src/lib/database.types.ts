@@ -270,10 +270,13 @@ export type Database = {
       perfis: {
         Row: {
           apelido: string | null;
+          apelido_alterado_em: string | null;
           atualizado_em: string;
           cidade: string | null;
           cidade_id: number | null;
           criado_em: string;
+          exclusao_agendada_para: string | null;
+          foto: string | null;
           id: string;
           nascimento: string | null;
           nome: string;
@@ -286,10 +289,13 @@ export type Database = {
         };
         Insert: {
           apelido?: string | null;
+          apelido_alterado_em?: string | null;
           atualizado_em?: string;
           cidade?: string | null;
           cidade_id?: number | null;
           criado_em?: string;
+          exclusao_agendada_para?: string | null;
+          foto?: string | null;
           id: string;
           nascimento?: string | null;
           nome?: string;
@@ -302,10 +308,13 @@ export type Database = {
         };
         Update: {
           apelido?: string | null;
+          apelido_alterado_em?: string | null;
           atualizado_em?: string;
           cidade?: string | null;
           cidade_id?: number | null;
           criado_em?: string;
+          exclusao_agendada_para?: string | null;
+          foto?: string | null;
           id?: string;
           nascimento?: string | null;
           nome?: string;
@@ -329,6 +338,13 @@ export type Database = {
     Functions: {
       apelido_disponivel: { Args: { apelido: string }; Returns: boolean };
       clubes_com_torcedores: { Args: Record<string, never>; Returns: number[] };
+      encerrar_aparelho: { Args: { sessao: string }; Returns: boolean };
+      tenho_senha: { Args: Record<string, never>; Returns: boolean };
+      manter_minha_conta: { Args: Record<string, never>; Returns: undefined };
+      meus_aparelhos: {
+        Args: Record<string, never>;
+        Returns: { id: string; user_agent: string | null; criado_em: string; usado_em: string; atual: boolean }[];
+      };
       resumo_do_clube: {
         Args: { clube: number };
         Returns: { artigo: string | null; liga: string | null; posicao: number | null; torcedores: number }[];

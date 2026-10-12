@@ -18,6 +18,9 @@ type Perfil = {
   quer_novidades: boolean;
   termos_aceitos_em: string | null;
   onboarding_concluido_em: string | null;
+  foto: string | null;
+  apelido_alterado_em: string | null;
+  exclusao_agendada_para: string | null;
   criado_em: string;
   atualizado_em: string;
 };
@@ -35,10 +38,30 @@ type Assinatura = {
 };
 
 type Usuario = { id: string; email: string; senha: string; confirmado: boolean; metadata: Record<string, unknown>; criado_em: string };
-type Email = { para: string; tipo: 'signup' | 'recovery'; codigo: string };
+type Email = { para: string; tipo: 'signup' | 'recovery' | 'email_change'; codigo: string };
 
 const APELIDO_VALIDO = /^[A-Za-z0-9._]{3,20}$/;
-const COLUNAS_EDITAVEIS = ['nome', 'apelido', 'pais', 'time_id', 'nascimento', 'cidade', 'cidade_id', 'quer_avisos', 'quer_novidades', 'termos_aceitos_em', 'onboarding_concluido_em'];
+const COLUNAS_EDITAVEIS = ['nome', 'apelido', 'pais', 'time_id', 'nascimento', 'cidade', 'cidade_id', 'quer_avisos', 'quer_novidades', 'termos_aceitos_em', 'onboarding_concluido_em', 'foto'];
+const DIA_MS = 86_400_000;
+
+/** O storage-js manda Blob como multipart/form-data: tira dele a parte do arquivo (a que tem Content-Type). */
+function arquivoDoMultipart(corpo: Buffer, tipo: string) {
+  const fronteira = /boundary=(.+)$/.exec(tipo)?.[1];
+  if (!fronteira) return { corpo, tipo };
+  const sep = Buffer.from(`--${fronteira}`);
+  let inicio = corpo.indexOf(sep);
+  while (inicio !== -1) {
+    const proximo = corpo.indexOf(sep, inicio + sep.length);
+    if (proximo === -1) break;
+    const parte = corpo.subarray(inicio + sep.length + 2, proximo - 2);
+    const fimDosCabecalhos = parte.indexOf('\r\n\r\n');
+    const cabecalhos = parte.subarray(0, fimDosCabecalhos).toString();
+    const tipoDoArquivo = /content-type:\s*(\S+)/i.exec(cabecalhos)?.[1];
+    if (tipoDoArquivo) return { corpo: Buffer.from(parte.subarray(fimDosCabecalhos + 4)), tipo: tipoDoArquivo };
+    inicio = proximo;
+  }
+  return null;
+}
 
 const base64url = (obj: object) => Buffer.from(JSON.stringify(obj)).toString('base64url');
 const agora = () => new Date().toISOString();
@@ -54,6 +77,10 @@ export class BackendFalso {
   readonly classificacao: ClassificacaoRow[] = [];
   private readonly codigos = new Map<string, { codigo: string; tipo: Email['tipo'] }>();
   private readonly tokens = new Map<string, string>();
+  /** Troca de e-mail pendente por usuário (PUT /user com email), confirmada com o código do e-mail novo. */
+  private readonly trocasDeEmail = new Map<string, string>();
+  /** Arquivos do bucket avatares (caminho → bytes e tipo), servidos pela URL pública. */
+  readonly fotos = new Map<string, { corpo: Buffer; tipo: string }>();
   private sequencia = 0;
   /** Provedores sociais ligados (resposta de /auth/v1/settings). */
   provedores: Record<string, boolean> = { email: true, google: false };
@@ -63,6 +90,8 @@ export class BackendFalso {
     await contexto.route('**/rest/v1/**', (rota) => this.rest(rota));
     // Escudos do bucket público: o teste não tem as imagens, então o app mostra o escudo listrado.
     await contexto.route('**/storage/v1/object/public/escudos/**', (rota) => rota.fulfill({ status: 404, body: '' }));
+    await contexto.route('**/storage/v1/object/**/avatares/**', (rota) => this.avatares(rota));
+    await contexto.route('**/storage/v1/object/avatares', (rota) => this.avatares(rota));
     await contexto.route('**/functions/v1/**', (rota) => this.funcoes(rota));
     // Nenhum teste fala com o Stripe de verdade: o Stripe.js nem carrega.
     await contexto.route('https://js.stripe.com/**', (rota) => rota.abort());
@@ -136,6 +165,9 @@ export class BackendFalso {
       quer_novidades: metadata.quer_novidades === true,
       termos_aceitos_em: metadata.aceitou_termos === true ? agora() : null,
       onboarding_concluido_em: null,
+      foto: null,
+      apelido_alterado_em: null,
+      exclusao_agendada_para: null,
       criado_em: agora(),
       atualizado_em: agora(),
     });
@@ -220,6 +252,18 @@ export class BackendFalso {
       return json(200, {});
     }
 
+    if (caminho === '/verify' && corpo.type === 'email_change') {
+      // O código vai para o e-mail novo; o usuário é achado pela troca pendente.
+      const [id, novo] = [...this.trocasDeEmail].find(([, e]) => e === corpo.email) ?? [];
+      const pendente = novo && this.codigos.get(novo);
+      const usuario = id && this.usuarios.get(id);
+      if (!usuario || !pendente || pendente.tipo !== 'email_change' || pendente.codigo !== corpo.token) return erro(403, 'otp_expired', 'Token has expired or is invalid');
+      this.codigos.delete(novo);
+      this.trocasDeEmail.delete(usuario.id);
+      usuario.email = novo;
+      return json(200, this.sessao(usuario));
+    }
+
     if (caminho === '/verify') {
       const usuario = this.porEmail(corpo.email);
       const pendente = usuario && this.codigos.get(usuario.email);
@@ -235,12 +279,26 @@ export class BackendFalso {
       if (!usuario) return erro(401, 'no_authorization', 'Missing token');
       if (req.method() === 'PUT' && corpo.password) {
         if (corpo.password === usuario.senha) return erro(422, 'same_password', 'New password should be different from the old password.');
+        if (corpo.current_password !== undefined && corpo.current_password !== usuario.senha) {
+          return erro(422, 'current_password_mismatch', 'Current password required when setting new password.');
+        }
         usuario.senha = corpo.password;
+      }
+      if (req.method() === 'PUT' && corpo.email) {
+        if (this.porEmail(corpo.email)) return erro(422, 'email_exists', 'A user with this email address has already been registered');
+        this.trocasDeEmail.set(usuario.id, corpo.email.toLowerCase());
+        this.enviarCodigo(corpo.email.toLowerCase(), 'email_change');
       }
       return json(200, this.usuarioPublico(usuario));
     }
 
-    if (caminho === '/logout') return rota.fulfill({ status: 204 });
+    if (caminho === '/logout') {
+      // scope=others: só os outros aparelhos saem; este token continua valendo.
+      const usuario = this.usuarioDoToken(rota);
+      const token = req.headers()['authorization']?.replace('Bearer ', '');
+      for (const [t, id] of this.tokens) if (id === usuario?.id && (url.searchParams.get('scope') !== 'others' || t !== token)) this.tokens.delete(t);
+      return rota.fulfill({ status: 204 });
+    }
 
     return erro(404, 'not_found', `Rota falsa não implementada: ${req.method()} ${caminho}`);
   }
@@ -257,6 +315,13 @@ export class BackendFalso {
     const corpo = req.postDataJSON?.() ?? {};
 
     if (nome === 'criar-checkout') return json(200, { clientSecret: 'cs_test_e2e_secret' });
+    if (nome === 'excluir-conta') {
+      // Agenda para daqui a 30 dias e tira a conta de todos os aparelhos, como a Edge Function.
+      const exclui_em = new Date(Date.now() + 30 * DIA_MS).toISOString();
+      this.perfis.get(usuario.id)!.exclusao_agendada_para = exclui_em;
+      for (const [t, id] of this.tokens) if (id === usuario.id) this.tokens.delete(t);
+      return json(200, { ok: true, exclui_em });
+    }
     if (nome === 'gerenciar-assinatura') {
       if (corpo.acao === 'portal') return json(200, { url: 'https://billing.stripe.com/p/session/e2e' });
       const web = this.assinaturas.find((a) => a.usuario_id === usuario.id && a.origem === 'web' && ['ativa', 'cancelada', 'atrasada'].includes(a.status));
@@ -265,6 +330,33 @@ export class BackendFalso {
       return json(200, { status: web.status, expira_em: web.expira_em });
     }
     return json(404, { erro: `Função falsa não implementada: ${nome}` });
+  }
+
+  // ---------- /storage/v1 (bucket avatares) ----------
+
+  private async avatares(rota: Route) {
+    const req = rota.request();
+    const url = new URL(req.url());
+    const publico = url.pathname.match(/\/object\/public\/avatares\/(.+)$/);
+    if (publico) {
+      const foto = this.fotos.get(decodeURIComponent(publico[1]));
+      return foto ? rota.fulfill({ status: 200, contentType: foto.tipo, body: foto.corpo }) : rota.fulfill({ status: 404, body: '' });
+    }
+    const usuario = this.usuarioDoToken(rota);
+    if (!usuario) return rota.fulfill({ status: 401, contentType: 'application/json', body: '{"message":"Unauthorized"}' });
+    if (req.method() === 'DELETE') {
+      // remove(): DELETE /object/avatares com { prefixes: [...] }.
+      const { prefixes = [] } = req.postDataJSON() ?? {};
+      for (const caminho of prefixes as string[]) if (caminho.startsWith(`${usuario.id}/`)) this.fotos.delete(caminho);
+      return rota.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    }
+    // upload(): POST /object/avatares/<id>/<arquivo>; política: só na pasta do próprio torcedor.
+    const caminho = decodeURIComponent(url.pathname.replace(/^.*\/object\/avatares\//, ''));
+    if (!caminho.startsWith(`${usuario.id}/`)) return rota.fulfill({ status: 403, contentType: 'application/json', body: '{"message":"new row violates row-level security policy"}' });
+    const arquivo = arquivoDoMultipart(req.postDataBuffer() ?? Buffer.alloc(0), req.headers()['content-type'] ?? '');
+    if (!arquivo) return rota.fulfill({ status: 400, contentType: 'application/json', body: '{"message":"Arquivo não encontrado no corpo"}' });
+    this.fotos.set(caminho, arquivo);
+    return rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: `avatares/${caminho}` }) });
   }
 
   // ---------- /rest/v1 ----------
@@ -289,6 +381,16 @@ export class BackendFalso {
     if (caminho === '/rpc/resumo_do_clube') {
       if (!usuario) return json(401, { code: '42501', message: 'permission denied for function resumo_do_clube' });
       return json(200, resumoDoClubeDeTeste([...this.perfis.values()], req.postDataJSON().clube));
+    }
+
+    if (caminho === '/rpc/tenho_senha') return json(200, !!usuario?.senha);
+    if (caminho === '/rpc/meus_aparelhos') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for function meus_aparelhos' });
+      return json(200, [{ id: 'sessao-atual', user_agent: req.headers()['user-agent'] ?? null, criado_em: usuario.criado_em, usado_em: agora(), atual: true }]);
+    }
+    if (caminho === '/rpc/manter_minha_conta') {
+      if (usuario) this.perfis.get(usuario.id)!.exclusao_agendada_para = null;
+      return rota.fulfill({ status: 204 });
     }
 
     if (caminho === '/rpc/sou_assinante') {

@@ -1,7 +1,8 @@
 // Supabase falso em memória para os testes do Vitest. O setup.ts troca src/lib/supabase por este módulo
 // em todos os testes, então nada aqui fala com a rede.
 import { vi, type Mock } from 'vitest';
-import type { Session, User } from '@supabase/supabase-js';
+import { AuthApiError } from '@supabase/supabase-js';
+import type { Session, User, UserIdentity } from '@supabase/supabase-js';
 import type { Assinatura, Perfil } from '../lib/database.types';
 import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.types';
 import { buscarCidadesDeTeste, clubesDoPais, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
@@ -11,6 +12,12 @@ type Ouvinte = (evento: Evento, sessao: Session | null) => void;
 type Fn = (...args: any[]) => any;
 
 export const EMAIL_PADRAO = 'rafa@example.com';
+/** Código de 6 dígitos que o falso aceita na troca de e-mail. */
+export const CODIGO_DE_TESTE = '123456';
+/** Senha atual do torcedor de teste (para alterar a senha). */
+export const SENHA_DE_TESTE = 'Senha#2026';
+
+const erroDeAuth = (code: string, status: number) => new AuthApiError(code, status, code);
 
 /** Torcedor com onboarding concluído. Sobrescreva só o que importa para o teste. */
 export function perfilDeTeste(campos: Partial<Perfil> = {}): Perfil {
@@ -18,6 +25,9 @@ export function perfilDeTeste(campos: Partial<Perfil> = {}): Perfil {
     id: 'usuario-1',
     nome: 'Rafael Andrade',
     apelido: 'Rafa_9',
+    apelido_alterado_em: null,
+    foto: null,
+    exclusao_agendada_para: null,
     pais: 'BR',
     time_id: 162, // Palmeiras
     nascimento: null,
@@ -63,6 +73,28 @@ function sessaoPara(perfil: Perfil, email: string): Session {
 
 const ok = (data: unknown) => ({ data, error: null });
 
+/** Identidade do Supabase Auth (forma de entrar) para os testes de Dados da conta. */
+export function identidadeDeTeste(provider: 'email' | 'google' | 'apple', email = EMAIL_PADRAO): UserIdentity {
+  return {
+    id: `${provider}-1`,
+    identity_id: `identidade-${provider}`,
+    user_id: 'usuario-1',
+    provider,
+    identity_data: { email },
+    created_at: '2026-10-01T12:00:00Z',
+    last_sign_in_at: '2026-10-01T12:00:00Z',
+    updated_at: '2026-10-01T12:00:00Z',
+  };
+}
+
+export type AparelhoDeTeste = { id: string; user_agent: string | null; criado_em: string; usado_em: string; atual: boolean };
+
+export const CHROME_MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36';
+export const EDGE_WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36 Edg/141.0';
+export const APP_IPHONE = 'TorcidaOnline/1.0 CFNetwork/1568 Darwin/24.0 (iPhone)';
+
+const DIA_MS = 86_400_000;
+
 function criar() {
   let sessao: Session | null = null;
   const perfis = new Map<string, Perfil>();
@@ -70,6 +102,14 @@ function criar() {
   const partidas: Partida[] = [];
   const competicoes: CompeticaoRow[] = [];
   const tabelas: ClassificacaoRow[] = [];
+  // Dados da conta: formas de entrar, senha, sessões abertas e fotos no Storage.
+  let identidades: UserIdentity[] = [];
+  let temSenha = true;
+  let aparelhos: AparelhoDeTeste[] = [];
+  const fotos = new Set<string>();
+  // Troca de e-mail pendente (updateUser({ email })) e quantos códigos faltam: 2 com a troca segura.
+  let trocaDeEmail: { novo: string; faltam: Set<string> } | null = null;
+  let trocaSegura = false;
   // RLS: o torcedor só enxerga as próprias assinaturas.
   const minhas = () => assinaturas.filter((a) => a.usuario_id === sessao?.user.id);
   const ouvintes = new Set<Ouvinte>();
@@ -94,7 +134,12 @@ function criar() {
         if (campos.apelido && apelidoEmUso(campos.apelido, atual.id)) {
           return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint' } };
         }
-        const novo = { ...atual, ...campos };
+        // Mesma regra do trigger perfis_antes_de_atualizar: uma troca de apelido a cada 30 dias.
+        const trocouApelido = campos.apelido !== undefined && campos.apelido !== atual.apelido && atual.apelido !== null;
+        if (trocouApelido && atual.apelido_alterado_em && Date.now() - new Date(atual.apelido_alterado_em).getTime() < 30 * DIA_MS) {
+          return { data: null, error: { code: 'P0001', message: 'Apelido trocado há menos de 30 dias', hint: 'apelido_recente' } };
+        }
+        const novo = { ...atual, ...campos, ...(trocouApelido && { apelido_alterado_em: new Date().toISOString() }) };
         perfis.set(atual.id, novo);
         return ok(comCatalogo(novo));
       },
@@ -158,16 +203,50 @@ function criar() {
     },
     signInWithPassword: async () => ok({ user: null, session: null }),
     signUp: async () => ok({ user: null, session: null }),
-    verifyOtp: async () => ok({ user: null, session: null }),
+    verifyOtp: async (p: { email?: string; token?: string; type?: string }) => {
+      if (p.type !== 'email_change') return ok({ user: null, session: null });
+      if (!trocaDeEmail || !sessao || p.token !== CODIGO_DE_TESTE || !trocaDeEmail.faltam.has(p.email!)) {
+        return { data: { user: null, session: null }, error: erroDeAuth('otp_expired', 403) };
+      }
+      trocaDeEmail.faltam.delete(p.email!);
+      if (trocaDeEmail.faltam.size === 0) {
+        sessao = { ...sessao, user: { ...sessao.user, email: trocaDeEmail.novo } };
+        trocaDeEmail = null;
+        emitir('USER_UPDATED');
+      }
+      return ok({ user: sessao.user, session: sessao });
+    },
     resend: async () => ok({}),
     resetPasswordForEmail: async () => ok({}),
-    updateUser: async () => ok({ user: sessao?.user ?? null }),
-    signOut: async () => {
+    updateUser: async (attrs: { email?: string; password?: string; current_password?: string } = {}) => {
+      if (attrs.email && sessao) {
+        trocaDeEmail = { novo: attrs.email, faltam: new Set(trocaSegura ? [attrs.email, sessao.user.email!] : [attrs.email]) };
+      }
+      if (attrs.password) {
+        // Como a opção "exigir a senha atual" do Supabase: só confere quando ela vem (a recuperação não manda).
+        if (attrs.current_password !== undefined && attrs.current_password !== SENHA_DE_TESTE) return { data: { user: null }, error: erroDeAuth('current_password_mismatch', 422) };
+        temSenha = true;
+      }
+      return ok({ user: sessao?.user ?? null });
+    },
+    reauthenticate: async () => ok({ user: null, session: null }),
+    signOut: async ({ scope }: { scope?: 'global' | 'local' | 'others' } = {}) => {
+      aparelhos = aparelhos.filter((a) => a.atual);
+      if (scope === 'others') return { error: null };
       sessao = null;
       emitir('SIGNED_OUT');
       return { error: null };
     },
     signInWithOAuth: async () => ok({ provider: 'google', url: '' }),
+    getUserIdentities: async () => ok({ identities: identidades }),
+    linkIdentity: async ({ provider }: { provider: string }) => ok({ provider, url: `https://auth.example.com/${provider}` }),
+    unlinkIdentity: async (identidade: UserIdentity) => {
+      if (identidades.length + (temSenha && !identidades.some((i) => i.provider === 'email') ? 1 : 0) <= 1) {
+        return { data: null, error: erroDeAuth('single_identity_not_deletable', 422) };
+      }
+      identidades = identidades.filter((i) => i.identity_id !== identidade.identity_id);
+      return ok({});
+    },
   } satisfies Record<string, Fn>;
 
   const auth = Object.fromEntries(Object.keys(padroes).map((k) => [k, vi.fn()])) as { [K in keyof typeof padroes]: Mock<Fn> };
@@ -178,6 +257,12 @@ function criar() {
   async function invocarPadrao(nome: string, { body }: { body: { acao?: string } }) {
     if (!sessao) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'sem_sessao' }), { status: 401 }) } };
     if (nome === 'criar-checkout') return ok({ clientSecret: 'cs_test_secret_teste' });
+    if (nome === 'excluir-conta') {
+      const exclui_em = new Date(Date.now() + 30 * DIA_MS).toISOString();
+      const perfil = perfis.get(sessao.user.id);
+      if (perfil) perfis.set(perfil.id, { ...perfil, exclusao_agendada_para: exclui_em });
+      return ok({ ok: true, exclui_em });
+    }
     if (nome === 'gerenciar-assinatura') {
       if (body.acao === 'portal') return ok({ url: 'https://billing.stripe.com/p/session/teste' });
       const web = minhas().find((a) => a.origem === 'web' && ['ativa', 'cancelada', 'atrasada'].includes(a.status));
@@ -189,6 +274,13 @@ function criar() {
   }
   const setManterConectado = vi.fn<Fn>();
   const provedoresAtivos = vi.fn<Fn>();
+  const storage = {
+    from: vi.fn((bucket: string) => ({
+      upload: vi.fn(async (caminho: string) => (fotos.add(caminho), ok({ path: caminho }))),
+      remove: vi.fn(async (caminhos: string[]) => (caminhos.forEach((c) => fotos.delete(c)), ok([]))),
+      getPublicUrl: (caminho: string) => ({ data: { publicUrl: `https://supabase.test/storage/v1/object/public/${bucket}/${caminho}` } }),
+    })),
+  };
 
   function resetar() {
     sessao = null;
@@ -199,10 +291,28 @@ function criar() {
     partidas.length = 0;
     competicoes.length = 0;
     tabelas.length = 0;
-    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number }) => {
+    identidades = [identidadeDeTeste('email')];
+    temSenha = true;
+    aparelhos = [{ id: 'sessao-atual', user_agent: CHROME_MAC, criado_em: '2026-10-01T12:00:00Z', usado_em: new Date().toISOString(), atual: true }];
+    fotos.clear();
+    trocaDeEmail = null;
+    trocaSegura = false;
+    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number; sessao?: string }) => {
       if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
       if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais, args!.limite));
       if (fn === 'resumo_do_clube') return ok(resumoDoClubeDeTeste([...perfis.values()], args!.clube!));
+      if (fn === 'tenho_senha') return ok(temSenha);
+      if (fn === 'meus_aparelhos') return ok(aparelhos);
+      if (fn === 'encerrar_aparelho') {
+        const antes = aparelhos.length;
+        aparelhos = aparelhos.filter((a) => a.atual || a.id !== args!.sessao);
+        return ok(aparelhos.length < antes);
+      }
+      if (fn === 'manter_minha_conta') {
+        const perfil = sessao && perfis.get(sessao.user.id);
+        if (perfil) perfis.set(perfil.id, { ...perfil, exclusao_agendada_para: null });
+        return ok(null);
+      }
       return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id));
     });
     from.mockReset().mockImplementation((tabela: string) =>
@@ -223,7 +333,7 @@ function criar() {
   resetar();
 
   return {
-    cliente: { auth, rpc, from, functions: { invoke } },
+    cliente: { auth, rpc, from, storage, functions: { invoke } },
     setManterConectado,
     provedoresAtivos,
     resetar,
@@ -240,6 +350,18 @@ function criar() {
       competicoes.push(...novas);
       tabelas.push(...linhas);
     },
+    /** Formas de entrar da conta (getUserIdentities) e se ela tem senha. Padrão: só e-mail e senha. */
+    definirFormasDeEntrar(novas: UserIdentity[], senha = novas.some((i) => i.provider === 'email')) {
+      identidades = novas;
+      temSenha = senha;
+    },
+    temSenha: () => temSenha,
+    /** Sessões abertas (meus_aparelhos). Padrão: só este navegador. */
+    definirAparelhos: (novos: AparelhoDeTeste[]) => (aparelhos = novos),
+    aparelhos: () => aparelhos,
+    fotos: () => [...fotos],
+    /** Liga a "troca segura de e-mail" do Supabase: o e-mail atual também precisa confirmar com código. */
+    ligarTrocaSegura: () => (trocaSegura = true),
     /** Cria a sessão; antes do render vira a sessão salva, depois dispara SIGNED_IN como o Supabase. */
     logar(perfil: Perfil, email = EMAIL_PADRAO) {
       perfis.set(perfil.id, perfil);

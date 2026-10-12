@@ -1,0 +1,121 @@
+.recorte {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.area {
+  position: relative;
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--ink);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.area:focus-visible {
+  outline: 3px solid var(--blue-soft-2);
+  outline-offset: 2px;
+}
+
+.arrastando {
+  cursor: grabbing;
+}
+
+.imagem {
+  position: absolute;
+  max-width: none;
+  pointer-events: none;
+}
+
+/* Círculo transparente; o resto da área escurece pela sombra. */
+.mascara {
+  position: absolute;
+  border-radius: 999px;
+  box-shadow: 0 0 0 999px rgba(9, 29, 55, 0.62);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Grade de terços enquanto arrasta. */
+.grade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, transparent calc(33.33% - 0.5px), rgba(255, 255, 255, 0.55) calc(33.33% - 0.5px), rgba(255, 255, 255, 0.55) calc(33.33% + 0.5px), transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), rgba(255, 255, 255, 0.55) calc(66.66% - 0.5px), rgba(255, 255, 255, 0.55) calc(66.66% + 0.5px), transparent calc(66.66% + 0.5px)),
+    linear-gradient(to bottom, transparent calc(33.33% - 0.5px), rgba(255, 255, 255, 0.55) calc(33.33% - 0.5px), rgba(255, 255, 255, 0.55) calc(33.33% + 0.5px), transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), rgba(255, 255, 255, 0.55) calc(66.66% - 0.5px), rgba(255, 255, 255, 0.55) calc(66.66% + 0.5px), transparent calc(66.66% + 0.5px));
+}
+
+.zoom {
+  width: 300px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lupa {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  border-radius: 9px;
+  background: var(--soft);
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lupa:disabled {
+  color: var(--muted-2);
+  cursor: default;
+}
+
+.slider {
+  flex: 1;
+  accent-color: var(--primary);
+}
+
+.previas {
+  width: 300px;
+  max-width: 100%;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.previa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.previaCirculo {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--soft);
+}
+
+.trocar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  padding: 0 0 4px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+}

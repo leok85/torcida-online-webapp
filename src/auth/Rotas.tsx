@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Alert } from '../components/form/Alert';
 import { Button } from '../components/form/Button';
 import { Icon } from '../components/ui/Icon';
+import { dataCurta } from '../data/conta';
+import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import styles from './Rotas.module.css';
 
@@ -44,6 +48,46 @@ function TelaErroPerfil() {
   );
 }
 
+/** Quem pediu a exclusão e entrou de novo dentro do prazo: escolhe entre manter a conta e sair. */
+function TelaContaEmExclusao({ data }: { data: string }) {
+  const { recarregarPerfil, sair } = useAuth();
+  const [mantendo, setMantendo] = useState(false);
+  const [erro, setErro] = useState(false);
+
+  async function manter() {
+    setMantendo(true);
+    setErro(false);
+    const { error } = await supabase.rpc('manter_minha_conta');
+    if (error) {
+      setMantendo(false);
+      setErro(true);
+      return;
+    }
+    recarregarPerfil();
+  }
+
+  return (
+    <div className={styles.tela}>
+      <div className={styles.erro}>
+        <Icon name="person_off" size={30} color="var(--red-dark)" />
+        <h1 className={styles.titulo}>Sua conta está marcada para exclusão</h1>
+        <p className={styles.texto}>
+          Ela será apagada de vez em {dataCurta(data)}. Quer continuar na torcida? Mantenha a conta e siga de onde parou.
+        </p>
+        {erro && <Alert>Não foi possível manter a conta agora. Tente de novo.</Alert>}
+        <div className={styles.acoes}>
+          <Button onClick={manter} loading={mantendo}>
+            Manter minha conta
+          </Button>
+          <Button variant="neutral" onClick={sair} disabled={mantendo}>
+            Sair
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Entrar e criar conta: quem já está logado volta para onde queria ir. */
 export function ApenasVisitante() {
   const { carregando, sessao } = useAuth();
@@ -60,6 +104,7 @@ export function ApenasLogado({ torcedor = false }: { torcedor?: boolean }) {
   if (carregando) return <TelaCarregando />;
   if (!sessao) return <Navigate to="/entrar" replace state={{ de: pathname + search } satisfies DestinoState} />;
   if (erroPerfil || !perfil) return <TelaErroPerfil />;
+  if (perfil.exclusao_agendada_para) return <TelaContaEmExclusao data={perfil.exclusao_agendada_para} />;
   if (torcedor && !perfil.onboarding_concluido_em) return <Navigate to="/onboarding" replace />;
   return <Outlet />;
 }

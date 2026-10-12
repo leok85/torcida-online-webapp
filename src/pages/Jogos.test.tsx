@@ -80,8 +80,9 @@ describe('Jogos (W20)', () => {
     supabaseFalso.logar(perfilDeTeste());
     const { user, local } = renderApp('/jogos');
 
-    expect(await screen.findByRole('heading', { name: 'Jogos do Palmeiras' })).toBeInTheDocument();
+    // Espera a tela carregada: o título do skeleton é outro elemento e sai quando os jogos chegam.
     const aoVivo = await screen.findByRole('region', { name: 'Jogo ao vivo' });
+    expect(screen.getByRole('heading', { name: 'Jogos do Palmeiras' })).toBeInTheDocument();
     expect(aoVivo).toHaveTextContent("AO VIVO · 67'");
     expect(aoVivo).toHaveTextContent('Palmeiras 1 x 0 Corinthians');
     await user.click(within(aoVivo).getByRole('link', { name: /Entrar no jogo/ }));
