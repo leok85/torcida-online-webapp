@@ -131,6 +131,14 @@ describe('sincronizar-partidas', () => {
     expect(corpo).toMatchObject({ salvas: MAX_INCIDENTES + 5, incidentes: MAX_INCIDENTES });
   });
 
+  it('com o teto de incidentes, busca primeiro os gols dos jogos mais recentes', async () => {
+    const antigos = Array.from({ length: MAX_INCIDENTES }, (_, i) => evento({ id: 2000 + i, status: 'finished', event_date: `2026-10-0${1 + (i % 5)}T20:00:00+00:00` }));
+    const recente = evento({ id: 7290, status: 'finished', event_date: '2026-10-11T20:30:00+00:00' });
+    const m = montar({ agenda: [...antigos, recente] });
+    await rodar(m, pedido({ modo: 'agenda' }));
+    expect(m.bsd.incidentes).toHaveBeenNthCalledWith(1, 7290);
+  });
+
   it('recusa quem não manda o segredo do cron', async () => {
     const m = montar();
     const resposta = await rodar(m, pedido({}, 'outro'));
