@@ -1,0 +1,519 @@
+/* W18 · Minha assinatura, com as medidas do Claude Design (WebApp.dc.html), com e sem assinatura. */
+.page {
+  padding: 26px 28px 32px;
+}
+
+.titulo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cartao {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ---------- sem assinatura ---------- */
+.capa {
+  position: relative;
+  overflow: hidden;
+  padding: 28px 30px;
+  background: var(--ink);
+  color: #fff;
+}
+
+.capa::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 14px, rgba(255, 255, 255, 0) 14px 28px);
+  pointer-events: none;
+}
+
+.capa > * {
+  position: relative;
+}
+
+.capaSelo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9fb2cc;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+}
+
+.capaTitulo {
+  margin-top: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 36px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.capaTexto {
+  margin-top: 10px;
+  max-width: 46ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #c9d6e6;
+}
+
+.beneficios {
+  list-style: none;
+  margin: 0;
+  padding: 22px 30px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.beneficios li {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.beneficios li > :first-child {
+  flex: none;
+  color: var(--green);
+}
+
+.oferta {
+  padding: 20px 30px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.ofertaPreco {
+  flex: 1;
+  min-width: 200px;
+}
+
+.ofertaLinha {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.aPartirDe {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.valor {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.porMes {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ofertaDetalhe {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.verPlanos {
+  flex: none;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 12px;
+  background: var(--green);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verPlanos:hover {
+  background: #37900f;
+  color: #fff;
+  text-decoration: none;
+}
+
+.dica {
+  padding: 20px 22px;
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+}
+
+.dica > :first-child {
+  flex: none;
+  color: var(--primary);
+}
+
+.dicaTitulo {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.dicaTexto {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ---------- com assinatura ---------- */
+.plano {
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.planoTextos {
+  flex: 1;
+  min-width: 220px;
+}
+
+.selo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+}
+
+.seloOk {
+  composes: selo;
+  color: var(--green-dark);
+}
+
+.seloAlerta {
+  composes: selo;
+  color: var(--gold-dark);
+}
+
+.seloFim {
+  composes: selo;
+  color: var(--muted);
+}
+
+.planoNome {
+  margin-top: 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.planoDetalhe {
+  margin-top: 8px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+/* 44px de altura no design, com borda: o botão já é border-box */
+.trocarPlano {
+  height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.trocarPlano:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.item > :first-child {
+  flex: none;
+  color: var(--ink-2);
+}
+
+.itemTextos {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemTitulo {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.itemSub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.linkAcao {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.linkAcao:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.linkAcao:disabled {
+  color: var(--muted);
+  cursor: progress;
+}
+
+.rodape {
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: #f8fafc;
+}
+
+.rodapeTexto {
+  max-width: 46ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.rodapeAlerta {
+  composes: rodapeTexto;
+  color: var(--gold-dark);
+}
+
+.cancelar {
+  font-size: 13px;
+  font-weight: 800;
+  color: #b0261e;
+}
+
+.cancelar:hover {
+  color: #b0261e;
+}
+
+.reativar {
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reativar:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.reativar:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
+
+.erro {
+  padding: 0 28px 18px;
+}
+
+/* ---------- cobranças ---------- */
+.cobrancasTitulo {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cobranca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--bg);
+}
+
+.cobranca > :first-child {
+  flex: none;
+  color: var(--muted);
+}
+
+.cobrancaData {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.cobrancaData a {
+  color: inherit;
+}
+
+.cobrancaData a:hover {
+  color: var(--primary);
+}
+
+.cobrancaDesc {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.cobrancaValor {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pago {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+}
+
+.cobrancasNota {
+  padding: 14px 22px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.vazio {
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.vazio > :first-child {
+  color: #c7d2e1;
+}
+
+.tentar {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.aviso {
+  composes: cartao;
+  padding: 22px 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.avisoTitulo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  text-transform: uppercase;
+}
+
+.avisoTexto {
+  margin: 6px 0 14px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .colunas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px 16px 32px;
+  }
+
+  .capa,
+  .beneficios,
+  .oferta,
+  .plano,
+  .item,
+  .rodape {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .beneficios {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

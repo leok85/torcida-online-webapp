@@ -136,7 +136,8 @@ describe('gestão da assinatura do web app', () => {
     await waitFor(() => expect(local()).toBe('/conta/assinatura'));
     expect(invoke).toHaveBeenCalledWith('gerenciar-assinatura', { body: { acao: 'cancelar' } });
     expect(await screen.findByText('CANCELADA')).toBeInTheDocument();
-    expect(screen.getByText('não renova · liberado até 11/10/2099')).toBeInTheDocument();
+    expect(screen.getByText('R$ 149,00 por ano · não renova · liberado até 11/10/2099')).toBeInTheDocument();
+    expect(screen.getByText('Sua assinatura não renova. Tudo continua liberado até 11/10/2099.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Reativar assinatura' }));
     expect(await screen.findByText('ATIVA')).toBeInTheDocument();
@@ -147,7 +148,7 @@ describe('gestão da assinatura do web app', () => {
     const { user, local } = renderApp('/conta/assinatura/cancelar');
     await user.click(await screen.findByRole('link', { name: 'Manter assinatura' }));
     await waitFor(() => expect(local()).toBe('/conta/assinatura'));
-    expect(invoke).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalledWith('gerenciar-assinatura', { body: { acao: 'cancelar' } });
   });
 
   it('se o cancelamento falhar, avisa e continua na tela', async () => {
@@ -165,13 +166,14 @@ describe('gestão da assinatura do web app', () => {
     expect(await screen.findByRole('heading', { name: 'Não há assinatura para cancelar aqui' })).toBeInTheDocument();
   });
 
-  it('"Cartão e cobranças" abre o Portal do Cliente do Stripe', async () => {
+  it.each(['Trocar de plano', 'Atualizar forma de pagamento', 'Trocar e-mail de cobrança'])('"%s" abre o Portal do Cliente do Stripe', async (botao) => {
     membroWeb();
     const assign = vi.fn();
     vi.stubGlobal('location', { ...window.location, assign });
     const { user } = renderApp('/conta/assinatura');
-    await user.click(await screen.findByRole('button', { name: 'Cartão e cobranças' }));
+    await user.click(await screen.findByRole('button', { name: botao }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith('https://billing.stripe.com/p/session/teste'));
+    expect(invoke).toHaveBeenCalledWith('gerenciar-assinatura', { body: { acao: 'portal' } });
     vi.unstubAllGlobals();
   });
 

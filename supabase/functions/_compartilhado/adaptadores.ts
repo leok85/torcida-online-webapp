@@ -1,7 +1,7 @@
 // Implementações reais de Banco e Pagamentos (só no Deno). As regras ficam em assinatura.ts e nos handlers.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Stripe from 'npm:stripe@22.6.0';
-import type { AssinaturaStripe, Banco, Pagamentos } from './assinatura.ts';
+import type { AssinaturaStripe, Banco, MetodoStripe, Pagamentos } from './assinatura.ts';
 
 export const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { httpClient: Stripe.createFetchHttpClient() });
 
@@ -88,6 +88,41 @@ export const pagamentos: Pagamentos = {
   async criarPortal(customer, retorno) {
     const sessao = await stripe.billingPortal.sessions.create({ customer, return_url: retorno });
     return sessao.url;
+  },
+  async buscarCobranca(customer, assinaturaId) {
+    const metodoDe = (pm: unknown): MetodoStripe | null =>
+      pm && typeof pm === 'object' ? { type: (pm as Stripe.PaymentMethod).type, card: (pm as Stripe.PaymentMethod).card ?? null } : null;
+    const [cliente, sub, faturas] = await Promise.all([
+      stripe.customers.retrieve(customer),
+      assinaturaId ? stripe.subscriptions.retrieve(assinaturaId, { expand: ['default_payment_method'] }) : null,
+      // As 6 faturas pagas mais recentes, com o pagamento de cada uma.
+      stripe.invoices.list({ customer, status: 'paid', limit: 6, expand: ['data.payments'] }),
+    ]);
+    // A forma de pagamento de cada fatura está no PaymentIntent que a quitou.
+    const metodos = await Promise.all(
+      faturas.data.map(async (f) => {
+        const pi = (f as unknown as { payments?: { data: { payment: { payment_intent?: string | null } }[] } }).payments?.data[0]?.payment.payment_intent;
+        if (!pi) return null;
+        const intent = await stripe.paymentIntents.retrieve(pi, { expand: ['payment_method'] });
+        return metodoDe(intent.payment_method);
+      }),
+    );
+    const item = sub?.items.data[0];
+    return {
+      email: 'deleted' in cliente && cliente.deleted ? null : ((cliente as Stripe.Customer).email ?? null),
+      assinatura:
+        sub && item
+          ? { valor: item.price.unit_amount ?? 0, moeda: item.price.currency, intervalo: item.price.recurring?.interval ?? 'month', metodo: metodoDe(sub.default_payment_method) }
+          : null,
+      faturas: faturas.data.map((f, i) => ({
+        pagaEm: f.status_transitions.paid_at ?? null,
+        valor: f.amount_paid,
+        moeda: f.currency,
+        periodo: f.lines.data[0]?.period ?? null,
+        metodo: metodos[i],
+        recibo: f.hosted_invoice_url ?? null,
+      })),
+    };
   },
 };
 

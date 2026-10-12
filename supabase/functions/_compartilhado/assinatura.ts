@@ -39,6 +39,30 @@ export interface Banco {
   gravarAssinatura(linha: LinhaAssinatura): Promise<void>;
 }
 
+/** Forma de pagamento como o Stripe devolve (PaymentMethod, só o que a tela mostra). */
+export type MetodoStripe = {
+  type: string;
+  card?: { brand: string; last4: string; exp_month: number; exp_year: number } | null;
+};
+
+/** Fatura paga, já com a forma de pagamento do PaymentIntent que a quitou. */
+export type FaturaStripe = {
+  pagaEm: number | null;
+  valor: number;
+  moeda: string;
+  /** Início e fim do período cobrado (segundos), para saber se foi o plano anual ou o mensal. */
+  periodo: { start: number; end: number } | null;
+  metodo: MetodoStripe | null;
+  recibo: string | null;
+};
+
+/** Dados de cobrança do cliente no Stripe: preço e forma de pagamento da assinatura, e-mail e faturas pagas. */
+export type CobrancaStripe = {
+  email: string | null;
+  assinatura: { valor: number; moeda: string; intervalo: string; metodo: MetodoStripe | null } | null;
+  faturas: FaturaStripe[];
+};
+
 export interface Pagamentos {
   criarCliente(usuario: Usuario): Promise<string>;
   precoPorChave(chave: string): Promise<string>;
@@ -47,6 +71,8 @@ export interface Pagamentos {
   cancelarNoFimDoPeriodo(id: string, cancelar: boolean): Promise<void>;
   cancelarAgora(id: string): Promise<void>;
   criarPortal(customer: string, retorno: string): Promise<string>;
+  /** Preço e forma de pagamento da assinatura (se houver), e-mail de cobrança e as últimas faturas pagas. */
+  buscarCobranca(customer: string, assinaturaId: string | null): Promise<CobrancaStripe>;
 }
 
 const STATUS: Record<string, Status> = {
@@ -95,4 +121,65 @@ export async function sincronizarAssinatura(id: string, banco: Banco, pagamentos
   const linha = linhaDaAssinatura(sub, usuarioId);
   await banco.gravarAssinatura(linha);
   return linha;
+}
+
+// ---------- Resumo de cobrança para Minha assinatura (W18) ----------
+
+export type Pagamento = { tipo: 'cartao'; bandeira: string; final: string; expira: string } | { tipo: 'pix' } | { tipo: 'outro'; nome: string };
+
+export type Cobranca = { data: string; descricao: string; valor: number; moeda: string; recibo: string | null };
+
+export type ResumoDaCobranca = {
+  email: string | null;
+  plano: { valor: number; moeda: string; intervalo: 'ano' | 'mes' } | null;
+  pagamento: Pagamento | null;
+  cobrancas: Cobranca[];
+};
+
+const BANDEIRAS: Record<string, string> = {
+  visa: 'Visa',
+  mastercard: 'Mastercard',
+  amex: 'American Express',
+  elo: 'Elo',
+  hipercard: 'Hipercard',
+  diners: 'Diners',
+  discover: 'Discover',
+  jcb: 'JCB',
+};
+
+export function pagamentoDe(metodo: MetodoStripe | null): Pagamento | null {
+  if (!metodo) return null;
+  if (metodo.type === 'card' && metodo.card) {
+    const { brand, last4, exp_month, exp_year } = metodo.card;
+    return { tipo: 'cartao', bandeira: BANDEIRAS[brand] ?? brand.charAt(0).toUpperCase() + brand.slice(1), final: last4, expira: `${String(exp_month).padStart(2, '0')}/${exp_year}` };
+  }
+  if (metodo.type === 'pix') return { tipo: 'pix' };
+  return { tipo: 'outro', nome: metodo.type };
+}
+
+const textoDoPagamento = (p: Pagamento | null) =>
+  !p ? null : p.tipo === 'cartao' ? `cartão •••• ${p.final}` : p.tipo === 'pix' ? 'Pix' : p.nome;
+
+/** Mais de 40 dias de período = plano anual. */
+const planoDoPeriodo = (periodo: FaturaStripe['periodo']) =>
+  !periodo ? null : periodo.end - periodo.start > 40 * 86400 ? 'Plano anual' : 'Plano mensal';
+
+/** Monta o que a tela mostra a partir do Stripe: valores em reais (não em centavos), datas ISO e textos prontos. */
+export function resumoDaCobranca(c: CobrancaStripe): ResumoDaCobranca {
+  return {
+    email: c.email,
+    plano: c.assinatura
+      ? { valor: c.assinatura.valor / 100, moeda: c.assinatura.moeda.toUpperCase(), intervalo: c.assinatura.intervalo === 'year' ? 'ano' : 'mes' }
+      : null,
+    pagamento: pagamentoDe(c.assinatura?.metodo ?? null),
+    cobrancas: c.faturas
+      .filter((f) => f.pagaEm)
+      .map((f) => ({
+        data: new Date(f.pagaEm! * 1000).toISOString(),
+        descricao: [planoDoPeriodo(f.periodo) ?? 'Assinatura', textoDoPagamento(pagamentoDe(f.metodo))].filter(Boolean).join(' · '),
+        valor: f.valor / 100,
+        moeda: f.moeda.toUpperCase(),
+        recibo: f.recibo,
+      })),
+  };
 }

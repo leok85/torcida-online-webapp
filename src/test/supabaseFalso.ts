@@ -322,6 +322,18 @@ function criar() {
     }
     if (nome === 'gerenciar-assinatura') {
       if (body.acao === 'portal') return ok({ url: 'https://billing.stripe.com/p/session/teste' });
+      if (body.acao === 'resumo') {
+        // Quem assinou pelo web app tem o cartão e a primeira cobrança no Stripe; os outros, nada.
+        const doWeb = minhas().find((a) => a.origem === 'web');
+        if (!doWeb) return ok({ email: null, plano: null, pagamento: null, cobrancas: [] });
+        const anual = doWeb.plano === 'anual';
+        return ok({
+          email: sessao.user.email,
+          plano: { valor: anual ? 149 : 14.9, moeda: 'BRL', intervalo: anual ? 'ano' : 'mes' },
+          pagamento: { tipo: 'cartao', bandeira: 'Visa', final: '4242', expira: '08/2029' },
+          cobrancas: [{ data: doWeb.criado_em, descricao: `Plano ${doWeb.plano} · cartão •••• 4242`, valor: anual ? 149 : 14.9, moeda: 'BRL', recibo: null }],
+        });
+      }
       const web = minhas().find((a) => a.origem === 'web' && ['ativa', 'cancelada', 'atrasada'].includes(a.status));
       if (!web) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'sem_assinatura_web' }), { status: 404 }) } };
       web.status = body.acao === 'cancelar' ? 'cancelada' : 'ativa';

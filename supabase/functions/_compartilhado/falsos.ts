@@ -1,6 +1,6 @@
 // Banco e Stripe em memória para os testes das Edge Functions (Vitest).
 import { vi } from 'vitest';
-import type { AssinaturaStripe, Banco, LinhaAssinatura, Pagamentos, Usuario } from './assinatura';
+import type { AssinaturaStripe, Banco, CobrancaStripe, LinhaAssinatura, Pagamentos, Usuario } from './assinatura';
 
 export const RAFA: Usuario = { id: 'usuario-1', email: 'rafa@example.com' };
 const UM_MES = 30 * 86400;
@@ -25,6 +25,16 @@ export function criarFalsos() {
   const clientes = new Map<string, string>();
   const assinaturas: (LinhaAssinatura & { criado_em: string })[] = [];
   const subs = new Map<string, AssinaturaStripe>();
+  // Plano anual no cartão, com uma fatura anual no cartão e duas mensais no Pix.
+  const cobranca: CobrancaStripe = {
+    email: 'rafa@example.com',
+    assinatura: { valor: 14900, moeda: 'brl', intervalo: 'year', metodo: { type: 'card', card: { brand: 'visa', last4: '4242', exp_month: 8, exp_year: 2029 } } },
+    faturas: [
+      { pagaEm: 1791720000, valor: 14900, moeda: 'brl', periodo: { start: 1791720000, end: 1823256000 }, metodo: { type: 'card', card: { brand: 'visa', last4: '4242', exp_month: 8, exp_year: 2029 } }, recibo: 'https://invoice.stripe.com/i/1' },
+      { pagaEm: 1789128000, valor: 1490, moeda: 'brl', periodo: { start: 1789128000, end: 1791720000 }, metodo: { type: 'pix' }, recibo: null },
+      { pagaEm: null, valor: 0, moeda: 'brl', periodo: null, metodo: null, recibo: null },
+    ],
+  };
 
   const banco: Banco = {
     usuarioDoToken: vi.fn(async (jwt: string) => tokens.get(jwt) ?? null),
@@ -62,9 +72,10 @@ export function criarFalsos() {
     }),
     cancelarAgora: vi.fn(async () => {}),
     criarPortal: vi.fn(async (customer: string) => `https://billing.stripe.com/p/session/${customer}`),
+    buscarCobranca: vi.fn(async (): Promise<CobrancaStripe> => cobranca),
   };
 
-  return { banco, pagamentos, tokens, clientes, assinaturas, subs };
+  return { banco, pagamentos, tokens, clientes, assinaturas, subs, cobranca };
 }
 
 export const pedido = (url: string, init: RequestInit & { corpo?: object } = {}) => {

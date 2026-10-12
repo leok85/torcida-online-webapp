@@ -140,34 +140,51 @@ describe('planos (/assinar)', () => {
 });
 
 describe('Minha assinatura (/conta/assinatura)', () => {
-  it('sem assinatura, convida a ver os planos', async () => {
+  it('sem assinatura (W18): o que a assinatura libera, o preço, a dica do app e nenhuma cobrança', async () => {
     torcedor();
     renderApp('/conta/assinatura');
     expect(await screen.findByRole('heading', { name: 'Você ainda não é membro' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ver planos' })).toHaveAttribute('href', '/assinar');
+    expect(screen.getByText('SEM ASSINATURA')).toBeInTheDocument();
+    expect(screen.getByText('Palpites, escalação e notas')).toBeInTheDocument();
+    expect(screen.getByText('R$ 12,42')).toBeInTheDocument();
+    expect(screen.getByText('plano anual · R$ 149,00 · cancele quando quiser')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Ver planos/ })).toHaveAttribute('href', '/assinar');
+    expect(screen.getByText('Já assinou pelo app?')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhuma cobrança por aqui.')).toBeInTheDocument();
   });
 
-  it('mostra a assinatura ativa do web app com a data de renovação', async () => {
+  it('com assinatura do web app (W18): plano, preço, renovação, cartão, e-mail e cobranças', async () => {
     membro();
     renderApp('/conta/assinatura');
     expect(await screen.findByRole('heading', { name: 'Plano anual' })).toBeInTheDocument();
     expect(screen.getByText('ATIVA')).toBeInTheDocument();
-    expect(screen.getByText(`renova em ${new Date('2027-10-11T12:00:00Z').toLocaleDateString('pt-BR')}`)).toBeInTheDocument();
-    expect(screen.queryByText(/App Store|Google Play/)).not.toBeInTheDocument();
+    expect(await screen.findByText(`R$ 149,00 por ano · renova em ${new Date('2027-10-11T12:00:00Z').toLocaleDateString('pt-BR')}`)).toBeInTheDocument();
+    expect(screen.getByText('Cartão •••• 4242')).toBeInTheDocument();
+    expect(screen.getByText('Visa · expira 08/2029')).toBeInTheDocument();
+    expect(screen.getByText('Avisos de cobrança')).toBeInTheDocument();
+    const cobrancas = screen.getByRole('list', { name: 'Cobranças pagas' });
+    expect(cobrancas).toHaveTextContent('Plano anual · cartão •••• 4242');
+    expect(cobrancas).toHaveTextContent('PAGO');
+    expect(screen.getByText('Assinou pelo app? A gestão fica nos ajustes da App Store ou do Google Play.')).toBeInTheDocument();
+    expect(screen.queryByText('Já assinou pelo app?')).not.toBeInTheDocument();
   });
 
-  it('assinatura feita na App Store manda gerenciar por lá', async () => {
+  it('assinatura feita na App Store manda gerenciar por lá, sem cartão nem cancelamento aqui', async () => {
     membro({ origem: 'apple', plano: 'mensal' });
     renderApp('/conta/assinatura');
     expect(await screen.findByRole('heading', { name: 'Plano mensal' })).toBeInTheDocument();
+    expect(screen.getByText(/pela App Store · renova em/)).toBeInTheDocument();
     expect(screen.getByText(/Você assinou pela App Store\. Troca de plano e cancelamento ficam nos ajustes da App Store\./)).toBeInTheDocument();
+    expect(screen.queryByText('Avisos de cobrança')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Cancelar assinatura' })).not.toBeInTheDocument();
   });
 
-  it('assinatura expirada oferece assinar de novo', async () => {
+  it('assinatura expirada volta à versão sem assinatura e oferece assinar de novo', async () => {
     membro({ status: 'expirada', expira_em: '2026-01-01T12:00:00Z' });
     renderApp('/conta/assinatura');
     expect(await screen.findByText('EXPIRADA')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Assinar de novo' })).toHaveAttribute('href', '/assinar');
+    expect(screen.getByRole('heading', { name: 'Volte a ser membro' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Assinar de novo/ })).toHaveAttribute('href', '/assinar');
   });
 
   it('o menu da conta leva para Minha assinatura', async () => {

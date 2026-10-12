@@ -1,6 +1,6 @@
 // Ações do torcedor sobre a própria assinatura do web app: cancelar no fim do período, desfazer o
-// cancelamento e abrir o Portal do Cliente do Stripe (cartão e faturas).
-import { sincronizarAssinatura, type Banco, type Pagamentos } from '../_compartilhado/assinatura.ts';
+// cancelamento, abrir o Portal do Cliente do Stripe (cartão, plano e e-mail) e o resumo de cobrança da tela.
+import { resumoDaCobranca, sincronizarAssinatura, type Banco, type Pagamentos } from '../_compartilhado/assinatura.ts';
 import { CORS, json, jwtDe, lerCorpo, origemDoApp } from '../_compartilhado/http.ts';
 
 export async function gerenciarAssinatura(req: Request, banco: Banco, pagamentos: Pagamentos): Promise<Response> {
@@ -17,6 +17,14 @@ export async function gerenciarAssinatura(req: Request, banco: Banco, pagamentos
     const customer = await banco.clienteDo(usuario.id);
     if (!customer) return json(404, { erro: 'sem_assinatura_web' });
     return json(200, { url: await pagamentos.criarPortal(customer, `${origemDoApp(req)}/conta/assinatura`) });
+  }
+
+  if (acao === 'resumo') {
+    // Sem cliente no Stripe (nunca assinou pelo web app), não há cobrança para mostrar.
+    const customer = await banco.clienteDo(usuario.id);
+    if (!customer) return json(200, { email: null, plano: null, pagamento: null, cobrancas: [] });
+    const assinatura = await banco.assinaturaWebEmAndamento(usuario.id);
+    return json(200, resumoDaCobranca(await pagamentos.buscarCobranca(customer, assinatura?.id_externo ?? null)));
   }
 
   if (acao !== 'cancelar' && acao !== 'reativar') return json(400, { erro: 'acao_invalida' });
