@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { Alert } from '../../components/form/Alert';
 import { Crest } from '../../components/ui/Crest';
@@ -21,14 +21,18 @@ export function dataPorExtenso(iso: string) {
 export function TrocarDeTime() {
   const { perfil, atualizarPerfil } = useAuth();
   const navigate = useNavigate();
+  // Depois da troca o app inteiro remonta com o clube novo; a tela de sucesso vem pelo state da navegação.
+  // Guardado no estado e tirado do histórico em seguida, para recarregar a página não repetir o sucesso.
+  const [trocou] = useState((useLocation().state as { trocou?: string } | null)?.trocou);
+  useEffect(() => {
+    if (trocou) navigate('/conta/time', { replace: true, state: null });
+  }, [trocou, navigate]);
   const [pais, setPais] = useState(perfil?.pais ?? 'BR');
   const [busca, setBusca] = useState('');
   const [novo, setNovo] = useState<Clube | null>(null);
   const [ciente, setCiente] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  // Depois de confirmar, o perfil já tem a troca marcada: a tela de sucesso fica até a pessoa sair.
-  const [feito, setFeito] = useState<string | null>(null);
 
   const paises = useCarga('paises', listarPaises);
   const clubes = useCarga(pais, listarClubes);
@@ -36,7 +40,7 @@ export function TrocarDeTime() {
   if (!perfil) return null;
   const atual = perfil.clube?.nome ?? 'seu time';
 
-  if (feito) return <Concluida novoNome={feito} apelido={perfil.apelido ?? ''} novoId={perfil.time_id} />;
+  if (trocou && perfil.time_trocado_em) return <Concluida novoNome={trocou} apelido={perfil.apelido ?? ''} novoId={perfil.time_id} />;
   if (perfil.time_trocado_em) return <JaUsada anterior={perfil.clube_anterior?.nome ?? 'outro clube'} atual={atual} em={perfil.time_trocado_em} />;
 
   const nomePais = (codigo: string) => paises.dados?.find((p) => p.codigo === codigo)?.nome ?? codigo;
@@ -50,9 +54,12 @@ export function TrocarDeTime() {
     if (!pode || !novo) return;
     setEnviando(true);
     setErro(null);
+    // Marca a tela de sucesso antes de salvar: com o clube novo, esta tela é remontada do zero.
+    navigate('/conta/time', { replace: true, state: { trocou: novo.nome } });
     const error = await atualizarPerfil({ time_id: novo.id });
+    if (!error) return;
+    navigate('/conta/time', { replace: true, state: null });
     setEnviando(false);
-    if (!error) return setFeito(novo.nome);
     setErro(error.hint === 'troca_usada' ? 'A troca de time desta conta já foi usada.' : 'Não foi possível trocar agora. Tente de novo.');
   }
 

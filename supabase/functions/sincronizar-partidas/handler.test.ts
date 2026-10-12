@@ -349,6 +349,8 @@ describe('sincronizar-partidas · classificação', () => {
 });
 
 describe('sincronizar-partidas · temporada e fases', () => {
+  const posicao = (position: number, team_id: number) => ({ position, team_id, team_name: `Time ${team_id}`, played: 30, won: 10, drawn: 5, lost: 15, gf: 40, ga: 45, pts: 50, form: 'WDLWW' });
+
   it('busca a temporada de cada clube com torcedores e grava fase, grupo, ida e pênaltis', async () => {
     const volta = evento({
       id: 600964,
@@ -375,6 +377,21 @@ describe('sincronizar-partidas · temporada e fases', () => {
     const [a, b] = m.salvasNaChamada();
     expect(a).toMatchObject({ id: 600964, temporada_id: 96, fase: 'quarterfinals', fase_nome: 'Quartas de final', grupo: null, jogo_de_ida: 599509, penaltis_mandante: 3, penaltis_visitante: 4 });
     expect(b).toMatchObject({ id: 9000, fase: 'group-stage', fase_nome: 'Fase de grupos', grupo: 'Grupo F' });
+  });
+
+  it('modo clube: temporada e tabelas de um clube só, para quem acabou de escolher ou trocar de time', async () => {
+    const jogo = evento({ id: 8001, status: 'finished', league_id: 9, home_team_id: 160, home_team: 'Flamengo', away_team_id: 167, away_team: 'Corinthians' });
+    const m = montar({ aoVivo: [], copas: [9], doTime: new Map([[160, [jogo]]]), tabelas: new Map([[9, { standings: [posicao(1, 160), posicao(2, 162)] }]]) });
+    const corpo = await (await rodar(m, pedido({ modo: 'clube', clube: 160 }))).json();
+    expect(corpo).toMatchObject({ ok: true, modo: 'clube', clube: 160, salvas: 1, ligas: 1, linhas: 2, falhas: [] });
+    expect(m.bsd.eventosDoTime).toHaveBeenCalledWith(160, '2025-11-15');
+    expect(m.competicoesDosClubes).toHaveBeenCalledWith([160], new Date('2025-11-15T21:00:00Z'));
+    expect(m.salvarClassificacao).toHaveBeenCalledWith(9, expect.any(Array));
+  });
+
+  it('modo clube sem o id do clube é recusado', async () => {
+    const resposta = await rodar(montar(), pedido({ modo: 'clube' }));
+    expect(resposta.status).toBe(400);
   });
 
   it('a lista ao vivo, que não traz fase, mantém a fase já salva', async () => {

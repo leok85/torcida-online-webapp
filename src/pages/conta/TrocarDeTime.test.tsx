@@ -48,6 +48,21 @@ describe('trocar de time (/conta/time)', () => {
     expect(salvo.time_trocado_em).not.toBeNull();
   });
 
+  it('depois da troca o app remonta com o clube novo e, ao voltar, mostra a troca já usada', async () => {
+    supabaseFalso.logar(perfilDeTeste());
+    const { user } = renderApp('/conta/time');
+    await user.click(await screen.findByRole('radio', { name: /Flamengo/ }));
+    await user.click(screen.getByRole('checkbox', { name: /Entendi/ }));
+    await user.click(confirmar());
+    expect(await screen.findByRole('heading', { name: 'Agora você é Flamengo' })).toBeInTheDocument();
+    expect(within(screen.getByRole('banner')).getByText('Flamengo')).toBeInTheDocument();
+    expect(within(screen.getByRole('banner')).queryByText('Palmeiras')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ir para o início' }));
+    await user.click(await screen.findByRole('button', { name: /Rafa_9/ }));
+    await user.click(screen.getByRole('menuitem', { name: /Trocar de time/ }));
+    expect(await screen.findByRole('heading', { name: 'Troca já utilizada' })).toBeInTheDocument();
+  });
+
   it('clube de outro país avisa que jogos e notícias mudam de país e grava o país novo', async () => {
     supabaseFalso.logar(perfilDeTeste());
     const { user } = renderApp('/conta/time');

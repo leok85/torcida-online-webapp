@@ -6,6 +6,8 @@ test('troca de time: escolhe o clube, confirma e, ao voltar, a troca aparece com
   await page.getByLabel('E-mail').fill('rafa@example.com');
   await page.getByLabel('Senha', { exact: true }).fill('Senha#2026');
   await page.getByRole('button', { name: 'Entrar' }).click();
+  // Espera o login terminar antes de trocar de página (senão a sessão ainda não foi gravada).
+  await page.waitForURL((u) => !u.pathname.startsWith('/entrar'));
   await page.goto('/jogos');
 
   await page.getByRole('button', { name: /Rafa_9/ }).click();

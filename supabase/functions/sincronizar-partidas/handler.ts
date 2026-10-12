@@ -392,14 +392,21 @@ const JANELA_DA_CLASSIFICACAO_MS = 6 * 60 * 60_000;
 const DIAS_DA_TEMPORADA = 330;
 
 async function sincronizarClassificacao(bsd: Bsd, banco: Banco, todas: boolean, agora: Date): Promise<Response> {
-  const { ligas, clubes } = await banco.catalogo();
   let ids: number[];
   if (todas) {
+    const { ligas } = await banco.catalogo();
     const copas = await banco.competicoesDosClubes(await banco.clubesComTorcedores(), somarDias(agora, -DIAS_DA_TEMPORADA));
     ids = [...new Set([...ligas.keys(), ...copas])];
   } else {
     ids = await banco.ligasComJogoDesde(new Date(agora.getTime() - JANELA_DA_CLASSIFICACAO_MS));
   }
+  const { linhas, falhas } = await salvarTabelas(ids, bsd, banco, agora);
+  return json(200, { ok: true, modo: 'classificacao', ligas: ids.length, linhas, falhas });
+}
+
+/** Busca e grava a tabela (e a competição) de cada liga ou copa; devolve as linhas gravadas e as que falharam. */
+async function salvarTabelas(ids: number[], bsd: Bsd, banco: Banco, agora: Date) {
+  const { ligas, clubes } = await banco.catalogo();
   let linhas = 0;
   const falhas: number[] = [];
   for (const id of ids) {
@@ -417,7 +424,7 @@ async function sincronizarClassificacao(bsd: Bsd, banco: Banco, todas: boolean, 
       falhas.push(id);
     }
   }
-  return json(200, { ok: true, modo: 'classificacao', ligas: ids.length, linhas, falhas });
+  return { linhas, falhas };
 }
 
 const dia = (data: Date) => data.toISOString().slice(0, 10);
@@ -436,6 +443,10 @@ export async function sincronizar(req: Request, deps: Dependencias): Promise<Res
   const agora = deps.agora?.() ?? new Date();
   if (corpo.modo === 'classificacao') return sincronizarClassificacao(bsd, banco, corpo.todas === true, agora);
   if (corpo.modo === 'temporada') return sincronizarTemporada(bsd, banco, agora);
+  if (corpo.modo === 'clube') {
+    if (typeof corpo.clube !== 'number' || !Number.isInteger(corpo.clube)) return json(400, { erro: 'clube_invalido' });
+    return sincronizarClube(bsd, banco, corpo.clube, agora);
+  }
   const modo = corpo.modo === 'agenda' ? 'agenda' : 'ao_vivo';
 
   let eventos: EventoBsd[];
@@ -479,6 +490,25 @@ async function sincronizarTemporada(bsd: Bsd, banco: Banco, agora: Date): Promis
   }
   const { salvas, incidentes } = await salvarEventos([...porId.values()], bsd, banco, agora);
   return json(200, { ok: true, modo: 'temporada', clubes: clubes.length, salvas, incidentes, falhas });
+}
+
+/**
+ * Modo "clube": a temporada e as tabelas de um clube só, na hora em que alguém passa a torcer por ele
+ * (onboarding ou troca de time). Sem isso, um clube sem torcedores só entraria na rodada diária.
+ */
+async function sincronizarClube(bsd: Bsd, banco: Banco, clube: number, agora: Date): Promise<Response> {
+  const desde = somarDias(agora, -DIAS_DA_TEMPORADA);
+  let eventos: EventoBsd[];
+  try {
+    eventos = await bsd.eventosDoTime(clube, dia(desde));
+  } catch {
+    return json(502, { erro: 'falha_na_bsd' });
+  }
+  const { salvas, incidentes } = await salvarEventos(eventos, bsd, banco, agora);
+  // A liga e as copas que o clube jogou na temporada, lidas dos jogos recém-gravados.
+  const ids = await banco.competicoesDosClubes([clube], desde);
+  const { linhas, falhas } = await salvarTabelas(ids, bsd, banco, agora);
+  return json(200, { ok: true, modo: 'clube', clube, salvas, incidentes, ligas: ids.length, linhas, falhas });
 }
 
 /** Converte e grava os eventos dos clubes do catálogo; devolve quantos jogos e pedidos de gols. */

@@ -33,6 +33,15 @@ import styles from './AppShell.module.css';
 
 type Panel = 'notif' | 'account' | null;
 
+/**
+ * Troca de time = tudo do zero: a chave do clube remonta jogos, cabeçalho, páginas e o estado delas,
+ * para nada do clube antigo (jogos, tabela escolhida, telas abertas) continuar na tela.
+ */
+export function AppShellDoTime() {
+  const { perfil } = useAuth();
+  return <AppShell key={perfil?.time_id ?? 'sem-time'} />;
+}
+
 export function AppShell() {
   const [panel, setPanel] = useState<Panel>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
