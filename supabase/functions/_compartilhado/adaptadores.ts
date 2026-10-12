@@ -2,7 +2,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Stripe from 'npm:stripe@22.6.0';
 import { CorreioIndisponivel, type AssinaturaStripe, type Banco, type Correio, type MetodoStripe, type Pagamentos } from './assinatura.ts';
-import { ASSUNTO_CODIGO_COBRANCA, htmlDoCodigoDeCobranca, textoDoCodigoDeCobranca } from './emailCodigoCobranca.ts';
+import { ASSUNTO_CODIGO_COBRANCA, htmlDoCodigoDeCobranca, REMETENTE, textoDoCodigoDeCobranca } from './emailCodigoCobranca.ts';
 
 export const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { httpClient: Stripe.createFetchHttpClient() });
 
@@ -221,7 +221,7 @@ export const correio: Correio = {
       method: 'POST',
       headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'Torcida Online <nao-responda@torcidaonline.com.br>',
+        from: REMETENTE,
         to: [para],
         subject: ASSUNTO_CODIGO_COBRANCA,
         html: htmlDoCodigoDeCobranca(codigo, para),
