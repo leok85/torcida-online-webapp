@@ -2,6 +2,8 @@
 // - modo "ao_vivo" (a cada 2 min): placar e minuto de quem está em campo, e o resultado de quem acabou de terminar.
 //   Só chama a BSD quando algum jogo salvo está na janela ao vivo (pelo horário de início); fora dela não gasta cota;
 // - modo "agenda" (de hora em hora): resultados dos últimos dias e jogos marcados para os próximos.
+// - modo "classificacao" (de hora em hora): tabela das ligas que tiveram jogo nas últimas 6 h; com "todas", de todas
+//   as ligas do catálogo (uma vez por dia).
 // A conta grátis da BSD tem 7.500 pedidos por dia; por isso os gols (incidentes) só são buscados quando o placar muda.
 // Fica separado do index.ts, que só existe no Deno, para os testes do Vitest chamarem direto.
 import { json, lerCorpo } from '../_compartilhado/http.ts';
@@ -55,6 +57,38 @@ export type Partida = {
 
 export type PartidaSalva = Pick<Partida, 'liga_nome' | 'gols_mandante' | 'gols_visitante' | 'gols'>;
 
+export type LinhaDaTabelaBsd = {
+  position: number;
+  team_id: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  gf: number;
+  ga: number;
+  pts: number;
+  form?: string | null;
+};
+
+/** Resposta de /api/v2/leagues/{id}/standings/: tabela única ou grupos (conferências, chaves). */
+export type ClassificacaoBsd = { standings?: LinhaDaTabelaBsd[] | null; groups?: Record<string, LinhaDaTabelaBsd[]> | null };
+
+export type LinhaDaClassificacao = {
+  liga_id: number;
+  grupo: string;
+  clube_id: number;
+  posicao: number;
+  pontos: number;
+  jogos: number;
+  vitorias: number;
+  empates: number;
+  derrotas: number;
+  gols_pro: number;
+  gols_contra: number;
+  forma: string | null;
+  atualizado_em: string;
+};
+
 /** O pedaço da API REST da BSD que a sincronização usa (todas as páginas já juntas). */
 export type Bsd = {
   aoVivo(): Promise<EventoBsd[]>;
@@ -62,6 +96,7 @@ export type Bsd = {
   evento(id: number): Promise<EventoBsd | null>;
   incidentes(id: number): Promise<IncidenteBsd[]>;
   nomeDaLiga(id: number): Promise<string | null>;
+  classificacao(ligaId: number): Promise<ClassificacaoBsd>;
 };
 
 export type Banco = {
@@ -72,6 +107,10 @@ export type Banco = {
   /** Se há jogo ao vivo salvo ou jogo marcado com início entre `de` e `ate`. */
   haJogoNaJanela(de: Date, ate: Date): Promise<boolean>;
   salvar(partidas: Partida[]): Promise<void>;
+  /** Ligas (do catálogo) com jogo encerrado ou em campo que começou a partir de `desde`. */
+  ligasComJogoDesde(desde: Date): Promise<number[]>;
+  /** Troca a classificação inteira da liga pela nova. */
+  salvarClassificacao(ligaId: number, linhas: LinhaDaClassificacao[]): Promise<void>;
 };
 
 export type Dependencias = {
@@ -134,6 +173,50 @@ export function golsDe(incidentes: IncidenteBsd[]): Gol[] {
     .map(({ ordem: _ordem, ...gol }) => gol);
 }
 
+/** Linhas da tabela da BSD no formato da tabela classificacao. */
+export function linhasDaClassificacao(ligaId: number, bsd: ClassificacaoBsd, agora: Date): LinhaDaClassificacao[] {
+  const grupos: [string, LinhaDaTabelaBsd[]][] = bsd.groups && Object.keys(bsd.groups).length ? Object.entries(bsd.groups) : [['', bsd.standings ?? []]];
+  return grupos.flatMap(([grupo, linhas]) =>
+    linhas.map((l) => ({
+      liga_id: ligaId,
+      grupo,
+      clube_id: l.team_id,
+      posicao: l.position,
+      pontos: l.pts,
+      jogos: l.played,
+      vitorias: l.won,
+      empates: l.drawn,
+      derrotas: l.lost,
+      gols_pro: l.gf,
+      gols_contra: l.ga,
+      forma: l.form ?? null,
+      atualizado_em: agora.toISOString(),
+    })),
+  );
+}
+
+/** Jogos que terminaram nas últimas 6 h mexeram na tabela da liga. */
+const JANELA_DA_CLASSIFICACAO_MS = 6 * 60 * 60_000;
+
+async function sincronizarClassificacao(bsd: Bsd, banco: Banco, todas: boolean, agora: Date): Promise<Response> {
+  const { ligas } = await banco.catalogo();
+  const ids = todas ? [...ligas.keys()] : (await banco.ligasComJogoDesde(new Date(agora.getTime() - JANELA_DA_CLASSIFICACAO_MS))).filter((id) => ligas.has(id));
+  let linhas = 0;
+  const falhas: number[] = [];
+  for (const id of ids) {
+    try {
+      const novas = linhasDaClassificacao(id, await bsd.classificacao(id), agora);
+      // Liga sem tabela (fora de temporada) não apaga a última que temos.
+      if (!novas.length) continue;
+      await banco.salvarClassificacao(id, novas);
+      linhas += novas.length;
+    } catch {
+      falhas.push(id);
+    }
+  }
+  return json(200, { ok: true, modo: 'classificacao', ligas: ids.length, linhas, falhas });
+}
+
 const dia = (data: Date) => data.toISOString().slice(0, 10);
 const somarDias = (data: Date, dias: number) => new Date(data.getTime() + dias * 86_400_000);
 const limitar = (valor: unknown, padrao: number, maximo: number) =>
@@ -147,8 +230,9 @@ export async function sincronizar(req: Request, deps: Dependencias): Promise<Res
   if (!bsd) return json(503, { erro: 'sem_chave_bsd' });
 
   const corpo = await lerCorpo(req);
-  const modo = corpo.modo === 'agenda' ? 'agenda' : 'ao_vivo';
   const agora = deps.agora?.() ?? new Date();
+  if (corpo.modo === 'classificacao') return sincronizarClassificacao(bsd, banco, corpo.todas === true, agora);
+  const modo = corpo.modo === 'agenda' ? 'agenda' : 'ao_vivo';
 
   let eventos: EventoBsd[];
   try {

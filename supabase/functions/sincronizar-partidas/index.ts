@@ -1,7 +1,7 @@
 // Edge Function (Deno): POST /functions/v1/sincronizar-partidas, chamada pelo pg_cron com o cabeçalho x-segredo.
 // Publicada com verify_jwt desligado: quem autoriza é o segredo, não um usuário.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { sincronizar, type Banco, type Bsd, type EventoBsd, type IncidenteBsd, type PartidaSalva } from './handler.ts';
+import { sincronizar, type Banco, type Bsd, type ClassificacaoBsd, type EventoBsd, type IncidenteBsd, type PartidaSalva } from './handler.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -35,6 +35,7 @@ const bsd: Bsd | null = chave
       evento: (id) => pedir<EventoBsd>(`/api/v2/events/${id}/`).catch(() => null),
       incidentes: async (id) => (await pedir<{ incidents?: IncidenteBsd[] }>(`/api/v2/events/${id}/incidents/`)).incidents ?? [],
       nomeDaLiga: async (id) => (await pedir<{ name?: string }>(`/api/v2/leagues/${id}/`)).name ?? null,
+      classificacao: (id) => pedir<ClassificacaoBsd>(`/api/v2/leagues/${id}/standings/`),
     }
   : null;
 
@@ -69,6 +70,22 @@ const banco: Banco = {
       .or(`status.eq.ao_vivo,and(status.eq.agendada,inicio.gte.${de.toISOString()},inicio.lte.${ate.toISOString()})`);
     falhar('haJogoNaJanela', error);
     return (count ?? 0) > 0;
+  },
+  async ligasComJogoDesde(desde) {
+    const { data, error } = await admin
+      .from('partidas')
+      .select('liga_id')
+      .in('status', ['ao_vivo', 'encerrada'])
+      .gte('inicio', desde.toISOString())
+      .not('liga_id', 'is', null);
+    falhar('ligasComJogoDesde', error);
+    return [...new Set(data!.map((p) => p.liga_id as number))];
+  },
+  async salvarClassificacao(ligaId, linhas) {
+    const apagar = await admin.from('classificacao').delete().eq('liga_id', ligaId);
+    falhar('salvarClassificacao (apagar)', apagar.error);
+    const { error } = await admin.from('classificacao').insert(linhas);
+    falhar('salvarClassificacao', error);
   },
   async salvar(partidas) {
     const { error } = await admin.from('partidas').upsert(partidas);

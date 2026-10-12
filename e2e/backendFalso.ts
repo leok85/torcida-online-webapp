@@ -3,7 +3,7 @@
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
 import type { BrowserContext, Route } from '@playwright/test';
 import type { Partida } from '../src/lib/database.types';
-import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste } from '../src/test/catalogoDeTeste';
+import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
   id: string;
@@ -282,6 +282,11 @@ export class BackendFalso {
     if (caminho === '/rpc/buscar_cidades') {
       const { termo, pais, limite } = req.postDataJSON();
       return json(200, buscarCidadesDeTeste(termo, pais, limite));
+    }
+
+    if (caminho === '/rpc/resumo_do_clube') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for function resumo_do_clube' });
+      return json(200, resumoDoClubeDeTeste([...this.perfis.values()], req.postDataJSON().clube));
     }
 
     if (caminho === '/rpc/sou_assinante') {
