@@ -4,6 +4,7 @@ import { AppShellDoTime } from './components/layout/AppShell';
 import { BoasVindas } from './pages/auth/BoasVindas';
 import { CriarConta } from './pages/auth/CriarConta';
 import { Entrar } from './pages/auth/Entrar';
+import { LinkDeConvite } from './pages/auth/LinkDeConvite';
 import { Onboarding } from './pages/auth/Onboarding';
 import { RecuperarSenha } from './pages/auth/RecuperarSenha';
 import { VerificarEmail } from './pages/auth/VerificarEmail';
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/criar-conta" element={<CriarConta />} />
       </Route>
+      <Route path="/r/:codigo" element={<LinkDeConvite />} />
       {/* Sem guard: as duas criam a sessão no meio do fluxo e cuidam do redirecionamento. */}
       <Route path="/verificar-email" element={<VerificarEmail />} />
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />

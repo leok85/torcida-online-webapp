@@ -4,6 +4,7 @@
 import type { BrowserContext, Route } from '@playwright/test';
 import type { ClassificacaoRow, CompeticaoRow, FeedbackRow, Partida } from '../src/lib/database.types';
 import { inicioDaSemana } from '../src/data/semana';
+import { aplicarConviteDeTeste, convidadosDe, convidarAmigosDeTeste, convitesHoje, donoDoConvite, LIMITE_DE_CONVITES, type ConviteEmailDeTeste } from '../src/test/convitesDeTeste';
 import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
@@ -26,6 +27,8 @@ type Perfil = {
   exclusao_agendada_para: string | null;
   time_anterior_id: number | null;
   time_trocado_em: string | null;
+  convidado_por: string | null;
+  convite_contou_em: string | null;
   criado_em: string;
   atualizado_em: string;
 };
@@ -74,6 +77,8 @@ const agora = () => new Date().toISOString();
 export class BackendFalso {
   readonly usuarios = new Map<string, Usuario>();
   readonly perfis = new Map<string, Perfil>();
+  /** Convites mandados pela função convidar-amigos (o e-mail não sai: o teste lê daqui). */
+  readonly convitesEmail: ConviteEmailDeTeste[] = [];
   /** Minha assinatura: e-mail de cobrança trocado e o código pendente de cada torcedor. */
   readonly emailDeCobranca = new Map<string, string>();
   readonly codigosDeCobranca = new Map<string, { email: string; codigo: string }>();
@@ -190,6 +195,9 @@ export class BackendFalso {
       exclusao_agendada_para: null,
       time_anterior_id: null,
       time_trocado_em: null,
+      // raw_user_meta_data.convite: o apelido de quem mandou o link /r/.
+      convidado_por: donoDoConvite(this.perfis.values(), metadata.convite)?.id ?? null,
+      convite_contou_em: null,
       criado_em: agora(),
       atualizado_em: agora(),
     });
@@ -338,6 +346,10 @@ export class BackendFalso {
     const corpo = req.postDataJSON?.() ?? {};
 
     if (nome === 'criar-checkout') return json(200, { clientSecret: 'cs_test_e2e_secret' });
+    if (nome === 'convidar-amigos') {
+      const r = convidarAmigosDeTeste(this.convitesEmail, { id: usuario.id, email: usuario.email }, corpo);
+      return json(r.status, r.corpo);
+    }
     if (nome === 'excluir-conta') {
       // Agenda para daqui a 30 dias e tira a conta de todos os aparelhos, como a Edge Function.
       const exclui_em = new Date(Date.now() + 30 * DIA_MS).toISOString();
@@ -476,6 +488,27 @@ export class BackendFalso {
       return rota.fulfill({ status: 204 });
     }
 
+    // ---------- convites ----------
+    if (caminho === '/rpc/convite_de') {
+      const dono = donoDoConvite(this.perfis.values(), req.postDataJSON().codigo);
+      return json(200, dono ? [{ apelido: dono.apelido, clube: CLUBES_DE_TESTE.find((c) => c.id === dono.time_id)?.nome ?? null }] : []);
+    }
+    if (['/rpc/meu_convidador', '/rpc/aplicar_convite', '/rpc/meus_convidados', '/rpc/convites_restantes'].includes(caminho)) {
+      if (!usuario) return json(401, { code: '42501', message: `permission denied for function ${caminho.slice(5)}` });
+      if (caminho === '/rpc/meu_convidador') {
+        const meu = this.perfis.get(usuario.id)?.convidado_por;
+        return json(200, (meu && this.perfis.get(meu)?.apelido) ?? null);
+      }
+      if (caminho === '/rpc/aplicar_convite') {
+        const r = aplicarConviteDeTeste(this.perfis, usuario.id, req.postDataJSON().codigo);
+        return 'hint' in r ? json(400, { code: 'P0001', message: r.hint, hint: r.hint, details: null }) : json(200, r.apelido);
+      }
+      if (caminho === '/rpc/meus_convidados') {
+        return json(200, convidadosDe(this.perfis.values(), this.convitesEmail, (id) => this.usuarios.get(id)?.email, usuario.id));
+      }
+      return json(200, Math.max(0, LIMITE_DE_CONVITES - convitesHoje(this.convitesEmail, usuario.id)));
+    }
+
     if (caminho === '/rpc/sou_assinante') {
       // Mesma regra da função sou_assinante() da migration.
       const valida = this.assinaturas.some(
@@ -564,6 +597,8 @@ export class BackendFalso {
         // Troca de time: livre no onboarding; depois dele, uma única vez, com o país do clube novo.
         novo.time_anterior_id = perfil.time_anterior_id;
         novo.time_trocado_em = perfil.time_trocado_em;
+        // O convite conta quando o convidado conclui o onboarding.
+        novo.convite_contou_em = !perfil.onboarding_concluido_em && novo.onboarding_concluido_em && perfil.convidado_por ? agora() : perfil.convite_contou_em;
         if (campos.time_id !== undefined && campos.time_id !== perfil.time_id && perfil.onboarding_concluido_em) {
           if (perfil.time_trocado_em) return json(400, { code: 'P0001', message: 'A troca de time já foi usada', hint: 'troca_usada' });
           novo.time_anterior_id = perfil.time_id;

@@ -6,6 +6,7 @@ import type { Session, User, UserIdentity } from '@supabase/supabase-js';
 import type { Assinatura, FeedbackRow, Perfil } from '../lib/database.types';
 import { inicioDaSemana } from '../data/semana';
 import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.types';
+import { aplicarConviteDeTeste, convidadosDe, convidarAmigosDeTeste, convitesHoje, donoDoConvite, LIMITE_DE_CONVITES, type ConviteEmailDeTeste } from './convitesDeTeste';
 import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
@@ -30,6 +31,8 @@ export function perfilDeTeste(campos: Partial<Perfil> = {}): Perfil {
     apelido_anterior: null,
     time_anterior_id: null,
     time_trocado_em: null,
+    convidado_por: null,
+    convite_contou_em: null,
     // Com senha (trigger ao_trocar_senha); null = entra só pelo Google ou pela Apple.
     senha_alterada_em: '2026-06-10T12:00:00Z',
     foto: null,
@@ -120,6 +123,9 @@ function criar() {
   let emailDeCobranca: string | null = null;
   let codigoDeCobranca: string | null = null;
   let recusarTroca = false;
+  // Convidar amigos: convites por e-mail e o e-mail de cada conta (para "Seus convidados").
+  const convitesEmail: ConviteEmailDeTeste[] = [];
+  const emailsDasContas = new Map<string, string>();
   // RLS: o torcedor só enxerga as próprias assinaturas.
   const minhas = () => assinaturas.filter((a) => a.usuario_id === sessao?.user.id);
   const ouvintes = new Set<Ouvinte>();
@@ -167,9 +173,13 @@ function criar() {
         if (trocouTime && atual.time_trocado_em) {
           return { data: null, error: { code: 'P0001', message: 'A troca de time já foi usada', hint: 'troca_usada' } };
         }
+        // Trigger perfis_antes_de_atualizar: o convite conta quando o convidado conclui o onboarding.
+        const contou = !atual.onboarding_concluido_em && !!campos.onboarding_concluido_em && !!atual.convidado_por;
         const novo = {
           ...atual,
           ...campos,
+          convidado_por: atual.convidado_por,
+          convite_contou_em: contou ? new Date().toISOString() : atual.convite_contou_em,
           time_anterior_id: atual.time_anterior_id,
           time_trocado_em: atual.time_trocado_em,
           ...(trocouApelido && { apelido_alterado_em: new Date().toISOString(), apelido_anterior: atual.apelido }),
@@ -336,6 +346,10 @@ function criar() {
   async function invocarPadrao(nome: string, { body }: { body: { acao?: string } }) {
     if (!sessao) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'sem_sessao' }), { status: 401 }) } };
     if (nome === 'criar-checkout') return ok({ clientSecret: 'cs_test_secret_teste' });
+    if (nome === 'convidar-amigos') {
+      const r = convidarAmigosDeTeste(convitesEmail, { id: sessao.user.id, email: sessao.user.email }, body as object);
+      return r.status === 200 ? ok(r.corpo) : { data: null, error: { context: new Response(JSON.stringify(r.corpo), { status: r.status }) } };
+    }
     if (nome === 'excluir-conta') {
       const exclui_em = new Date(Date.now() + 30 * DIA_MS).toISOString();
       const perfil = perfis.get(sessao.user.id);
@@ -434,7 +448,23 @@ function criar() {
     emailDeCobranca = null;
     codigoDeCobranca = null;
     recusarTroca = false;
-    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number; sessao?: string }) => {
+    convitesEmail.length = 0;
+    emailsDasContas.clear();
+    rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number; sessao?: string; codigo?: string }) => {
+      if (fn === 'convite_de') {
+        const dono = donoDoConvite(perfis.values(), args!.codigo);
+        return ok(dono ? [{ apelido: dono.apelido, clube: CLUBES_DE_TESTE.find((c) => c.id === dono.time_id)?.nome ?? null }] : []);
+      }
+      if (fn === 'meu_convidador') {
+        const meu = sessao && perfis.get(sessao.user.id)?.convidado_por;
+        return ok((meu && perfis.get(meu)?.apelido) ?? null);
+      }
+      if (fn === 'aplicar_convite') {
+        const r = aplicarConviteDeTeste(perfis, sessao!.user.id, args!.codigo);
+        return 'hint' in r ? { data: null, error: { code: 'P0001', message: r.hint, hint: r.hint } } : ok(r.apelido);
+      }
+      if (fn === 'meus_convidados') return ok(convidadosDe(perfis.values(), convitesEmail, (id) => emailsDasContas.get(id), sessao!.user.id));
+      if (fn === 'convites_restantes') return ok(Math.max(0, LIMITE_DE_CONVITES - convitesHoje(convitesEmail, sessao!.user.id)));
       if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
       if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais, args!.limite));
       if (fn === 'resumo_do_clube') return ok(resumoDoClubeDeTeste([...perfis.values()], args!.clube!));
@@ -476,7 +506,12 @@ function criar() {
     provedoresAtivos,
     resetar,
     /** Coloca um torcedor no "banco" sem logar (ex.: dono de um apelido já usado). */
-    adicionarPerfil: (perfil: Perfil) => perfis.set(perfil.id, perfil),
+    adicionarPerfil: (perfil: Perfil, email?: string) => {
+      perfis.set(perfil.id, perfil);
+      if (email) emailsDasContas.set(perfil.id, email);
+    },
+    /** Convites por e-mail gravados pela função convidar-amigos (de todos os torcedores). */
+    convitesEmail: () => convitesEmail,
     perfil: (id: string) => perfis.get(id),
     /** Grava uma assinatura como o webhook faria. Chame antes de logar para o app já carregar como assinante. */
     assinar: (assinatura: Assinatura = assinaturaDeTeste()) => assinaturas.push(assinatura),
@@ -505,6 +540,7 @@ function criar() {
     /** Cria a sessão; antes do render vira a sessão salva, depois dispara SIGNED_IN como o Supabase. */
     logar(perfil: Perfil, email = EMAIL_PADRAO) {
       perfis.set(perfil.id, perfil);
+      emailsDasContas.set(perfil.id, email);
       sessao = sessaoPara(perfil, email);
       emitir('SIGNED_IN');
       return sessao;

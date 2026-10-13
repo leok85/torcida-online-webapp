@@ -1,8 +1,9 @@
 // Implementações reais de Banco e Pagamentos (só no Deno). As regras ficam em assinatura.ts e nos handlers.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Stripe from 'npm:stripe@22.6.0';
-import { CorreioIndisponivel, type AssinaturaStripe, type Banco, type Correio, type MetodoStripe, type Pagamentos } from './assinatura.ts';
-import { ASSUNTO_CODIGO_COBRANCA, htmlDoCodigoDeCobranca, REMETENTE, textoDoCodigoDeCobranca } from './emailCodigoCobranca.ts';
+import { type AssinaturaStripe, type Banco, type Correio, type MetodoStripe, type Pagamentos } from './assinatura.ts';
+import { ASSUNTO_CODIGO_COBRANCA, htmlDoCodigoDeCobranca, textoDoCodigoDeCobranca } from './emailCodigoCobranca.ts';
+import { enviarPeloResend } from './resend.ts';
 
 export const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { httpClient: Stripe.createFetchHttpClient() });
 
@@ -214,22 +215,8 @@ export const pagamentos: Pagamentos = {
 };
 
 export const correio: Correio = {
-  async enviarCodigoDeCobranca(para, codigo) {
-    const chave = Deno.env.get('RESEND_API_KEY');
-    if (!chave) throw new CorreioIndisponivel();
-    const resposta = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: REMETENTE,
-        to: [para],
-        subject: ASSUNTO_CODIGO_COBRANCA,
-        html: htmlDoCodigoDeCobranca(codigo, para),
-        text: textoDoCodigoDeCobranca(codigo),
-      }),
-    });
-    if (!resposta.ok) throw new Error(`Resend ${resposta.status}: ${await resposta.text()}`);
-  },
+  enviarCodigoDeCobranca: (para, codigo) =>
+    enviarPeloResend({ para, assunto: ASSUNTO_CODIGO_COBRANCA, html: htmlDoCodigoDeCobranca(codigo, para), texto: textoDoCodigoDeCobranca(codigo) }),
 };
 
 function letrasAleatorias(n: number) {

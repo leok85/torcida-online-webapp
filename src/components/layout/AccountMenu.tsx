@@ -25,7 +25,7 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
       icon: 'workspace_premium',
       action: () => { navigate('/conta/assinatura'); onClose(); },
     },
-    { id: 'convite', label: 'Convidar amigos', sub: '3 ativos · 1.840 XP rendidos', icon: 'group_add', action: onOpenInvite },
+    { id: 'convite', label: 'Convidar amigos', sub: '+100 XP por amigo', icon: 'group_add', action: onOpenInvite },
     { id: 'conta', label: 'Dados da conta', sub: 'nome, e-mail e senha', icon: 'badge', action: () => { navigate('/conta/dados'); onClose(); } },
     { id: 'notif', label: 'Preferências de notificação', sub: 'o que você recebe', icon: 'notifications_active', action: onOpenNotif },
     {

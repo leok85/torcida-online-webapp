@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { guardarEmailPendente } from '../../auth/emailPendente';
 import { mensagemDeErro } from '../../auth/erros';
@@ -8,11 +8,19 @@ import { Alert } from '../../components/form/Alert';
 import { Button } from '../../components/form/Button';
 import { Checkbox } from '../../components/form/Checkbox';
 import { TextField } from '../../components/form/TextField';
+import { Icon } from '../../components/ui/Icon';
+import { BONUS_DO_CONVITE, conviteDe, lerConvitePendente, limparConvitePendente } from '../../convites/convites';
 import { SITE } from '../../data/common';
 import { setManterConectado, supabase } from '../../lib/supabase';
 import { AuthLayout } from './AuthLayout';
 import { PasswordStrength } from './PasswordStrength';
 import styles from './Auth.module.css';
+
+/** "Léo.Mansur" → "LM"; "Rafa_9" → "RA". */
+function iniciais(apelido: string) {
+  const partes = apelido.split(/[._]/).filter(Boolean);
+  return (partes.length > 1 ? partes[0][0] + partes[1][0] : apelido.slice(0, 2)).toUpperCase();
+}
 
 export function CriarConta() {
   const navigate = useNavigate();
@@ -29,6 +37,23 @@ export function CriarConta() {
   const [erro, setErro] = useState<string | null>(null);
   /** E-mail que o Supabase disse já ter conta; o alerta some quando o e-mail digitado muda. */
   const [emailEmUso, setEmailEmUso] = useState<string | null>(null);
+
+  /** Quem chamou, quando a pessoa chegou pelo link /r/APELIDO. */
+  const [convite, setConvite] = useState<{ apelido: string; clube: string | null } | null>(null);
+
+  useEffect(() => {
+    const codigo = lerConvitePendente();
+    if (!codigo) return;
+    let vivo = true;
+    conviteDe(codigo).then((dono) => {
+      if (!vivo) return;
+      if (dono) setConvite(dono);
+      else limparConvitePendente();
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   const apelido = useApelido(apelidoDigitado);
   const emailLimpo = email.trim().toLowerCase();
@@ -49,7 +74,7 @@ export function CriarConta() {
       email: emailLimpo,
       password: senha,
       // Vai para raw_user_meta_data; o trigger criar_perfil_do_usuario monta o perfil com esses campos.
-      options: { data: { nome: nome.trim(), apelido: apelido.limpo, aceitou_termos: true, quer_novidades: novidades } },
+      options: { data: { nome: nome.trim(), apelido: apelido.limpo, aceitou_termos: true, quer_novidades: novidades, ...(convite && { convite: convite.apelido }) } },
     });
     setEnviando(false);
 
@@ -72,7 +97,7 @@ export function CriarConta() {
 
   return (
     <AuthLayout
-      title="Crie sua conta"
+      title={convite ? 'Aceite o convite' : 'Crie sua conta'}
       subtitle="Leva menos de um minuto. Depois você escolhe seu time."
       step="Passo 1 de 3 · dados de acesso"
       onBack={() => navigate('/entrar', { state })}
@@ -83,6 +108,22 @@ export function CriarConta() {
       }
     >
       <form className={styles.form} onSubmit={continuar} noValidate>
+        {convite && (
+          <div className={styles.convite}>
+            <span className={styles.conviteAvatar} aria-hidden="true">
+              {iniciais(convite.apelido)}
+            </span>
+            <div className={styles.conviteTexto}>
+              <strong>
+                {convite.apelido} te chamou para {convite.clube ? `a torcida do ${convite.clube}` : 'a Torcida Online'}
+              </strong>
+              <span>Convite já aplicado. Quando você escolher o clube, vocês dois ganham +{BONUS_DO_CONVITE} XP.</span>
+            </div>
+            <span className={styles.conviteXp}>
+              <Icon name="bolt" size={15} />+{BONUS_DO_CONVITE} XP
+            </span>
+          </div>
+        )}
         {jaTemConta && (
           <Alert
             title="Esse e-mail já tem conta na Torcida Online"
