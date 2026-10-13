@@ -45,7 +45,7 @@ describe('menu', () => {
 
   it('marca Jogos nas telas de um jogo', async () => {
     supabaseFalso.logar(perfilDeTeste());
-    renderApp('/ao-vivo');
+    renderApp('/jogo/7290');
     const menu = await screen.findByRole('navigation');
     expect(within(menu).getByRole('link', { name: /Jogos/ })).toHaveAttribute('aria-current', 'page');
   });
@@ -86,7 +86,7 @@ describe('Jogos (W20)', () => {
     expect(aoVivo).toHaveTextContent("AO VIVO · 67'");
     expect(aoVivo).toHaveTextContent('Palmeiras 1 x 0 Corinthians');
     await user.click(within(aoVivo).getByRole('link', { name: /Entrar no jogo/ }));
-    expect(local()).toBe('/ao-vivo');
+    expect(local()).toBe('/jogo/7290');
   });
 
   it('lista os próximos com a abertura do palpite: o primeiro só no apito final enquanto há jogo', async () => {

@@ -49,7 +49,7 @@ describe('Início · card do jogo', () => {
     expect(within(faixa).queryByRole('link')).not.toBeInTheDocument();
 
     await user.click(within(jogo).getByRole('button', { name: /Entrar no chat/ }));
-    expect(local()).toBe('/ao-vivo');
+    expect(local()).toBe('/jogo/7290');
   });
 
   it('encerrado: há quanto tempo acabou, gols de cada lado, notas, chat e fotos, e o próximo com palpite aberto', async () => {
@@ -81,7 +81,7 @@ describe('Início · card do jogo', () => {
 
   it.each([
     ['Dar notas', '/pos-jogo'],
-    ['Chat', '/ao-vivo'],
+    ['Chat', '/jogo/7290'],
   ])('encerrado: "%s" leva para %s', async (botao, destino) => {
     relogio('2026-10-12T15:00:00Z');
     supabaseFalso.adicionarPartida(classico());

@@ -34,7 +34,7 @@
 }
 
 .score {
-  composes: score from '../styles/ui.module.css';
+  composes: score from '../../styles/ui.module.css';
   font-size: 40px;
 }
 
@@ -43,29 +43,6 @@
   font-size: 10.5px;
   color: rgba(255, 255, 255, 0.55);
   margin-top: 4px;
-}
-
-.guess {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 15px;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.07);
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.guess strong {
-  font-weight: 800;
-  color: #fff;
-}
-
-.guessXp {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--green-light);
 }
 
 .grid {
@@ -101,6 +78,7 @@
   align-items: center;
   gap: 5px;
   width: 74px;
+  max-width: 20%;
 }
 
 .shirt {
@@ -127,65 +105,28 @@
 }
 
 .tag {
+  min-height: 11px;
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
   text-align: center;
+  color: #c8f5a5;
 }
 
 .panel {
-  composes: card from '../styles/ui.module.css';
+  composes: card from '../../styles/ui.module.css';
   flex: none;
   border-radius: 14px;
   padding: 18px;
 }
 
-.disagree {
-  composes: panel;
-  margin-top: 16px;
-  padding: 16px 18px;
-}
-
 .panelTitle {
-  composes: titleLg from '../styles/ui.module.css';
+  composes: titleLg from '../../styles/ui.module.css';
   margin-bottom: 14px;
 }
 
 .panelTitle.tight {
   margin-bottom: 12px;
-}
-
-.disagree .panelTitle {
-  font-size: 16px;
-  margin-bottom: 10px;
-}
-
-.swap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--bg);
-  font-size: 12.5px;
-}
-
-.swap:last-child {
-  border-bottom: 0;
-}
-
-.swap strong {
-  font-weight: 800;
-}
-
-.swapText {
-  flex: 1;
-}
-
-.pct {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--muted);
 }
 
 .stat {
@@ -273,91 +214,6 @@
   font-weight: 600;
 }
 
-.poll {
-  flex: none;
-  border: 1px solid var(--blue-soft-2);
-  background: var(--blue-soft);
-  border-radius: 14px;
-  padding: 16px 18px;
-}
-
-.pollHead {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--primary);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.pollQ {
-  font-size: 13.5px;
-  font-weight: 700;
-  margin-bottom: 11px;
-}
-
-.options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.option {
-  position: relative;
-  height: 36px;
-  border-radius: 9px;
-  background: var(--surface);
-  border: 1px solid var(--blue-soft-2);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 13px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-2);
-  text-align: left;
-}
-
-.optionFill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  background: var(--soft);
-}
-
-.optionLead {
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.optionLead .optionFill {
-  background: var(--blue-soft-2);
-}
-
-.voted {
-  border-color: var(--primary);
-}
-
-.option > span {
-  position: relative;
-}
-
-.optionPct {
-  font-family: var(--font-mono);
-}
-
-.pollFoot {
-  margin-top: 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--primary);
-}
-
 /* chat */
 .chat {
   display: flex;
@@ -378,6 +234,7 @@
 
 .chatTitle {
   flex: 1;
+  margin: 0;
   font-size: 13.5px;
   font-weight: 800;
 }
@@ -433,24 +290,6 @@
   border-radius: 12px 4px 12px 12px;
 }
 
-.goal {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.goal > div {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--ink);
-  color: #fff;
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 11.5px;
-  font-weight: 800;
-}
-
 .composer {
   flex: none;
   padding: 12px 18px 16px;
@@ -494,4 +333,285 @@
 
 .input:focus {
   border-color: var(--primary);
+}
+
+/* faixa do jogo: ← Jogos, selo, confronto e abas */
+.faixa {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex: none;
+  height: 56px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 28px;
+}
+
+.voltar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 10px 0 6px;
+  border-radius: 9px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.voltar:hover {
+  background: var(--bg);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.divisor {
+  width: 1px;
+  height: 24px;
+  background: var(--line);
+}
+
+.selo {
+  flex: none;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+}
+
+.seloAoVivo {
+  background: #fdecea;
+  color: var(--red-dark);
+}
+
+.faixaTitulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.faixaTitulo strong {
+  flex: none;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.faixaTitulo span {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.abas {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.aba {
+  flex: none;
+  white-space: nowrap;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+a.aba:hover {
+  border-color: var(--line-2);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.abaAtual {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.abaBloqueada {
+  background: var(--bg);
+  color: var(--muted-2);
+  cursor: default;
+}
+
+.encerradoPill {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.formacao {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.vazio {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.numerosTimes {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-2);
+  margin: -6px 0 4px;
+}
+
+.lances {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.event:last-child {
+  border-bottom: 0;
+}
+
+.eventTime {
+  flex: none;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.aviso {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 16px;
+  font-size: 14px;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+/* estados do chat */
+.chatAviso {
+  margin: auto 0;
+  padding: 16px 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  text-align: center;
+}
+
+.composerCampo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.composerCampo .input {
+  flex: none;
+  width: 100%;
+}
+
+.chatErro {
+  font-size: 11.5px;
+  color: var(--red-dark);
+}
+
+.sendBtn:disabled {
+  background: #c7d2e1;
+  cursor: not-allowed;
+}
+
+.chatFechado {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+@media (max-width: 1180px) {
+  .page {
+    height: auto;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .col {
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .chat {
+    height: 560px;
+  }
+
+  .faixa {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+  }
+
+  .abas {
+    width: 100%;
+    overflow-x: auto;
+    margin-left: 0;
+  }
+
+  .bar {
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+  }
 }

@@ -59,7 +59,7 @@ export const TIPOS_DE_ANEXO = ['image/png', 'image/jpeg', 'image/webp'];
 export function areaDaRota(caminho: string | undefined): Area {
   if (!caminho) return 'outro';
   if (caminho === '/') return 'inicio';
-  if (['/jogos', '/ao-vivo', '/pos-jogo', '/fotos'].includes(caminho)) return 'jogo';
+  if (['/jogos', '/pos-jogo', '/fotos'].includes(caminho) || caminho.startsWith('/jogo/')) return 'jogo';
   if (caminho === '/escalacao') return 'palpite';
   if (caminho === '/missoes') return 'missoes';
   if (caminho === '/ranking') return 'ranking';

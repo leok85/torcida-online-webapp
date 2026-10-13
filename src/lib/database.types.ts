@@ -220,6 +220,23 @@ export type Database = {
         Update: { bandeira?: string; codigo?: string; nome?: string; ordem?: number };
         Relationships: [];
       };
+      mensagens_chat: {
+        Row: {
+          autor_apelido: string;
+          autor_foto: string | null;
+          autor_id: string;
+          clube_id: number;
+          criado_em: string;
+          id: number;
+          partida_id: number;
+          texto: string;
+        };
+        Insert: { partida_id: number; texto: string };
+        Update: Record<string, never>;
+        Relationships: [
+          { foreignKeyName: 'mensagens_chat_partida_id_fkey'; columns: ['partida_id']; isOneToOne: false; referencedRelation: 'partidas'; referencedColumns: ['id'] },
+        ];
+      };
       partidas: {
         Row: {
           atualizado_em: string;
@@ -390,6 +407,7 @@ export type Database = {
       apelido_disponivel: { Args: { apelido: string }; Returns: boolean };
       aplicar_convite: { Args: { codigo: string }; Returns: string };
       convite_de: { Args: { codigo: string }; Returns: { apelido: string; clube: string | null }[] };
+      chat_aberto: { Args: { p_partida: number }; Returns: boolean };
       convites_restantes: { Args: Record<string, never>; Returns: number };
       meu_convidador: { Args: Record<string, never>; Returns: string | null };
       meus_convidados: {

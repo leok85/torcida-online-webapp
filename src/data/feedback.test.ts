@@ -4,7 +4,7 @@ import { areaDaRota, enviosComXpNaSemana, inicioDaSemana, problemaDoAnexo } from
 describe('feedback', () => {
   it('a área vem da tela de onde a pessoa abriu', () => {
     expect(areaDaRota('/')).toBe('inicio');
-    expect(areaDaRota('/ao-vivo')).toBe('jogo');
+    expect(areaDaRota('/jogo/7290')).toBe('jogo');
     expect(areaDaRota('/jogos')).toBe('jogo');
     expect(areaDaRota('/escalacao')).toBe('palpite');
     expect(areaDaRota('/loja')).toBe('loja');

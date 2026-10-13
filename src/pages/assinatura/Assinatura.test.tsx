@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { partidaDeTeste } from '../../test/catalogoDeTeste';
 import { renderApp } from '../../test/renderApp';
 import { assinaturaDeTeste, perfilDeTeste, supabaseFalso } from '../../test/supabaseFalso';
 
@@ -70,16 +71,19 @@ describe('bloqueios de assinante', () => {
   });
 
   it('no jogo ao vivo, o placar é livre e só o chat fica bloqueado', async () => {
+    supabaseFalso.adicionarPartida(partidaDeTeste());
     torcedor();
-    renderApp('/ao-vivo');
+    renderApp('/jogo/7290');
     expect(await screen.findByText('Chat da torcida')).toBeInTheDocument();
+    expect(screen.getByLabelText('Placar: 1 a 0')).toBeInTheDocument();
     expect(screen.getByText(/O chat da torcida é para membros/)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Manda a real pra torcida')).not.toBeInTheDocument();
   });
 
   it('membro conversa no chat do jogo ao vivo', async () => {
+    supabaseFalso.adicionarPartida(partidaDeTeste());
     membro();
-    renderApp('/ao-vivo');
+    renderApp('/jogo/7290');
     expect(await screen.findByPlaceholderText('Manda a real pra torcida')).toBeInTheDocument();
   });
 

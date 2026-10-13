@@ -8,7 +8,6 @@ import { Header } from './Header';
 import { InviteModal } from './InviteModal';
 import { NotificationsPanel } from './NotificationsPanel';
 import { Sidebar } from './Sidebar';
-import { AoVivo } from '../../pages/AoVivo';
 import { Campeonatos } from '../../pages/Campeonatos';
 import { Clube } from '../../pages/Clube';
 import { Escalacao } from '../../pages/Escalacao';
@@ -29,6 +28,8 @@ import { MinhaAssinatura } from '../../pages/assinatura/MinhaAssinatura';
 import { Pagamento } from '../../pages/assinatura/Pagamento';
 import { Planos } from '../../pages/assinatura/Planos';
 import { Retorno } from '../../pages/assinatura/Retorno';
+import { Jogo } from '../../pages/jogo/Jogo';
+import { JogoDoMomento } from '../../pages/jogo/JogoDoMomento';
 import styles from './AppShell.module.css';
 
 type Panel = 'notif' | 'account' | null;
@@ -72,7 +73,8 @@ export function AppShell() {
           <Routes>
             <Route path="/" element={<Inicio />} />
             <Route path="/jogos" element={<Jogos />} />
-            <Route path="/ao-vivo" element={<AoVivo />} />
+            <Route path="/jogo/:id" element={<Jogo />} />
+            <Route path="/ao-vivo" element={<JogoDoMomento />} />
             {/* Os mesmos itens marcados como premium em routes.ts. */}
             <Route element={<ApenasAssinante />}>
               <Route path="/escalacao" element={<Escalacao />} />
