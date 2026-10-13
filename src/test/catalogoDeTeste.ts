@@ -106,6 +106,7 @@ export function partidaDeTeste(campos: Partial<Partida> = {}): Partida {
     penaltis_mandante: null,
     penaltis_visitante: null,
     atualizado_em: '2026-10-11T21:40:00Z',
+    encerrada_em: null,
     ...campos,
   };
 }

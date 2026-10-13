@@ -189,7 +189,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
         </div>
         {ultimo && (
           <Faixa rotulo="ÚLTIMO JOGO" titulo={placar(ultimo)} info={infoDoResultado(ultimo)}>
-            <Link to="/pos-jogo" className={styles.faixaBtn}>
+            <Link to={`/jogo/${ultimo.id}/notas`} className={styles.faixaBtn}>
               Notas e fotos
               <Icon name="arrow_forward" size={17} />
             </Link>
@@ -221,7 +221,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
             </button>
           ) : (
             <>
-              <button type="button" className={styles.chatBtn} onClick={() => navigate('/pos-jogo')}>
+              <button type="button" className={styles.chatBtn} onClick={() => navigate(`/jogo/${jogo.id}/notas`)}>
                 <Icon name="star" size={20} />
                 Dar notas
               </button>

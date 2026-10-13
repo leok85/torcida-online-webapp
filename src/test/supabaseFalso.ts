@@ -7,7 +7,7 @@ import type { Assinatura, FeedbackRow, Perfil } from '../lib/database.types';
 import { inicioDaSemana } from '../data/semana';
 import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.types';
 import { aplicarConviteDeTeste, convidadosDe, convidarAmigosDeTeste, convitesHoje, donoDoConvite, LIMITE_DE_CONVITES, type ConviteEmailDeTeste } from './convitesDeTeste';
-import { inserirMensagemDeTeste, SEM_DETALHES, type MensagemDeTeste } from './jogoDeTeste';
+import { enviarNotasDeTeste, inserirMensagemDeTeste, notasDaTorcidaDeTeste, SEM_DETALHES, type MensagemDeTeste, type NotaDeTeste } from './jogoDeTeste';
 import type { Detalhes } from '../data/tiposDoJogo';
 import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
 
@@ -137,6 +137,7 @@ function criar() {
   // Página do jogo: detalhes da BSD por jogo, mensagens do chat e os canais de tempo real abertos.
   const detalhesDasPartidas = new Map<number, Detalhes>();
   const mensagensChat: MensagemDeTeste[] = [];
+  const notasJogadores: NotaDeTeste[] = [];
   const canais = new Set<CanalFalso>();
   let tempoRealFora = false;
   let online = 1;
@@ -321,14 +322,16 @@ function criar() {
   // Imita select().eq().order().limit(), select().eq().gt().order() e insert().select().single() de mensagens_chat.
   function consultaChat() {
     let partidaId = 0;
+    let autorId: string | null = null;
+    let soContagem = false;
     let depoisDe = 0;
     let limite = Infinity;
     let decrescente = false;
     let novo: { partida_id?: number; texto?: unknown } | null = null;
     const consulta = {
-      select: () => consulta,
+      select: (_colunas?: string, opcoes?: { head?: boolean }) => ((soContagem = !!opcoes?.head), consulta),
       insert: (linha: { partida_id: number; texto: unknown }) => ((novo = linha), consulta),
-      eq: (_coluna: string, valor: number) => ((partidaId = valor), consulta),
+      eq: (coluna: string, valor: number | string) => (coluna === 'autor_id' ? (autorId = String(valor)) : (partidaId = Number(valor)), consulta),
       gt: (_coluna: string, valor: number) => ((depoisDe = valor), consulta),
       order: (_coluna: string, opcoes?: { ascending?: boolean }) => ((decrescente = opcoes?.ascending === false), consulta),
       limit: (n: number) => ((limite = n), consulta),
@@ -340,7 +343,8 @@ function criar() {
         return ok(r);
       },
       then: (resolver: (r: unknown) => unknown, rejeitar?: (e: unknown) => unknown) => {
-        const linhas = mensagensChat.filter((m) => m.partida_id === partidaId && m.id > depoisDe && podeLerChat(m));
+        const linhas = mensagensChat.filter((m) => m.partida_id === partidaId && m.id > depoisDe && podeLerChat(m) && (!autorId || m.autor_id === autorId));
+        if (soContagem) return Promise.resolve({ data: null, error: null, count: linhas.length }).then(resolver, rejeitar);
         const ordenadas = decrescente ? [...linhas].reverse() : linhas;
         return Promise.resolve({ ...ok(ordenadas.slice(0, limite)), count: linhas.length }).then(resolver, rejeitar);
       },
@@ -543,6 +547,7 @@ function criar() {
     convitesEmail.length = 0;
     detalhesDasPartidas.clear();
     mensagensChat.length = 0;
+    notasJogadores.length = 0;
     canais.clear();
     tempoRealFora = false;
     online = 1;
@@ -550,6 +555,15 @@ function criar() {
     removeChannel.mockReset().mockImplementation(async (canal: CanalFalso) => (canais.delete(canal), 'ok'));
     emailsDasContas.clear();
     rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number; sessao?: string; codigo?: string }) => {
+      if (fn === 'enviar_notas' || fn === 'notas_da_torcida') {
+        const a = args as unknown as { p_partida: number; p_notas?: unknown };
+        const eu = sessao ? perfis.get(sessao.user.id) : undefined;
+        const assinante = minhas().some(daAcesso);
+        if (fn === 'notas_da_torcida') return ok(notasDaTorcidaDeTeste(notasJogadores, eu, assinante, a.p_partida));
+        const partida = partidas.find((p) => p.id === a.p_partida);
+        const r = enviarNotasDeTeste(notasJogadores, eu, assinante, partida, detalhesDasPartidas.get(a.p_partida), a.p_notas);
+        return typeof r === 'number' ? ok(r) : { data: null, error: { code: r.code, message: r.hint, hint: r.hint } };
+      }
       if (fn === 'convite_de') {
         const dono = donoDoConvite(perfis.values(), args!.codigo);
         return ok(dono ? [{ apelido: dono.apelido, clube: CLUBES_DE_TESTE.find((c) => c.id === dono.time_id)?.nome ?? null }] : []);
@@ -613,6 +627,8 @@ function criar() {
     },
     /** O que a função detalhes-da-partida devolve para o jogo (padrão: nada ainda). */
     definirDetalhes: (id: number, detalhes: Detalhes) => detalhesDasPartidas.set(id, detalhes),
+    /** Notas dos jogadores gravadas (de todos os torcedores); empurre linhas para simular os votos da torcida. */
+    notasDosJogadores: () => notasJogadores,
     /** Mensagens do chat gravadas (de todas as torcidas). */
     mensagensDoChat: () => mensagensChat,
     /** Outro torcedor escreve no chat: grava e entrega pelo tempo real a quem pode ler. */

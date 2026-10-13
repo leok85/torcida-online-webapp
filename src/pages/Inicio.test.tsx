@@ -80,7 +80,7 @@ describe('Início · card do jogo', () => {
   });
 
   it.each([
-    ['Dar notas', '/pos-jogo'],
+    ['Dar notas', '/jogo/7290/notas'],
     ['Chat', '/jogo/7290'],
   ])('encerrado: "%s" leva para %s', async (botao, destino) => {
     relogio('2026-10-12T15:00:00Z');
@@ -107,7 +107,7 @@ describe('Início · card do jogo', () => {
 
     const faixa = within(jogo).getByRole('group', { name: 'Último jogo' });
     expect(faixa).toHaveTextContent('Palmeiras 4 x 1 Corinthians');
-    expect(within(faixa).getByRole('link', { name: /Notas e fotos/ })).toHaveAttribute('href', '/pos-jogo');
+    expect(within(faixa).getByRole('link', { name: /Notas e fotos/ })).toHaveAttribute('href', '/jogo/7290/notas');
 
     await user.click(within(jogo).getByRole('button', { name: /Dar palpite/ }));
     expect(local()).toBe('/escalacao');
