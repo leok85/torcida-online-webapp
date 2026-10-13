@@ -306,6 +306,8 @@ export type Database = {
           atualizado_em: string;
           cidade: string | null;
           cidade_id: number | null;
+          convidado_por: string | null;
+          convite_contou_em: string | null;
           criado_em: string;
           exclusao_agendada_para: string | null;
           foto: string | null;
@@ -329,6 +331,8 @@ export type Database = {
           atualizado_em?: string;
           cidade?: string | null;
           cidade_id?: number | null;
+          convidado_por?: string | null;
+          convite_contou_em?: string | null;
           criado_em?: string;
           exclusao_agendada_para?: string | null;
           foto?: string | null;
@@ -352,6 +356,8 @@ export type Database = {
           atualizado_em?: string;
           cidade?: string | null;
           cidade_id?: number | null;
+          convidado_por?: string | null;
+          convite_contou_em?: string | null;
           criado_em?: string;
           exclusao_agendada_para?: string | null;
           foto?: string | null;
@@ -370,6 +376,7 @@ export type Database = {
         };
         Relationships: [
           { foreignKeyName: 'perfis_cidade_id_fkey'; columns: ['cidade_id']; isOneToOne: false; referencedRelation: 'cidades'; referencedColumns: ['id'] },
+          { foreignKeyName: 'perfis_convidado_por_fkey'; columns: ['convidado_por']; isOneToOne: false; referencedRelation: 'perfis'; referencedColumns: ['id'] },
           { foreignKeyName: 'perfis_pais_fkey'; columns: ['pais']; isOneToOne: false; referencedRelation: 'paises'; referencedColumns: ['codigo'] },
           { foreignKeyName: 'perfis_time_anterior_id_fkey'; columns: ['time_anterior_id']; isOneToOne: false; referencedRelation: 'clubes'; referencedColumns: ['id'] },
           { foreignKeyName: 'perfis_time_id_fkey'; columns: ['time_id']; isOneToOne: false; referencedRelation: 'clubes'; referencedColumns: ['id'] },
@@ -381,6 +388,14 @@ export type Database = {
     };
     Functions: {
       apelido_disponivel: { Args: { apelido: string }; Returns: boolean };
+      aplicar_convite: { Args: { codigo: string }; Returns: string };
+      convite_de: { Args: { codigo: string }; Returns: { apelido: string; clube: string | null }[] };
+      convites_restantes: { Args: Record<string, never>; Returns: number };
+      meu_convidador: { Args: Record<string, never>; Returns: string | null };
+      meus_convidados: {
+        Args: Record<string, never>;
+        Returns: { chave: string; nome: string; estado: 'ativo' | 'sem_time' | 'pendente'; reenviado: boolean; desde: string }[];
+      };
       clubes_com_torcedores: { Args: Record<string, never>; Returns: number[] };
       encerrar_aparelho: { Args: { sessao: string }; Returns: boolean };
       manter_minha_conta: { Args: Record<string, never>; Returns: undefined };

@@ -9,6 +9,7 @@ import { Checkbox } from '../../components/form/Checkbox';
 import { TextField } from '../../components/form/TextField';
 import { Crest } from '../../components/ui/Crest';
 import { Icon } from '../../components/ui/Icon';
+import { useConvidador } from '../../convites/useConvidador';
 import { PAISES_COM_CIDADES, rotuloCidade } from '../../data/cidades';
 import { listarClubes, listarPaises, type Clube } from '../../data/clubes';
 import { useCarga } from '../../data/useCarga';
@@ -51,6 +52,8 @@ function ErroDeCarga({ onTentarDeNovo }: { onTentarDeNovo: () => void }) {
  */
 export function Onboarding() {
   const { perfil, assinante, atualizarPerfil } = useAuth();
+  // Quem entrou pelo Google vem direto para cá: o link /r/ guardado vira o convite antes de escolher o clube.
+  useConvidador();
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [pais, setPais] = useState(perfil?.pais ?? null);
   const [timeId, setTimeId] = useState(perfil?.time_id ?? null);
