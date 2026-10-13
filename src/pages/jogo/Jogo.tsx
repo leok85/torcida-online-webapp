@@ -163,16 +163,11 @@ function Placar({ partida, clubeId }: { partida: Partida; clubeId: number | null
   });
   return (
     <div className={styles.bar}>
-      <div className={styles.barInfo}>
-        {encerrada && (
-          <>
-            {infoDoResultado(partida)}
-            <br />
-            {dataDoJogo(partida)}
-          </>
-        )}
-      </div>
+      <div />
       <div className={styles.barCentro}>
+        <div className={styles.competicao}>
+          {infoDoResultado(partida)} · {dataDoJogo(partida)}
+        </div>
         <div className={styles.confronto}>
           <div className={styles.timeCasa}>
             <span className={styles.nomeTime}>{partida.mandante_nome}</span>
@@ -295,7 +290,7 @@ function Substituicoes({ time, trocas }: { time: string; trocas: Substituicao[] 
 function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes: Detalhes | null | undefined; clubeId: number | null }) {
   const [lado, setLado] = useState<'mandante' | 'visitante'>(partida.visitante_id === clubeId ? 'visitante' : 'mandante');
   const escalacao = detalhes?.escalacoes?.[lado];
-  const linhas = escalacao ? linhasDoCampo(escalacao, detalhes!.lances, lado === 'mandante') : null;
+  const linhas = escalacao ? linhasDoCampo(escalacao, detalhes!.lances) : null;
   return (
     <div className={`${styles.col} ${styles.colEscalacao}`}>
       <div className={styles.colHead}>
@@ -319,11 +314,31 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
               <PitchRow key={i}>
                 {linha.map((j) => (
                   <div key={j.id} className={styles.slot}>
-                    <div className={styles.shirt}>{j.numero ?? ''}</div>
+                    <div className={styles.shirt}>
+                      {j.numero ?? ''}
+                      {j.amarelo && <span className={styles.cartaoAmarelo} />}
+                      {j.vermelho && <span className={j.amarelo ? `${styles.cartaoVermelho} ${styles.segundoCartao}` : styles.cartaoVermelho} />}
+                      {j.gols > 0 && (
+                        <span className={styles.icGol}>
+                          <Icon name="sports_soccer" size={14} />
+                          {j.gols > 1 && <span className={styles.golN}>{j.gols}</span>}
+                        </span>
+                      )}
+                      {j.saiu && (
+                        <span className={styles.icSaiu}>
+                          <Icon name="sync_alt" size={13} />
+                        </span>
+                      )}
+                      {j.contra && (
+                        <span className={styles.icContra}>
+                          <Icon name="sports_soccer" size={14} />
+                        </span>
+                      )}
+                    </div>
                     <div className={styles.player} title={j.nome}>
                       {j.nome}
                     </div>
-                    <div className={styles.tag}>{j.tag}</div>
+                    {j.descricao && <span className={styles.oculto}>{j.descricao}</span>}
                   </div>
                 ))}
               </PitchRow>

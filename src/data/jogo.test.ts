@@ -9,7 +9,7 @@ const nomes = (linhas: { nome: string }[][]) => linhas.map((l) => l.map((j) => j
 
 describe('linhasDoCampo', () => {
   it('monta as linhas pela formação, do ataque ao goleiro', () => {
-    expect(nomes(linhasDoCampo(palmeiras, [], true))).toEqual([
+    expect(nomes(linhasDoCampo(palmeiras, []))).toEqual([
       ['V. Roque'],
       ['J. López', 'J. Arias'],
       ['A. Giay', 'A. Pereira', 'L. Evangelista', 'J. Piquerez'],
@@ -19,18 +19,20 @@ describe('linhasDoCampo', () => {
   });
 
   it('formação que não fecha a conta com os titulares: agrupa por posição', () => {
-    expect(nomes(linhasDoCampo({ ...palmeiras, formacao: '4-4-3' }, [], true))).toHaveLength(4);
-    expect(nomes(linhasDoCampo({ ...palmeiras, formacao: null }, [], true))[0]).toEqual(['J. López', 'J. Arias', 'V. Roque']);
+    expect(nomes(linhasDoCampo({ ...palmeiras, formacao: '4-4-3' }, []))).toHaveLength(4);
+    expect(nomes(linhasDoCampo({ ...palmeiras, formacao: null }, []))[0]).toEqual(['J. López', 'J. Arias', 'V. Roque']);
   });
 
-  it('o campo é a escalação inicial: quem saiu continua nele com "saiu" (só a primeira saída conta)', () => {
+  it('o campo é a escalação inicial: quem saiu continua nele com o ícone de substituído', () => {
     const lances: Lance[] = [
       { tipo: 'substituicao', minuto: '83', mandante: true, entrou: 'B. Fuchs', saiu: 'R. Sosa', entrou_id: 35, saiu_id: 37 },
       { tipo: 'substituicao', minuto: '58', mandante: true, entrou: 'R. Sosa', saiu: 'V. Roque', entrou_id: 37, saiu_id: 33 },
     ];
-    const [ponta] = linhasDoCampo(palmeiras, lances, true);
-    expect(ponta).toEqual([{ id: 33, nome: 'V. Roque', numero: 9, tag: "saiu 58'" }]);
-    expect(nomes(linhasDoCampo(palmeiras, lances, true)).flat()).not.toContain('B. Fuchs');
+    const [ponta] = linhasDoCampo(palmeiras, lances);
+    expect(ponta).toEqual([
+      { id: 33, nome: 'V. Roque', numero: 9, amarelo: false, vermelho: false, gols: 0, contra: false, saiu: true, descricao: "saiu 58'" },
+    ]);
+    expect(nomes(linhasDoCampo(palmeiras, lances)).flat()).not.toContain('B. Fuchs');
   });
 
   it('substituições do time na ordem do jogo, com o número de quem entra e de quem sai', () => {
@@ -48,23 +50,21 @@ describe('linhasDoCampo', () => {
     ]);
   });
 
-  it('etiquetas: gols juntos, vermelho antes da substituição, amarelo por último; lances do outro time não contam', () => {
+  it('ícones: gols com contador, dois cartões, gol contra pelo id de quem fez e substituído', () => {
     const lances: Lance[] = [
+      { tipo: 'substituicao', minuto: '85', mandante: true, entrou: 'R. Sosa', saiu: 'J. López', entrou_id: 37, saiu_id: 34 },
       { tipo: 'cartao', minuto: '80', mandante: true, jogador: 'J. Arias', jogador_id: 530, cor: 'vermelho' },
       { tipo: 'gol', minuto: '51', mandante: true, jogador: 'J. López', jogador_id: 34, assistencia: null, contra: false, penalti: true },
       { tipo: 'cartao', minuto: '30', mandante: true, jogador: 'J. Arias', jogador_id: 530, cor: 'amarelo' },
       { tipo: 'gol', minuto: '45+1', mandante: true, jogador: 'J. López', jogador_id: 34, assistencia: null, contra: false, penalti: false },
-      { tipo: 'gol', minuto: '20', mandante: false, jogador: 'Gol contra', jogador_id: 33, assistencia: null, contra: true, penalti: false },
+      // Gol contra do Murilo: o lance conta para o visitante, mas o ícone fica nele.
+      { tipo: 'gol', minuto: '20', mandante: false, jogador: 'Murilo', jogador_id: 27, assistencia: null, contra: true, penalti: false },
     ];
-    const [ponta, ataque] = linhasDoCampo(palmeiras, lances, true);
-    expect(ataque.map((j) => j.tag)).toEqual(["gol 45+1', 51'", 'vermelho']);
-    expect(ponta[0].tag).toBe('');
-    // Saiu e levou amarelo: "saiu" vence o amarelo.
-    const comSaida: Lance[] = [
-      { tipo: 'substituicao', minuto: '70', mandante: true, entrou: 'R. Sosa', saiu: 'V. Roque', entrou_id: 37, saiu_id: 33 },
-      { tipo: 'cartao', minuto: '30', mandante: true, jogador: 'V. Roque', jogador_id: 33, cor: 'amarelo' },
-    ];
-    expect(linhasDoCampo(palmeiras, comSaida, true)[0][0].tag).toBe("saiu 70'");
+    const [ponta, ataque, , defesa] = linhasDoCampo(palmeiras, lances);
+    expect(ataque[0]).toMatchObject({ nome: 'J. López', gols: 2, saiu: true, descricao: "gol 45+1', gol 51', saiu 85'" });
+    expect(ataque[1]).toMatchObject({ nome: 'J. Arias', amarelo: true, vermelho: true, gols: 0, descricao: 'amarelo, vermelho' });
+    expect(defesa[0]).toMatchObject({ nome: 'Murilo', contra: true, gols: 0, descricao: "gol contra 20'" });
+    expect(ponta[0]).toMatchObject({ amarelo: false, vermelho: false, gols: 0, contra: false, saiu: false, descricao: '' });
   });
 });
 

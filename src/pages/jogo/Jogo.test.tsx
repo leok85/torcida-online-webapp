@@ -37,6 +37,8 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     expect(screen.getByText('Palmeiras 1 x 0 Corinthians')).toBeInTheDocument();
     expect(screen.getByText('2º tempo').parentElement).toHaveTextContent("67'2º tempo");
     expect(screen.getByLabelText('Gols')).toHaveTextContent("A. Barboza 16'");
+    // Competição, rodada e data acima dos times.
+    expect(screen.getByText('Brasileirão Série A · rodada 30 · dom 11/10 · 17:30')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Voltar para Jogos' })).toHaveAttribute('href', '/jogos');
     expect(screen.getByText('Ao vivo e chat').closest('[aria-current]')).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: /Escalação e palpite/ })).toHaveAttribute('href', '/escalacao');
@@ -116,7 +118,7 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     expect(await screen.findByLabelText('Placar: 2 a 1')).toBeInTheDocument();
     expect(screen.getAllByText('ENCERRADO')).toHaveLength(2);
     expect(screen.getByText('VITÓRIA')).toBeInTheDocument();
-    expect(screen.getByText(/Brasileirão Série A · rodada 30/).textContent).toBe('Brasileirão Série A · rodada 30dom 11/10 · 17:30');
+    expect(screen.getByText('Brasileirão Série A · rodada 30 · dom 11/10 · 17:30')).toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: 'Gols do Palmeiras' })).getAllByRole('listitem').map((l) => l.textContent)).toEqual([
       "A. Barboza 16'",
       "A. Giay 78' (pên.)",
