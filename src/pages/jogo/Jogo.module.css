@@ -636,6 +636,46 @@
   justify-content: center;
 }
 
+/* Inicial · Mais votada (só no meu time) */
+.fontes {
+  flex: none;
+  margin-bottom: 12px;
+}
+
+.fontes > button {
+  flex: 1;
+}
+
+/* Mais votada sem votos: aviso no lugar do campo, com o mesmo tamanho e o azul da escalação da torcida. */
+.semVotos {
+  flex: none;
+  height: 420px;
+  border-radius: 14px;
+  background: linear-gradient(175deg, var(--primary), var(--primary-deep));
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.semVotos strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  text-transform: uppercase;
+}
+
+.semVotos span {
+  max-width: 30ch;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 /* Substituições embaixo do campo */
 .trocas {
   flex: none;

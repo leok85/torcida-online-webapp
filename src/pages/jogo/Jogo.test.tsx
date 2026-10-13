@@ -81,14 +81,34 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
 
   it('o campo mostra a escalação inicial: quem saiu fica no campo com "saiu", com gol e cartão', async () => {
     const { user } = abrir();
-    expect(await screen.findByText('Escalação inicial · 3-4-2-1')).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Inicial · 3-4-2-1' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Palmeiras' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('A. Barboza').nextSibling).toHaveTextContent("gol 16'");
     expect(screen.getByText('V. Roque').nextSibling).toHaveTextContent("saiu 58'");
 
     await user.click(screen.getByRole('tab', { name: 'Corinthians' }));
     expect(screen.getByText('Escalação inicial · 4-1-3-2')).toBeInTheDocument();
+    // No adversário não há escalação da torcida.
+    expect(screen.queryByRole('tab', { name: 'Mais votada' })).not.toBeInTheDocument();
     expect(screen.getByText('Raniele').nextSibling).toHaveTextContent('amarelo');
+  });
+
+  it('"Mais votada" no meu time: sem votos suficientes, avisa no lugar do campo e mantém as substituições', async () => {
+    const { user } = abrir();
+    await user.click(await screen.findByRole('tab', { name: 'Mais votada' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Não teve dados suficientes');
+    expect(screen.getByRole('status')).toHaveTextContent('A torcida não votou o bastante para montar a escalação mais votada deste jogo.');
+    expect(screen.queryByTitle('V. Roque')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Substituições · Palmeiras' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Inicial · 3-4-2-1' }));
+    expect(screen.getByTitle('V. Roque')).toBeInTheDocument();
+  });
+
+  it('quem torce para outro time vê a escalação inicial dos dois, sem "Mais votada"', async () => {
+    abrir({ perfil: perfilDeTeste({ time_id: 160 }) });
+    expect(await screen.findByText('Escalação inicial · 3-4-2-1')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Mais votada' })).not.toBeInTheDocument();
   });
 
   it('embaixo do campo, as substituições do time escolhido: quem entra e quem sai, com o número', async () => {
