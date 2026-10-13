@@ -72,9 +72,8 @@ export type MensagemDeTeste = {
 
 type Autor = { id: string; apelido: string | null; time_id: number | null; foto: string | null };
 
-/** chat_aberto(): ao vivo, ou até 2 h depois do fim estimado (115 min após o início). */
-export const chatAbertoDeTeste = (p: Partida, agora = Date.now()) =>
-  p.status === 'ao_vivo' || (p.status === 'encerrada' && agora < new Date(p.inicio).getTime() + (115 + 120) * 60_000);
+/** chat_aberto(): só com a bola rolando; o apito final fecha o chat. */
+export const chatAbertoDeTeste = (p: Partida) => p.status === 'ao_vivo';
 
 /** Mesmas regras do trigger: devolve a mensagem gravada ou o hint do erro. */
 export function inserirMensagemDeTeste(

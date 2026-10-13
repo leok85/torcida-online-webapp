@@ -32,9 +32,11 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
   it('ao vivo: faixa do jogo, placar, minuto e as abas com o pós-jogo fechado até o apito final', async () => {
     abrir();
     expect(await screen.findByLabelText('Placar: 1 a 0')).toBeInTheDocument();
-    expect(screen.getByText('AO VIVO', { selector: 'span' })).toBeInTheDocument();
+    // Faixa do jogo e o selo do placar: AO VIVO com o relógio.
+    expect(screen.getAllByText('AO VIVO')).toHaveLength(2);
     expect(screen.getByText('Palmeiras 1 x 0 Corinthians')).toBeInTheDocument();
-    expect(screen.getByText("67' · 2º tempo")).toBeInTheDocument();
+    expect(screen.getByText('2º tempo').parentElement).toHaveTextContent("67'2º tempo");
+    expect(screen.getByLabelText('Gols')).toHaveTextContent("A. Barboza 16'");
     expect(screen.getByRole('link', { name: 'Voltar para Jogos' })).toHaveAttribute('href', '/jogos');
     expect(screen.getByText('Ao vivo e chat').closest('[aria-current]')).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: /Escalação e palpite/ })).toHaveAttribute('href', '/escalacao');
@@ -54,37 +56,62 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     expect(within(numeros).queryByText('Impedimentos')).not.toBeInTheDocument();
   });
 
-  it('lances do mais recente ao mais antigo, com o time de cada um', async () => {
+  it('lances do mais recente ao mais antigo', async () => {
     abrir();
     const lances = await screen.findByRole('region', { name: 'Lances do jogo' });
     await within(lances).findAllByRole('listitem');
     expect(within(lances).getAllByRole('listitem').map((l) => l.textContent?.replace(/sports_soccer|square|swap_horiz/, ''))).toEqual([
-      "58'Entra R. Sosa, sai V. RoquePalmeiras",
-      "41'Amarelo para RanieleCorinthians",
-      "16'Gol de A. Barboza, assistência de L. EvangelistaPalmeiras",
+      "58'Entra R. Sosa, sai V. Roque",
+      "41'Amarelo para Raniele",
+      "16'Gol de A. Barboza, assistência de L. Evangelista",
     ]);
   });
 
   it('escalação oficial do meu time no campo, com gol, substituição e cartão; dá para ver a do adversário', async () => {
     const { user } = abrir();
-    expect(await screen.findByText('Formação 3-4-2-1')).toBeInTheDocument();
+    expect(await screen.findByText('Escalação oficial · 3-4-2-1')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Palmeiras' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('A. Barboza').nextSibling).toHaveTextContent("gol 16'");
     expect(screen.getByText('R. Sosa').nextSibling).toHaveTextContent("entrou 58'");
     expect(screen.queryByText('V. Roque')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Corinthians' }));
-    expect(screen.getByText('Formação 4-1-3-2')).toBeInTheDocument();
+    expect(screen.getByText('Escalação oficial · 4-1-3-2')).toBeInTheDocument();
     expect(screen.getByText('Raniele').nextSibling).toHaveTextContent('amarelo');
   });
 
-  it('encerrado: selo, fim de jogo e o pós-jogo liberado', async () => {
+  it('encerrado: resultado para o meu time, competição e data, gols de cada lado e o atalho para as notas', async () => {
     vi.useFakeTimers({ now: new Date('2026-10-11T23:00:00Z'), shouldAdvanceTime: true });
-    abrir({ partida: encerrada() });
-    expect(await screen.findByLabelText('Placar: 4 a 1')).toBeInTheDocument();
-    expect(screen.getByText('Fim de jogo')).toBeInTheDocument();
-    expect(screen.getByText('ENCERRADO', { selector: 'span' })).toBeInTheDocument();
+    abrir({
+      partida: partidaDeTeste({
+        status: 'encerrada',
+        periodo: null,
+        minuto: null,
+        gols_mandante: 2,
+        gols_visitante: 1,
+        gols: [
+          { jogador: 'A. Barboza', minuto: '16', mandante: true, contra: false, penalti: false },
+          { jogador: 'M. Depay', minuto: '52', mandante: false, contra: false, penalti: false },
+          { jogador: 'A. Giay', minuto: '78', mandante: true, contra: false, penalti: true },
+        ],
+      }),
+    });
+    expect(await screen.findByLabelText('Placar: 2 a 1')).toBeInTheDocument();
+    expect(screen.getAllByText('ENCERRADO')).toHaveLength(2);
+    expect(screen.getByText('VITÓRIA')).toBeInTheDocument();
+    expect(screen.getByText(/Brasileirão Série A · rodada 30/).textContent).toBe('Brasileirão Série A · rodada 30dom 11/10 · 17:30');
+    expect(within(screen.getByRole('list', { name: 'Gols do Palmeiras' })).getAllByRole('listitem').map((l) => l.textContent)).toEqual([
+      "A. Barboza 16'",
+      "A. Giay 78' (pên.)",
+    ]);
+    expect(screen.getByRole('list', { name: 'Gols do Corinthians' })).toHaveTextContent("M. Depay 52'");
     expect(screen.getByRole('link', { name: /Pós-jogo e notas/ })).toHaveAttribute('href', '/pos-jogo');
+    expect(screen.getByRole('link', { name: /Dê suas notas e vote no MVP/ })).toHaveAttribute('href', '/pos-jogo');
+  });
+
+  it('encerrado com derrota do meu time', async () => {
+    abrir({ partida: encerrada(), perfil: perfilDeTeste({ time_id: 167 }) });
+    expect(await screen.findByText('DERROTA')).toBeInTheDocument();
   });
 
   it('sem os detalhes da BSD ainda, avisa em cada bloco', async () => {
@@ -111,7 +138,7 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     partida.minuto = 70;
     await act(() => vi.advanceTimersByTimeAsync(30_000));
     expect(await screen.findByLabelText('Placar: 1 a 1')).toBeInTheDocument();
-    expect(screen.getByText("70' · 2º tempo")).toBeInTheDocument();
+    expect(screen.getByText('2º tempo').parentElement).toHaveTextContent("70'2º tempo");
   });
 
   it('/ao-vivo (links antigos) abre o jogo do clube em campo', async () => {
@@ -185,13 +212,15 @@ describe('chat da torcida', () => {
     expect(campo).toHaveValue('duas');
   });
 
-  it('2 h depois do fim do jogo o chat fecha, mas o histórico continua', async () => {
+  it('o apito final fecha o chat: as mensagens ficam para leitura, com o total no topo', async () => {
     supabaseFalso.mensagemDaTorcida({ texto: 'que jogo' });
-    vi.useFakeTimers({ now: new Date('2026-10-12T15:00:00Z'), shouldAdvanceTime: true });
+    supabaseFalso.mensagemDaTorcida({ texto: 'que virada' });
     await abrirChat({ partida: encerrada() });
     expect(await within(mensagens()).findByText('que jogo')).toBeInTheDocument();
-    expect(within(chat()).getByText('O chat fechou 2 h depois do apito final.')).toBeInTheDocument();
+    expect(within(chat()).getByText('2 mensagens · encerrado')).toBeInTheDocument();
+    expect(within(chat()).getByText('Chat encerrado com o apito final. As mensagens ficam disponíveis para leitura.')).toBeInTheDocument();
     expect(within(chat()).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(within(chat()).queryByText(/online/)).not.toBeInTheDocument();
   });
 
   it('torcedor de outro clube não entra no chat deste jogo', async () => {

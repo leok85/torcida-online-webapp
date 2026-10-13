@@ -10,14 +10,17 @@ import {
   buscarDetalhes,
   iconeDoLance,
   linhasDoCampo,
+  dataDoJogo,
+  linhaDoTempo,
   linhasDosNumeros,
   momentoDoJogo,
+  relogioDoJogo,
   partidaPorId,
   seloDoJogo,
   textoDoLance,
   type Detalhes,
 } from '../../data/jogo';
-import type { Partida } from '../../data/partidas';
+import { autoresDosGols, infoDoResultado, resultadoPara, type Partida } from '../../data/partidas';
 import ui from '../../styles/ui.module.css';
 import { ChatDaTorcida } from './ChatDaTorcida';
 import styles from './Jogo.module.css';
@@ -139,37 +142,105 @@ function FaixaDoJogo({ partida }: { partida: Partida | null }) {
 
 // ---------- blocos da página ----------
 
-function Placar({ partida }: { partida: Partida }) {
+const RESULTADO = { V: 'VITÓRIA', E: 'EMPATE', D: 'DERROTA' } as const;
+
+/** Placar no centro com o selo (ao vivo com o relógio, ou encerrado com o resultado), os gols e a linha do tempo. */
+function Placar({ partida, clubeId }: { partida: Partida; clubeId: number | null }) {
   const aoVivo = partida.status === 'ao_vivo';
+  const encerrada = partida.status === 'encerrada';
   const penaltis = partida.penaltis_mandante !== null && partida.penaltis_visitante !== null;
+  const golsCasa = autoresDosGols(partida.gols.filter((g) => g.mandante));
+  const golsFora = autoresDosGols(partida.gols.filter((g) => !g.mandante));
+  const relogio = relogioDoJogo(partida);
+  const tempo = linhaDoTempo(partida);
+  const meuJogo = clubeId !== null && (partida.mandante_id === clubeId || partida.visitante_id === clubeId);
+  const resultado = encerrada && meuJogo ? resultadoPara(partida, clubeId!) : null;
+  const metade = (feito: number, atual: boolean) => ({
+    background: atual ? `linear-gradient(90deg, var(--red) 0 ${feito}%, transparent ${feito}%)` : feito ? 'rgba(255, 255, 255, 0.55)' : 'transparent',
+  });
   return (
     <div className={styles.bar}>
-      <div className={styles.team}>
-        <Crest width={46} height={52} tone="dark" clubeId={partida.mandante_id} />
-        {partida.mandante_nome}
+      <div className={styles.barInfo}>
+        {encerrada && (
+          <>
+            {infoDoResultado(partida)}
+            <br />
+            {dataDoJogo(partida)}
+          </>
+        )}
       </div>
-      <div className={styles.center}>
-        <div className={styles.score} aria-label={`Placar: ${partida.gols_mandante ?? 0} a ${partida.gols_visitante ?? 0}`}>
-          {partida.gols_mandante ?? 0} x {partida.gols_visitante ?? 0}
+      <div className={styles.barCentro}>
+        <div className={styles.confronto}>
+          <div className={styles.timeCasa}>
+            <span className={styles.nomeTime}>{partida.mandante_nome}</span>
+            <Crest width={44} height={50} tone="dark" clubeId={partida.mandante_id} />
+          </div>
+          <div className={styles.score} aria-label={`Placar: ${partida.gols_mandante ?? 0} a ${partida.gols_visitante ?? 0}`}>
+            <span>{partida.gols_mandante ?? 0}</span>
+            <span className={styles.scoreX}>x</span>
+            <span>{partida.gols_visitante ?? 0}</span>
+          </div>
+          <div className={styles.timeFora}>
+            <Crest width={44} height={50} tone="darkAway" clubeId={partida.visitante_id} />
+            <span className={styles.nomeTime}>{partida.visitante_nome}</span>
+          </div>
         </div>
-        <div className={styles.minute}>
-          {momentoDoJogo(partida)}
-          {penaltis && ` · pênaltis ${partida.penaltis_mandante} x ${partida.penaltis_visitante}`}
-        </div>
+
+        {aoVivo ? (
+          <div className={styles.seloVivo}>
+            <span className={styles.seloPonto} />
+            <span className={styles.seloTexto}>AO VIVO</span>
+            <span className={styles.relogio}>
+              {relogio.minuto}
+              {relogio.periodo && <span>{relogio.periodo}</span>}
+            </span>
+          </div>
+        ) : (
+          <div className={styles.seloFim}>
+            <Icon name="sports" size={16} color="rgba(255, 255, 255, 0.8)" />
+            <span className={styles.seloTexto}>{encerrada ? 'ENCERRADO' : momentoDoJogo(partida).toUpperCase()}</span>
+            {resultado && <span className={`${styles.resultado} ${styles[`resultado${resultado}`]}`}>{RESULTADO[resultado]}</span>}
+          </div>
+        )}
+        {penaltis && (
+          <div className={styles.penaltis}>
+            Pênaltis {partida.penaltis_mandante} x {partida.penaltis_visitante}
+          </div>
+        )}
+
+        {aoVivo
+          ? partida.gols.length > 0 && (
+              <div className={styles.golsAoVivo} aria-label="Gols">
+                <Icon name="sports_soccer" size={15} />
+                {[...golsCasa, ...golsFora].join(' · ')}
+              </div>
+            )
+          : partida.gols.length > 0 && (
+              <div className={styles.golsFim}>
+                <ul aria-label={`Gols do ${partida.mandante_nome}`}>
+                  {golsCasa.map((g) => (
+                    <li key={g}>{g}</li>
+                  ))}
+                </ul>
+                <Icon name="sports_soccer" size={15} />
+                <ul aria-label={`Gols do ${partida.visitante_nome}`}>
+                  {golsFora.map((g) => (
+                    <li key={g}>{g}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
       </div>
-      <div className={`${styles.team} ${styles.away}`}>
-        {partida.visitante_nome}
-        <Crest width={46} height={52} tone="darkAway" clubeId={partida.visitante_id} />
-      </div>
-      <div className={ui.spacer} />
-      {aoVivo ? (
-        <div className={ui.livePill}>
-          <span className={ui.liveDot} />
-          AO VIVO
+      <div />
+
+      <div className={styles.tempo} aria-hidden="true">
+        <span>0'</span>
+        <div className={styles.tempoTrilho}>
+          <div style={metade(tempo.primeiro, tempo.emAndamento === 1)} />
+          <div style={metade(tempo.segundo, tempo.emAndamento === 2)} />
         </div>
-      ) : (
-        <div className={styles.encerradoPill}>{partida.status === 'encerrada' ? 'ENCERRADO' : momentoDoJogo(partida).toUpperCase()}</div>
-      )}
+        <span>90'</span>
+      </div>
     </div>
   );
 }
@@ -179,9 +250,9 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
   const escalacao = detalhes?.escalacoes?.[lado];
   const linhas = escalacao ? linhasDoCampo(escalacao, detalhes!.lances, lado === 'mandante') : null;
   return (
-    <div className={styles.col}>
+    <div className={`${styles.col} ${styles.colEscalacao}`}>
       <div className={styles.colHead}>
-        <h3 className={ui.titleLg}>Escalação</h3>
+        <h3 className={`${ui.titleLg} ${styles.colTitulo}`}>Escalação</h3>
         <Segmented
           options={[
             { id: 'mandante', label: partida.mandante_nome },
@@ -191,8 +262,9 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
           onChange={setLado}
         />
       </div>
+      {linhas && <div className={styles.fonte}>Escalação oficial{escalacao?.formacao ? ` · ${escalacao.formacao}` : ''}</div>}
       {detalhes === undefined ? (
-        <Skeleton h={452} r={14} />
+        <Skeleton h={396} r={14} />
       ) : linhas ? (
         <>
           <Pitch className={styles.campo}>
@@ -210,7 +282,6 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
               </PitchRow>
             ))}
           </Pitch>
-          {escalacao?.formacao && <p className={styles.formacao}>Formação {escalacao.formacao}</p>}
         </>
       ) : (
         <p className={styles.vazio}>A escalação oficial aparece cerca de 1 h antes do jogo.</p>
@@ -232,10 +303,6 @@ function Numeros({ partida, detalhes }: { partida: Partida; detalhes: Detalhes |
         <p className={styles.vazio}>{partida.status === 'agendada' ? 'Os números aparecem quando a bola rolar.' : 'Os números deste jogo ainda não chegaram.'}</p>
       ) : (
         <>
-          <div className={styles.numerosTimes}>
-            <span>{partida.mandante_nome}</span>
-            <span>{partida.visitante_nome}</span>
-          </div>
           {linhas.map((s) => (
             <div key={s.rotulo} className={styles.stat}>
               <div className={styles.statHead}>
@@ -278,7 +345,6 @@ function Lances({ partida, detalhes }: { partida: Partida; detalhes: Detalhes | 
                 <span className={styles.eventMin}>{l.minuto}'</span>
                 <Icon name={icone} size={19} color={cor} />
                 <span className={styles.eventText}>{textoDoLance(l)}</span>
-                <span className={styles.eventTime}>{l.mandante ? partida.mandante_nome : partida.visitante_nome}</span>
               </li>
             );
           })}
@@ -340,12 +406,22 @@ export function Jogo() {
   return (
     <div className={styles.page}>
       <FaixaDoJogo partida={partida} />
-      <Placar partida={partida} />
+      <Placar partida={partida} clubeId={perfil?.time_id ?? null} />
       <div className={styles.grid}>
         <Escalacao key={partida.id} partida={partida} detalhes={detalhes} clubeId={perfil?.time_id ?? null} />
         <div className={styles.colStack}>
           <Numeros partida={partida} detalhes={detalhes} />
           <Lances partida={partida} detalhes={detalhes} />
+          {partida.status === 'encerrada' && (
+            <Link to="/pos-jogo" className={styles.notas}>
+              <Icon name="star_rate" size={26} color="var(--primary)" />
+              <div className={styles.notasTexto}>
+                <strong>Dê suas notas e vote no MVP</strong>
+                <span>até +120 XP</span>
+              </div>
+              <Icon name="chevron_right" size={22} color="var(--primary)" />
+            </Link>
+          )}
         </div>
         <ChatDaTorcida partida={partida} />
       </div>

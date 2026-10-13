@@ -39,10 +39,35 @@ export function seloDoJogo(p: Partida, agora = new Date()) {
   return { selo: p.status === 'agendada' ? 'PRÓXIMO JOGO' : momentoDoJogo(p).toUpperCase(), sub: '', tom: 'encerrado' as const };
 }
 
-/** Mesma regra de chat_aberto(): do início até 2 h depois do fim estimado (115 min após o início). */
-export function chatAberto(p: Partida, agora = new Date()) {
-  if (p.status === 'ao_vivo') return true;
-  return p.status === 'encerrada' && agora.getTime() < new Date(p.inicio).getTime() + (115 + 120) * 60_000;
+/** Mesma regra de chat_aberto(): o chat só aceita mensagem com a bola rolando; o apito final fecha. */
+export const chatAberto = (p: Partida) => p.status === 'ao_vivo';
+
+/** Relógio do selo ao vivo: o minuto e o tempo ("67'" + "2º tempo"), ou só "Intervalo"/"Pênaltis". */
+export function relogioDoJogo(p: Partida): { minuto: string | null; periodo: string | null } {
+  if (p.periodo === 'INT' || p.periodo === 'PEN') return { minuto: null, periodo: PERIODOS[p.periodo] };
+  return { minuto: p.minuto != null ? `${p.minuto}'` : null, periodo: p.periodo ? PERIODOS[p.periodo] : null };
+}
+
+/**
+ * Linha do tempo embaixo do placar: quanto de cada tempo já passou (0–100) e qual está em andamento.
+ * Encerrado, os dois cheios; no intervalo, só o primeiro; na prorrogação e nos pênaltis, os dois.
+ */
+export function linhaDoTempo(p: Partida): { primeiro: number; segundo: number; emAndamento: 1 | 2 | null } {
+  const pct = (min: number) => Math.max(0, Math.min(100, Math.round((min / 45) * 100)));
+  if (p.status === 'encerrada') return { primeiro: 100, segundo: 100, emAndamento: null };
+  if (p.status !== 'ao_vivo') return { primeiro: 0, segundo: 0, emAndamento: null };
+  if (p.periodo === 'INT') return { primeiro: 100, segundo: 0, emAndamento: null };
+  if (p.periodo === 'PRO' || p.periodo === 'PEN') return { primeiro: 100, segundo: 100, emAndamento: null };
+  if (p.periodo === '2T') return { primeiro: 100, segundo: pct((p.minuto ?? 45) - 45), emAndamento: 2 };
+  return { primeiro: pct(p.minuto ?? 0), segundo: 0, emAndamento: 1 };
+}
+
+const DIA_E_HORA = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+
+/** "sáb 11/10 · 17:30": quando foi o jogo, no canto do placar encerrado. */
+export function dataDoJogo(p: Partida) {
+  const partes = Object.fromEntries(DIA_E_HORA.formatToParts(new Date(p.inicio)).map((x) => [x.type, x.value]));
+  return `${partes.weekday.replace('.', '')} ${partes.day}/${partes.month} · ${partes.hour}:${partes.minute}`;
 }
 
 // ---------- números da partida ----------

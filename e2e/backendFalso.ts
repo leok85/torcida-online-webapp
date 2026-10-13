@@ -546,7 +546,14 @@ export class BackendFalso {
       let linhas = assinante ? this.mensagensChat.filter((m) => m.partida_id === partidaId && m.id > depoisDe && m.clube_id === perfil?.time_id) : [];
       if (url.searchParams.get('order')?.includes('desc')) linhas = [...linhas].reverse();
       const limite = Number(url.searchParams.get('limit') ?? Infinity);
-      return json(200, linhas.slice(0, limite));
+      const pagina = linhas.slice(0, limite);
+      // Prefer: count=exact → o total vem no Content-Range, como no PostgREST.
+      return rota.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { 'Content-Range': `0-${Math.max(pagina.length - 1, 0)}/${linhas.length}` },
+        body: JSON.stringify(pagina),
+      });
     }
 
     if (caminho === '/feedbacks') {

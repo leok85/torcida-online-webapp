@@ -35,11 +35,11 @@ test('ao vivo: "Entrar no chat" abre placar, números, lances e escalação, e o
   await page.getByRole('button', { name: /Entrar no chat/ }).click();
   await expect(page).toHaveURL('/jogo/7290');
   await expect(page.getByLabel('Placar: 1 a 0')).toBeVisible();
-  await expect(page.getByText("67' · 2º tempo")).toBeVisible();
+  await expect(page.getByText('2º tempo')).toBeVisible();
   const numeros = page.getByRole('region', { name: 'Números da partida' });
   await expect(numeros.getByText('Posse de bola')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Lances do jogo' }).getByRole('listitem')).toHaveCount(3);
-  await expect(page.getByText('Formação 3-4-2-1')).toBeVisible();
+  await expect(page.getByText('Escalação oficial · 3-4-2-1')).toBeVisible();
 
   const chat = page.getByRole('region', { name: 'Chat da torcida' });
   await expect(chat.getByText('Vamo Verdão!')).toBeVisible();
@@ -63,7 +63,7 @@ test('encerrado: "Chat" do início abre o jogo com o fim de jogo e o pós-jogo l
   await page.getByRole('button', { name: 'Chat', exact: true }).click();
   await expect(page).toHaveURL('/jogo/7290');
   await expect(page.getByLabel('Placar: 4 a 1')).toBeVisible();
-  await expect(page.getByText('Fim de jogo')).toBeVisible();
+  await expect(page.getByText('VITÓRIA')).toBeVisible();
   await expect(page.getByRole('link', { name: /Pós-jogo e notas/ })).toHaveAttribute('href', '/pos-jogo');
   await expect(page.getByText('Os números deste jogo ainda não chegaram.')).toBeVisible();
 });
@@ -80,7 +80,7 @@ test('o campo da escalação tem o mesmo tamanho em qualquer formação e não f
   await page.goto('/jogo/7290');
 
   const campo = page.locator('[class*="_campo_"]');
-  await expect(page.getByText('Formação 4-1-2-1-2')).toBeVisible();
+  await expect(page.getByText('Escalação oficial · 4-1-2-1-2')).toBeVisible();
   const cinco = await campo.boundingBox();
   // Os 11 cabem dentro do campo.
   for (const nome of ['R. Sosa', 'C. Miguel']) {
@@ -90,7 +90,7 @@ test('o campo da escalação tem o mesmo tamanho em qualquer formação e não f
   }
 
   await page.getByRole('tab', { name: 'Corinthians' }).click();
-  await expect(page.getByText('Formação 4-4-2')).toBeVisible();
+  await expect(page.getByText('Escalação oficial · 4-4-2')).toBeVisible();
   const tres = await campo.boundingBox();
   expect(tres!.height).toBe(cinco!.height);
   expect(tres!.width).toBe(cinco!.width);
@@ -100,4 +100,12 @@ test('o campo da escalação tem o mesmo tamanho em qualquer formação e não f
     return coluna.scrollHeight > coluna.clientHeight;
   });
   expect(rola).toBe(false);
+
+  // Encerrado o cabeçalho cresce (competição, data e os gols de cada lado): o campo encolhe junto, sem rolar.
+  backend.partidas[0].status = 'encerrada';
+  backend.partidas[0].gols.push({ jogador: 'A. Giay', minuto: '78', mandante: true, contra: false, penalti: false });
+  await page.reload();
+  await expect(page.getByText('Escalação oficial · 4-1-2-1-2')).toBeVisible();
+  const fim = await campo.evaluate((el) => el.parentElement!.scrollHeight > el.parentElement!.clientHeight);
+  expect(fim).toBe(false);
 });

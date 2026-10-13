@@ -34,6 +34,8 @@ export function useChat(partidaId: number, clubeId: number | null, usuarioId: st
   const [mensagens, setMensagens] = useState<Mensagem[] | null>(null);
   const [erroAoCarregar, setErroAoCarregar] = useState(false);
   const [online, setOnline] = useState<number | null>(null);
+  /** Quantas mensagens o chat tem (o histórico carrega só as últimas HISTORICO). */
+  const [total, setTotal] = useState<number | null>(null);
   const [tempoReal, setTempoReal] = useState(false);
   const ultimo = useRef(0);
 
@@ -52,13 +54,14 @@ export function useChat(partidaId: number, clubeId: number | null, usuarioId: st
     setErroAoCarregar(false);
     supabase
       .from('mensagens_chat')
-      .select(COLUNAS)
+      .select(COLUNAS, { count: 'exact' })
       .eq('partida_id', partidaId)
       .order('id', { ascending: false })
       .limit(HISTORICO)
-      .then(({ data, error }) => {
+      .then(({ data, error, count }) => {
         if (!vivo) return;
         if (error) return setErroAoCarregar(true);
+        setTotal(count ?? data?.length ?? 0);
         setMensagens([]);
         adicionar(((data ?? []) as Mensagem[]).reverse());
       });
@@ -108,5 +111,5 @@ export function useChat(partidaId: number, clubeId: number | null, usuarioId: st
     [partidaId, adicionar],
   );
 
-  return { mensagens, erroAoCarregar, online, enviar };
+  return { mensagens, erroAoCarregar, online, total: total === null ? null : Math.max(total, mensagens?.length ?? 0), enviar };
 }
