@@ -103,6 +103,8 @@ describe('pós-jogo e notas (W04)', () => {
     relogio(JANELA_ABERTA);
     abrir();
     await screen.findByRole('region', { name: 'Notas da partida' });
+    // Os jogadores chegam com os detalhes do jogo: espera a lista.
+    await within(media()).findByText('A. Barboza');
     expect(screen.getByText('Nota TO é calculada pela Torcida Online com os números de cada jogador em campo.')).toBeInTheDocument();
     expect(linhaDaMedia('A. Barboza')).toHaveTextContent('TO8,1');
     expect(linhaDaMedia('R. Sosa')).toHaveTextContent('TO6,5');
