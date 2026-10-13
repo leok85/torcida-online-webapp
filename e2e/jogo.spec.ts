@@ -39,7 +39,7 @@ test('ao vivo: "Entrar no chat" abre placar, números, lances e escalação, e o
   const numeros = page.getByRole('region', { name: 'Números da partida' });
   await expect(numeros.getByText('Posse de bola')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Lances do jogo' }).getByRole('listitem')).toHaveCount(3);
-  await expect(page.getByText('Escalação oficial · 3-4-2-1')).toBeVisible();
+  await expect(page.getByText('Escalação inicial · 3-4-2-1')).toBeVisible();
 
   const chat = page.getByRole('region', { name: 'Chat da torcida' });
   await expect(chat.getByText('Vamo Verdão!')).toBeVisible();
@@ -68,7 +68,7 @@ test('encerrado: "Chat" do início abre o jogo com o fim de jogo e o pós-jogo l
   await expect(page.getByText('Os números deste jogo ainda não chegaram.')).toBeVisible();
 });
 
-test('o campo da escalação tem o mesmo tamanho em qualquer formação e não faz a coluna rolar', async ({ page, backend }) => {
+test('o campo da escalação tem o mesmo tamanho em qualquer formação e em qualquer momento do jogo', async ({ page, backend }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   backend.partidas.push(partidaDeTeste());
   const d = detalhesDeTeste();
@@ -80,32 +80,30 @@ test('o campo da escalação tem o mesmo tamanho em qualquer formação e não f
   await page.goto('/jogo/7290');
 
   const campo = page.locator('[class*="_campo_"]');
-  await expect(page.getByText('Escalação oficial · 4-1-2-1-2')).toBeVisible();
+  await expect(page.getByText('Escalação inicial · 4-1-2-1-2')).toBeVisible();
   const cinco = await campo.boundingBox();
   // Os 11 cabem dentro do campo.
-  for (const nome of ['R. Sosa', 'C. Miguel']) {
+  for (const nome of ['V. Roque', 'C. Miguel']) {
     const caixa = (await page.getByText(nome, { exact: true }).boundingBox())!;
     expect(caixa.y).toBeGreaterThanOrEqual(cinco!.y);
     expect(caixa.y + caixa.height).toBeLessThanOrEqual(cinco!.y + cinco!.height);
   }
 
   await page.getByRole('tab', { name: 'Corinthians' }).click();
-  await expect(page.getByText('Escalação oficial · 4-4-2')).toBeVisible();
+  await expect(page.getByText('Escalação inicial · 4-4-2')).toBeVisible();
   const tres = await campo.boundingBox();
   expect(tres!.height).toBe(cinco!.height);
   expect(tres!.width).toBe(cinco!.width);
 
-  const rola = await campo.evaluate((el) => {
-    const coluna = el.parentElement!;
-    return coluna.scrollHeight > coluna.clientHeight;
-  });
-  expect(rola).toBe(false);
+  // A lista de substituições vem logo abaixo do campo.
+  const trocas = page.getByRole('region', { name: 'Substituições · Corinthians' });
+  await expect(trocas).toBeVisible();
+  expect((await trocas.boundingBox())!.y).toBeGreaterThan(tres!.y + tres!.height);
 
-  // Encerrado o cabeçalho cresce (competição, data e os gols de cada lado): o campo encolhe junto, sem rolar.
+  // Encerrado o cabeçalho cresce (competição, data e os gols de cada lado): o campo continua do mesmo tamanho.
   backend.partidas[0].status = 'encerrada';
   backend.partidas[0].gols.push({ jogador: 'A. Giay', minuto: '78', mandante: true, contra: false, penalti: false });
   await page.reload();
-  await expect(page.getByText('Escalação oficial · 4-1-2-1-2')).toBeVisible();
-  const fim = await campo.evaluate((el) => el.parentElement!.scrollHeight > el.parentElement!.clientHeight);
-  expect(fim).toBe(false);
+  await expect(page.getByText('Escalação inicial · 4-1-2-1-2')).toBeVisible();
+  expect((await campo.boundingBox())!.height).toBe(cinco!.height);
 });

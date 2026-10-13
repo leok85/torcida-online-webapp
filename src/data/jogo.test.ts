@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { partidaDeTeste } from '../test/catalogoDeTeste';
 import { detalhesDeTeste } from '../test/jogoDeTeste';
-import { chatAberto, dataDoJogo, linhaDoTempo, linhasDoCampo, relogioDoJogo, linhasDosNumeros, momentoDoJogo, seloDoJogo, textoDoLance, type Lance } from './jogo';
+import { chatAberto, dataDoJogo, linhaDoTempo, linhasDoCampo, relogioDoJogo, substituicoesDe, linhasDosNumeros, momentoDoJogo, seloDoJogo, textoDoLance, type Lance } from './jogo';
 
 const { escalacoes } = detalhesDeTeste();
 const palmeiras = escalacoes!.mandante;
@@ -23,14 +23,29 @@ describe('linhasDoCampo', () => {
     expect(nomes(linhasDoCampo({ ...palmeiras, formacao: null }, [], true))[0]).toEqual(['J. López', 'J. Arias', 'V. Roque']);
   });
 
-  it('quem entrou ocupa o lugar do titular, mesmo numa segunda troca', () => {
-    const reservas = [...palmeiras.reservas, { id: 35, nome: 'B. Fuchs', numero: 3, posicao: 'D' as const, capitao: false }];
+  it('o campo é a escalação inicial: quem saiu continua nele com "saiu" (só a primeira saída conta)', () => {
     const lances: Lance[] = [
       { tipo: 'substituicao', minuto: '83', mandante: true, entrou: 'B. Fuchs', saiu: 'R. Sosa', entrou_id: 35, saiu_id: 37 },
       { tipo: 'substituicao', minuto: '58', mandante: true, entrou: 'R. Sosa', saiu: 'V. Roque', entrou_id: 37, saiu_id: 33 },
     ];
-    const ataque = linhasDoCampo({ ...palmeiras, reservas }, lances, true)[0];
-    expect(ataque[0]).toEqual({ id: 35, nome: 'B. Fuchs', numero: 3, tag: "entrou 83'" });
+    const [ponta] = linhasDoCampo(palmeiras, lances, true);
+    expect(ponta).toEqual([{ id: 33, nome: 'V. Roque', numero: 9, tag: "saiu 58'" }]);
+    expect(nomes(linhasDoCampo(palmeiras, lances, true)).flat()).not.toContain('B. Fuchs');
+  });
+
+  it('substituições do time na ordem do jogo, com o número de quem entra e de quem sai', () => {
+    const reservas = [...palmeiras.reservas, { id: 35, nome: 'B. Fuchs', numero: 3, posicao: 'D' as const, capitao: false }];
+    const lances: Lance[] = [
+      { tipo: 'substituicao', minuto: '83', mandante: true, entrou: 'B. Fuchs', saiu: 'R. Sosa', entrou_id: 35, saiu_id: 37 },
+      { tipo: 'substituicao', minuto: '70', mandante: false, entrou: 'Allan', saiu: 'Raniele', entrou_id: 1, saiu_id: 267 },
+      { tipo: 'substituicao', minuto: '58', mandante: true, entrou: 'R. Sosa', saiu: 'V. Roque', entrou_id: 37, saiu_id: 33 },
+      { tipo: 'substituicao', minuto: '46', mandante: true, entrou: 'Desconhecido', saiu: 'Murilo', entrou_id: 999, saiu_id: 27 },
+    ];
+    expect(substituicoesDe({ ...palmeiras, reservas }, lances, true)).toEqual([
+      { minuto: '46', entra: { numero: null, nome: 'Desconhecido' }, sai: { numero: 26, nome: 'Murilo' } },
+      { minuto: '58', entra: { numero: 19, nome: 'R. Sosa' }, sai: { numero: 9, nome: 'V. Roque' } },
+      { minuto: '83', entra: { numero: 3, nome: 'B. Fuchs' }, sai: { numero: 19, nome: 'R. Sosa' } },
+    ]);
   });
 
   it('etiquetas: gols juntos, vermelho antes da substituição, amarelo por último; lances do outro time não contam', () => {
@@ -44,6 +59,12 @@ describe('linhasDoCampo', () => {
     const [ponta, ataque] = linhasDoCampo(palmeiras, lances, true);
     expect(ataque.map((j) => j.tag)).toEqual(["gol 45+1', 51'", 'vermelho']);
     expect(ponta[0].tag).toBe('');
+    // Saiu e levou amarelo: "saiu" vence o amarelo.
+    const comSaida: Lance[] = [
+      { tipo: 'substituicao', minuto: '70', mandante: true, entrou: 'R. Sosa', saiu: 'V. Roque', entrou_id: 37, saiu_id: 33 },
+      { tipo: 'cartao', minuto: '30', mandante: true, jogador: 'V. Roque', jogador_id: 33, cor: 'amarelo' },
+    ];
+    expect(linhasDoCampo(palmeiras, comSaida, true)[0][0].tag).toBe("saiu 70'");
   });
 });
 
