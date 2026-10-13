@@ -39,7 +39,7 @@ test('ao vivo: "Entrar no chat" abre placar, números, lances e escalação, e o
   const numeros = page.getByRole('region', { name: 'Números da partida' });
   await expect(numeros.getByText('Posse de bola')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Lances do jogo' }).getByRole('listitem')).toHaveCount(3);
-  await expect(page.getByText('Escalação inicial · 3-4-2-1')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Inicial · 3-4-2-1' })).toBeVisible();
 
   const chat = page.getByRole('region', { name: 'Chat da torcida' });
   await expect(chat.getByText('Vamo Verdão!')).toBeVisible();
@@ -80,7 +80,7 @@ test('o campo da escalação tem o mesmo tamanho em qualquer formação e em qua
   await page.goto('/jogo/7290');
 
   const campo = page.locator('[class*="_campo_"]');
-  await expect(page.getByText('Escalação inicial · 4-1-2-1-2')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Inicial · 4-1-2-1-2' })).toBeVisible();
   const cinco = await campo.boundingBox();
   // Os 11 cabem dentro do campo.
   for (const nome of ['V. Roque', 'C. Miguel']) {
@@ -104,6 +104,6 @@ test('o campo da escalação tem o mesmo tamanho em qualquer formação e em qua
   backend.partidas[0].status = 'encerrada';
   backend.partidas[0].gols.push({ jogador: 'A. Giay', minuto: '78', mandante: true, contra: false, penalti: false });
   await page.reload();
-  await expect(page.getByText('Escalação inicial · 4-1-2-1-2')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Inicial · 4-1-2-1-2' })).toBeVisible();
   expect((await campo.boundingBox())!.height).toBe(cinco!.height);
 });

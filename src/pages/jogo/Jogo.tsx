@@ -287,9 +287,14 @@ function Substituicoes({ time, trocas }: { time: string; trocas: Substituicao[] 
 }
 
 function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes: Detalhes | null | undefined; clubeId: number | null }) {
-  const [lado, setLado] = useState<'mandante' | 'visitante'>(partida.visitante_id === clubeId ? 'visitante' : 'mandante');
+  const meuLado = clubeId === partida.mandante_id ? 'mandante' : clubeId === partida.visitante_id ? 'visitante' : null;
+  const [lado, setLado] = useState<'mandante' | 'visitante'>(meuLado ?? 'mandante');
+  // No meu time dá para ver a escalação mais votada pela torcida; no adversário, só a inicial.
+  const [fonte, setFonte] = useState<'inicial' | 'torcida'>('inicial');
   const escalacao = detalhes?.escalacoes?.[lado];
   const linhas = escalacao ? linhasDoCampo(escalacao, detalhes!.lances) : null;
+  const nosso = lado === meuLado;
+  const formacao = escalacao?.formacao ? ` · ${escalacao.formacao}` : '';
   return (
     <div className={`${styles.col} ${styles.colEscalacao}`}>
       <div className={styles.colHead}>
@@ -303,46 +308,68 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
           onChange={setLado}
         />
       </div>
-      {linhas && <div className={styles.fonte}>Escalação inicial{escalacao?.formacao ? ` · ${escalacao.formacao}` : ''}</div>}
+      {linhas &&
+        (nosso ? (
+          <Segmented
+            className={styles.fontes}
+            options={[
+              { id: 'inicial', label: `Inicial${formacao}` },
+              { id: 'torcida', label: 'Mais votada' },
+            ]}
+            value={fonte}
+            onChange={setFonte}
+          />
+        ) : (
+          <div className={styles.fonte}>Escalação inicial{formacao}</div>
+        ))}
       {detalhes === undefined ? (
         <Skeleton h={420} r={14} />
       ) : linhas ? (
         <>
-          <Pitch className={styles.campo}>
-            {linhas.map((linha, i) => (
-              <PitchRow key={i}>
-                {linha.map((j) => (
-                  <div key={j.id} className={styles.slot}>
-                    <div className={styles.shirt}>
-                      {j.numero ?? ''}
-                      {j.amarelo && <span className={styles.cartaoAmarelo} />}
-                      {j.vermelho && <span className={j.amarelo ? `${styles.cartaoVermelho} ${styles.segundoCartao}` : styles.cartaoVermelho} />}
-                      {j.gols > 0 && (
-                        <span className={styles.icGol}>
-                          <Icon name="sports_soccer" size={14} />
-                          {j.gols > 1 && <span className={styles.golN}>{j.gols}</span>}
-                        </span>
-                      )}
-                      {j.saiu && (
-                        <span className={styles.icSaiu}>
-                          <Icon name="sync_alt" size={13} />
-                        </span>
-                      )}
-                      {j.contra && (
-                        <span className={styles.icContra}>
-                          <Icon name="sports_soccer" size={14} />
-                        </span>
-                      )}
+          {nosso && fonte === 'torcida' ? (
+            // A votação da escalação (W03) ainda não guarda votos: sem eles, avisa no lugar do campo.
+            <div className={styles.semVotos} role="status">
+              <Icon name="how_to_vote" size={30} color="#9BD6FF" />
+              <strong>Não teve dados suficientes</strong>
+              <span>A torcida não votou o bastante para montar a escalação mais votada deste jogo.</span>
+            </div>
+          ) : (
+            <Pitch className={styles.campo}>
+              {linhas.map((linha, i) => (
+                <PitchRow key={i}>
+                  {linha.map((j) => (
+                    <div key={j.id} className={styles.slot}>
+                      <div className={styles.shirt}>
+                        {j.numero ?? ''}
+                        {j.amarelo && <span className={styles.cartaoAmarelo} />}
+                        {j.vermelho && <span className={j.amarelo ? `${styles.cartaoVermelho} ${styles.segundoCartao}` : styles.cartaoVermelho} />}
+                        {j.gols > 0 && (
+                          <span className={styles.icGol}>
+                            <Icon name="sports_soccer" size={14} />
+                            {j.gols > 1 && <span className={styles.golN}>{j.gols}</span>}
+                          </span>
+                        )}
+                        {j.saiu && (
+                          <span className={styles.icSaiu}>
+                            <Icon name="sync_alt" size={13} />
+                          </span>
+                        )}
+                        {j.contra && (
+                          <span className={styles.icContra}>
+                            <Icon name="sports_soccer" size={14} />
+                          </span>
+                        )}
+                      </div>
+                      <div className={styles.player} title={j.nome}>
+                        {j.nome}
+                      </div>
+                      {j.descricao && <span className={styles.oculto}>{j.descricao}</span>}
                     </div>
-                    <div className={styles.player} title={j.nome}>
-                      {j.nome}
-                    </div>
-                    {j.descricao && <span className={styles.oculto}>{j.descricao}</span>}
-                  </div>
-                ))}
-              </PitchRow>
-            ))}
-          </Pitch>
+                  ))}
+                </PitchRow>
+              ))}
+            </Pitch>
+          )}
           <Substituicoes
             time={lado === 'mandante' ? partida.mandante_nome : partida.visitante_nome}
             trocas={substituicoesDe(escalacao, detalhes!.lances, lado === 'mandante')}
