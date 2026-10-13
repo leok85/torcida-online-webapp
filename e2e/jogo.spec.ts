@@ -107,3 +107,23 @@ test('o campo da escalação tem o mesmo tamanho em qualquer formação e em qua
   await expect(page.getByRole('tab', { name: 'Inicial · 4-1-2-1-2' })).toBeVisible();
   expect((await campo.boundingBox())!.height).toBe(cinco!.height);
 });
+
+test('colunas: praticamente iguais em 1440 px; em telas maiores o espaço extra vai para o chat', async ({ page, backend }) => {
+  backend.partidas.push(partidaDeTeste());
+  backend.detalhes.set(7290, detalhesDeTeste());
+  await entrarComoMembro(page, backend);
+  const larguras = () =>
+    page.getByRole('region', { name: 'Chat da torcida' }).evaluate((chat) => [...chat.parentElement!.children].map((c) => c.getBoundingClientRect().width));
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/jogo/7290');
+  await expect(page.getByRole('region', { name: 'Chat da torcida' })).toBeVisible();
+  const [escalacao, numeros, chat] = await larguras();
+  expect(Math.max(escalacao, numeros, chat) - Math.min(escalacao, numeros, chat)).toBeLessThanOrEqual(12);
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const [escalacaoLarga, numerosLarga, chatLargo] = await larguras();
+  expect(escalacaoLarga).toBeLessThanOrEqual(440);
+  expect(numerosLarga).toBeLessThanOrEqual(440);
+  expect(chatLargo).toBeGreaterThan(escalacaoLarga * 1.6);
+});

@@ -226,8 +226,11 @@
 .grid {
   flex: 1;
   display: grid;
-  /* O chat fica com a maior fatia; números e lances, a menor. A escalação mantém folga para o campo. */
-  grid-template-columns: minmax(360px, 0.95fr) minmax(300px, 0.8fr) minmax(420px, 1.25fr);
+  /*
+   * Em 1440 px as três colunas ficam praticamente iguais (~400 px). Escalação e números param em 440 px; em telas
+   * maiores (widescreen) todo o espaço extra vai para o chat.
+   */
+  grid-template-columns: minmax(0, 440px) minmax(0, 440px) minmax(400px, 1fr);
   min-height: 0;
 }
 
