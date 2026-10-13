@@ -67,3 +67,37 @@ test('encerrado: "Chat" do início abre o jogo com o fim de jogo e o pós-jogo l
   await expect(page.getByRole('link', { name: /Pós-jogo e notas/ })).toHaveAttribute('href', '/pos-jogo');
   await expect(page.getByText('Os números deste jogo ainda não chegaram.')).toBeVisible();
 });
+
+test('o campo da escalação tem o mesmo tamanho em qualquer formação e não faz a coluna rolar', async ({ page, backend }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  backend.partidas.push(partidaDeTeste());
+  const d = detalhesDeTeste();
+  // Goleiro + 5 linhas de um lado, goleiro + 3 do outro.
+  d.escalacoes!.mandante.formacao = '4-1-2-1-2';
+  d.escalacoes!.visitante.formacao = '4-4-2';
+  backend.detalhes.set(7290, d);
+  await entrarComoMembro(page, backend);
+  await page.goto('/jogo/7290');
+
+  const campo = page.locator('[class*="_campo_"]');
+  await expect(page.getByText('Formação 4-1-2-1-2')).toBeVisible();
+  const cinco = await campo.boundingBox();
+  // Os 11 cabem dentro do campo.
+  for (const nome of ['R. Sosa', 'C. Miguel']) {
+    const caixa = (await page.getByText(nome, { exact: true }).boundingBox())!;
+    expect(caixa.y).toBeGreaterThanOrEqual(cinco!.y);
+    expect(caixa.y + caixa.height).toBeLessThanOrEqual(cinco!.y + cinco!.height);
+  }
+
+  await page.getByRole('tab', { name: 'Corinthians' }).click();
+  await expect(page.getByText('Formação 4-4-2')).toBeVisible();
+  const tres = await campo.boundingBox();
+  expect(tres!.height).toBe(cinco!.height);
+  expect(tres!.width).toBe(cinco!.width);
+
+  const rola = await campo.evaluate((el) => {
+    const coluna = el.parentElement!;
+    return coluna.scrollHeight > coluna.clientHeight;
+  });
+  expect(rola).toBe(false);
+});

@@ -335,6 +335,35 @@
   border-color: var(--primary);
 }
 
+/*
+ * Campo da escalação com altura fixa: qualquer formação (até goleiro + 5 linhas, como 4-1-2-1-2) cabe sem mudar
+ * o tamanho nem rolar a coluna. As linhas se espalham por igual na altura.
+ */
+.col .campo {
+  flex: none;
+  height: 452px;
+  padding: 16px 8px;
+  gap: 0;
+  justify-content: space-around;
+}
+
+.campo .slot {
+  gap: 3px;
+}
+
+.campo .shirt {
+  width: 38px;
+  height: 38px;
+  font-size: 17px;
+}
+
+.campo .player {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 /* faixa do jogo: ← Jogos, selo, confronto e abas */
 .faixa {
   position: sticky;

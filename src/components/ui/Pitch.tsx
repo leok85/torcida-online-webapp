@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react';
 import styles from './Pitch.module.css';
 
-type PitchProps = { size?: 'md' | 'lg'; background?: string; children: ReactNode };
+type PitchProps = { size?: 'md' | 'lg'; background?: string; className?: string; children: ReactNode };
 
 /** Meio-campo de ataque visto de cima, com as linhas desenhadas em CSS. */
-export function Pitch({ size = 'md', background = 'var(--pitch)', children }: PitchProps) {
+export function Pitch({ size = 'md', background = 'var(--pitch)', className, children }: PitchProps) {
+  const classes = [styles.pitch, size === 'lg' && styles.lg, className].filter(Boolean).join(' ');
   return (
-    <div className={size === 'lg' ? `${styles.pitch} ${styles.lg}` : styles.pitch} style={{ background }}>
+    <div className={classes} style={{ background }}>
       <div className={styles.bands} />
       <div className={styles.outline} />
       <div className={styles.centerCircle} />

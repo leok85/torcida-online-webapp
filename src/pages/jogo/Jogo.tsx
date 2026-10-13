@@ -192,16 +192,18 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
         />
       </div>
       {detalhes === undefined ? (
-        <Skeleton h={420} r={14} />
+        <Skeleton h={452} r={14} />
       ) : linhas ? (
         <>
-          <Pitch>
+          <Pitch className={styles.campo}>
             {linhas.map((linha, i) => (
               <PitchRow key={i}>
                 {linha.map((j) => (
                   <div key={j.id} className={styles.slot}>
                     <div className={styles.shirt}>{j.numero ?? ''}</div>
-                    <div className={styles.player}>{j.nome}</div>
+                    <div className={styles.player} title={j.nome}>
+                      {j.nome}
+                    </div>
                     <div className={styles.tag}>{j.tag}</div>
                   </div>
                 ))}
