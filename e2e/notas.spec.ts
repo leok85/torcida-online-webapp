@@ -32,7 +32,7 @@ test('pós-jogo: "Dar notas" do início, notas enviadas e a média da torcida de
   ]);
 
   await page.reload();
-  const media = page.getByRole('region', { name: 'Média da torcida' });
+  const media = page.getByRole('region', { name: 'Notas da partida' });
   await expect(media.getByText('2 votaram')).toBeVisible();
   const barboza = media.getByRole('listitem').filter({ hasText: 'A. Barboza' });
   await expect(barboza).toContainText('SUA10');

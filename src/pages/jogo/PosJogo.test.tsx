@@ -35,7 +35,7 @@ function votosDaTorcida() {
 }
 
 const suasNotas = () => screen.getByRole('region', { name: 'Suas notas' });
-const media = () => screen.getByRole('region', { name: 'Média da torcida' });
+const media = () => screen.getByRole('region', { name: 'Notas da partida' });
 const linhaDaMedia = (nome: string) => within(media()).getByText(nome).closest('li')!;
 
 afterEach(() => vi.useRealTimers());
@@ -79,7 +79,7 @@ describe('pós-jogo e notas (W04)', () => {
       { partida_id: 7290, jogador_id: 24, usuario_id: 'usuario-1', clube_id: 162, nota: 8 },
       { partida_id: 7290, jogador_id: 3876, usuario_id: 'usuario-1', clube_id: 162, nota: 4 },
     ]);
-    await waitFor(() => expect(linhaDaMedia('C. Miguel')).toHaveTextContent('SUA88,0TORCIDA'));
+    await waitFor(() => expect(linhaDaMedia('C. Miguel')).toHaveTextContent('SUA8TO6,98,0TORCIDA'));
     expect(within(media()).getByText('1 votou')).toBeInTheDocument();
     const xp = screen.getByRole('region', { name: 'Seu XP neste jogo' });
     expect(xp).toHaveTextContent('+50 XP');
@@ -96,7 +96,19 @@ describe('pós-jogo e notas (W04)', () => {
     expect(linhas[0]).toHaveTextContent('8,5TORCIDA');
     expect(linhas[1]).toHaveTextContent('C. Miguel');
     expect(linhas[1]).toHaveTextContent('6,5TORCIDA');
-    expect(linhaDaMedia('V. Roque')).toHaveTextContent('SUA——TORCIDA');
+    expect(linhaDaMedia('V. Roque')).toHaveTextContent('SUA—TO7,2—TORCIDA');
+  });
+
+  it('nota TO de cada jogador entre a sua e a da torcida; sem nota, "—"', async () => {
+    relogio(JANELA_ABERTA);
+    abrir();
+    await screen.findByRole('region', { name: 'Notas da partida' });
+    // Os jogadores chegam com os detalhes do jogo: espera a lista.
+    await within(media()).findByText('A. Barboza');
+    expect(screen.getByText('Nota TO é calculada pela Torcida Online com os números de cada jogador em campo.')).toBeInTheDocument();
+    expect(linhaDaMedia('A. Barboza')).toHaveTextContent('TO8,1');
+    expect(linhaDaMedia('R. Sosa')).toHaveTextContent('TO6,5');
+    expect(linhaDaMedia('Murilo')).toHaveTextContent('TO—');
   });
 
   it('com a janela fechada: MVP revelado, notas só para leitura', async () => {

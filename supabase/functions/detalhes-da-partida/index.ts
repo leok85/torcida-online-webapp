@@ -1,6 +1,6 @@
 // Edge Function (Deno): POST /functions/v1/detalhes-da-partida { partida }. As regras estão em handler.ts.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { detalhesDaPartida, type Bsd, type DetalhesSalvos, type EscalacoesBsd, type EstatisticasBsd, type IncidenteBsd } from './handler.ts';
+import { detalhesDaPartida, type Bsd, type DetalhesSalvos, type EscalacoesBsd, type EstatisticasBsd, type IncidenteBsd, type NotasBsd } from './handler.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -19,6 +19,7 @@ const bsd: Bsd | null = chave
       estatisticas: (id) => pedir<EstatisticasBsd>(`/api/v2/events/${id}/stats/`),
       incidentes: async (id) => (await pedir<{ incidents?: IncidenteBsd[] }>(`/api/v2/events/${id}/incidents/`)).incidents ?? [],
       escalacoes: (id) => pedir<EscalacoesBsd>(`/api/v2/events/${id}/lineups/`),
+      notas: (id) => pedir<NotasBsd>(`/api/v2/events/${id}/player-stats/`),
     }
   : null;
 
@@ -38,7 +39,7 @@ Deno.serve((req) =>
       return data;
     },
     async detalhes(id) {
-      const { data, error } = await admin.from('detalhes_partidas').select('estatisticas, lances, escalacoes, final').eq('partida_id', id).maybeSingle();
+      const { data, error } = await admin.from('detalhes_partidas').select('estatisticas, lances, escalacoes, notas, final').eq('partida_id', id).maybeSingle();
       falhar('detalhes', error);
       return data as DetalhesSalvos | null;
     },

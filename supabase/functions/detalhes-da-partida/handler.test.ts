@@ -4,6 +4,7 @@ import {
   escalacoesDe,
   estatisticasDe,
   lancesDe,
+  notasDe,
   type Bsd,
   type Dependencias,
   type Detalhes,
@@ -30,6 +31,15 @@ const ESTATISTICAS = {
     home: { ball_possession: 58, total_shots: 17, shots_on_target: 8, corner_kicks: 6, fouls: 11, offsides: 2, pass_accuracy_pct: 86.4 },
     away: { ball_possession: 42, total_shots: 7, shots_on_target: 2, corner_kicks: 3, fouls: 15, offsides: null, pass_accuracy_pct: 79.6 },
   },
+};
+
+const NOTAS = {
+  player_stats: [
+    { player_id: 3622, rating: 8.7 },
+    { player_id: 3876, rating: 7.25 },
+    // Não entrou: sem nota.
+    { player_id: 40, rating: null },
+  ],
 };
 
 const ESCALACOES = {
@@ -68,6 +78,11 @@ describe('normalização da BSD', () => {
     ]);
   });
 
+  it('nota TO de quem entrou em campo, com uma casa', () => {
+    expect(notasDe(NOTAS)).toEqual({ '3622': 8.7, '3876': 7.3 });
+    expect(notasDe({ player_stats: null })).toEqual({});
+  });
+
   it('escalação só quando confirmada, com o nome curto', () => {
     expect(escalacoesDe(ESCALACOES)).toEqual({
       mandante: {
@@ -90,6 +105,7 @@ function dependencias(partida: PartidaResumo | null, salvo: DetalhesSalvos | nul
     estatisticas: vi.fn(async () => ESTATISTICAS),
     incidentes: vi.fn(async () => INCIDENTES),
     escalacoes: vi.fn(async () => ESCALACOES),
+    notas: vi.fn(async () => NOTAS),
   } satisfies Bsd;
   const deps = {
     usuarioDoToken: vi.fn(async (jwt: string) => (jwt === 'token-valido' ? { id: 'usuario-1' } : null)),
@@ -123,20 +139,21 @@ describe('detalhes-da-partida', () => {
     expect(corpo.estatisticas.mandante.posse).toBe(58);
     expect(corpo.lances).toHaveLength(6);
     expect(corpo.escalacoes.mandante.formacao).toBe('3-4-2-1');
+    expect(corpo.notas).toEqual({ '3622': 8.7, '3876': 7.3 });
     expect(deps.reservar).toHaveBeenCalledWith(7290, 90);
     expect(guardado()?.final).toBe(false);
   });
 
   it('com o cache dentro do prazo (reserva negada), devolve o salvo sem chamar a BSD', async () => {
-    const salvo = { estatisticas: null, lances: [], escalacoes: null, final: false };
+    const salvo = { estatisticas: null, lances: [], escalacoes: null, notas: {}, final: false };
     const { deps, bsd } = dependencias(aoVivo, salvo, { reserva: false });
     const resposta = await detalhesDaPartida(pedido({ partida: 7290 }), deps);
-    expect(await resposta.json()).toEqual({ estatisticas: null, lances: [], escalacoes: null });
+    expect(await resposta.json()).toEqual({ estatisticas: null, lances: [], escalacoes: null, notas: {} });
     expect(bsd.estatisticas).not.toHaveBeenCalled();
   });
 
   it('escalação já salva não é pedida de novo', async () => {
-    const salvo = { estatisticas: null, lances: [], escalacoes: escalacoesDe(ESCALACOES), final: false };
+    const salvo = { estatisticas: null, lances: [], escalacoes: escalacoesDe(ESCALACOES), notas: {}, final: false };
     const { deps, bsd } = dependencias(aoVivo, salvo);
     await detalhesDaPartida(pedido({ partida: 7290 }), deps);
     expect(bsd.escalacoes).not.toHaveBeenCalled();
@@ -145,10 +162,12 @@ describe('detalhes-da-partida', () => {
 
   it('se uma parte falha na BSD, mantém o que já estava salvo dela', async () => {
     const lances = lancesDe(INCIDENTES.slice(0, 2));
-    const { deps, bsd } = dependencias(aoVivo, { estatisticas: null, lances, escalacoes: null, final: false });
+    const { deps, bsd } = dependencias(aoVivo, { estatisticas: null, lances, escalacoes: null, notas: { '3622': 8 }, final: false });
     bsd.incidentes.mockRejectedValue(new Error('BSD 500'));
+    bsd.notas.mockRejectedValue(new Error('BSD 500'));
     const corpo = await (await detalhesDaPartida(pedido({ partida: 7290 }), deps)).json();
     expect(corpo.lances).toEqual(lances);
+    expect(corpo.notas).toEqual({ '3622': 8 });
     expect(corpo.estatisticas.mandante.finalizacoes).toBe(17);
   });
 
@@ -166,13 +185,14 @@ describe('detalhes-da-partida', () => {
 
   it('jogo marcado longe do início não gasta cota; perto do início busca só a escalação', async () => {
     const longe = dependencias({ id: 1, status: 'agendada', inicio: '2026-10-12T22:00:00Z' });
-    expect(await (await detalhesDaPartida(pedido({ partida: 1 }), longe.deps)).json()).toEqual({ estatisticas: null, lances: [], escalacoes: null });
+    expect(await (await detalhesDaPartida(pedido({ partida: 1 }), longe.deps)).json()).toEqual({ estatisticas: null, lances: [], escalacoes: null, notas: {} });
     expect(longe.deps.reservar).not.toHaveBeenCalled();
 
     const perto = dependencias({ id: 2, status: 'agendada', inicio: '2026-10-11T23:00:00Z' });
     const corpo = await (await detalhesDaPartida(pedido({ partida: 2 }), perto.deps)).json();
     expect(corpo.escalacoes.visitante.formacao).toBe('4-1-3-2');
     expect(perto.bsd.estatisticas).not.toHaveBeenCalled();
+    expect(perto.bsd.notas).not.toHaveBeenCalled();
   });
 
   it('sem sessão, partida inválida ou inexistente', async () => {

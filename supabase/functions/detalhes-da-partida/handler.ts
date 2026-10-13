@@ -38,8 +38,12 @@ type JogadorBsd = { id: number; name: string; short_name?: string | null; positi
 type LadoEscalacaoBsd = { formation?: string | null; players?: JogadorBsd[] | null; substitutes?: JogadorBsd[] | null };
 export type EscalacoesBsd = { lineup_status?: string; lineups?: { home?: LadoEscalacaoBsd | null; away?: LadoEscalacaoBsd | null } | null };
 
+/** /api/v2/events/{id}/player-stats/: números de cada jogador, com a nota (rating) de 0 a 10. */
+export type NotasBsd = { player_stats?: { player_id: number; rating?: number | null }[] | null };
+
 export type Bsd = {
   estatisticas(id: number): Promise<EstatisticasBsd>;
+  notas(id: number): Promise<NotasBsd>;
   incidentes(id: number): Promise<IncidenteBsd[]>;
   escalacoes(id: number): Promise<EscalacoesBsd>;
 };
@@ -66,7 +70,10 @@ export type Jogador = { id: number; nome: string; numero: number | null; posicao
 export type Escalacao = { formacao: string | null; titulares: Jogador[]; reservas: Jogador[] };
 export type Escalacoes = { mandante: Escalacao; visitante: Escalacao };
 
-export type Detalhes = { estatisticas: Estatisticas | null; lances: Lance[]; escalacoes: Escalacoes | null };
+/** Nota TO de cada jogador: { "<id>": 8.7 }. */
+export type Notas = Record<string, number>;
+
+export type Detalhes = { estatisticas: Estatisticas | null; lances: Lance[]; escalacoes: Escalacoes | null; notas: Notas };
 export type DetalhesSalvos = Detalhes & { final: boolean };
 
 export type PartidaResumo = { id: number; status: string; inicio: string };
@@ -90,7 +97,7 @@ const ESCALACAO_ANTES_MS = 2 * 60 * 60_000;
 /** Depois disso o jogo encerrado é "final": estatísticas e lances não mudam mais. */
 const FINAL_DEPOIS_DO_INICIO_MS = 3 * 60 * 60_000;
 
-const VAZIO: Detalhes = { estatisticas: null, lances: [], escalacoes: null };
+const VAZIO: Detalhes = { estatisticas: null, lances: [], escalacoes: null, notas: {} };
 
 const numero = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
@@ -171,6 +178,15 @@ export function escalacoesDe(bsd: EscalacoesBsd): Escalacoes | null {
   return { mandante: lado(l.home), visitante: lado(l.away) };
 }
 
+/** Nota de quem entrou em campo, com uma casa; quem não jogou vem sem nota e fica de fora. */
+export function notasDe(bsd: NotasBsd): Notas {
+  const notas: Notas = {};
+  for (const j of bsd.player_stats ?? []) {
+    if (typeof j.rating === 'number' && Number.isFinite(j.rating)) notas[String(j.player_id)] = Math.round(j.rating * 10) / 10;
+  }
+  return notas;
+}
+
 // ---------- handler ----------
 
 export async function detalhesDaPartida(req: Request, deps: Dependencias): Promise<Response> {
@@ -186,7 +202,7 @@ export async function detalhesDaPartida(req: Request, deps: Dependencias): Promi
   if (!partida) return json(404, { erro: 'partida_nao_encontrada' });
 
   const salvo = await deps.detalhes(id);
-  const atual: Detalhes = salvo ? { estatisticas: salvo.estatisticas, lances: salvo.lances, escalacoes: salvo.escalacoes } : VAZIO;
+  const atual: Detalhes = salvo ? { estatisticas: salvo.estatisticas, lances: salvo.lances, escalacoes: salvo.escalacoes, notas: salvo.notas ?? {} } : VAZIO;
   const agora = (deps.agora?.() ?? new Date()).getTime();
   const inicio = new Date(partida.inicio).getTime();
 
@@ -198,19 +214,21 @@ export async function detalhesDaPartida(req: Request, deps: Dependencias): Promi
 
   const bsd = deps.bsd;
   const comJogo = status !== 'agendada';
-  const [estatisticas, incidentes, escalacoes] = await Promise.allSettled([
+  const [estatisticas, incidentes, escalacoes, notas] = await Promise.allSettled([
     comJogo ? bsd.estatisticas(id) : Promise.reject(),
     comJogo ? bsd.incidentes(id) : Promise.reject(),
     // Escalação confirmada não muda: depois de salva, não é pedida de novo.
     atual.escalacoes ? Promise.reject() : bsd.escalacoes(id),
+    comJogo ? bsd.notas(id) : Promise.reject(),
   ]);
   // Falha numa parte mantém o que já estava salvo dela.
   const novo: Detalhes = {
     estatisticas: estatisticas.status === 'fulfilled' ? (estatisticasDe(estatisticas.value) ?? atual.estatisticas) : atual.estatisticas,
     lances: incidentes.status === 'fulfilled' ? lancesDe(incidentes.value) : atual.lances,
     escalacoes: escalacoes.status === 'fulfilled' ? (escalacoesDe(escalacoes.value) ?? atual.escalacoes) : atual.escalacoes,
+    notas: notas.status === 'fulfilled' && Object.keys(notasDe(notas.value)).length ? notasDe(notas.value) : atual.notas,
   };
-  const final = status === 'encerrada' && agora - inicio > FINAL_DEPOIS_DO_INICIO_MS && estatisticas.status === 'fulfilled' && incidentes.status === 'fulfilled';
+  const final = status === 'encerrada' && agora - inicio > FINAL_DEPOIS_DO_INICIO_MS && estatisticas.status === 'fulfilled' && incidentes.status === 'fulfilled' && notas.status === 'fulfilled';
   await deps.salvar(id, novo, final);
   return json(200, novo);
 }

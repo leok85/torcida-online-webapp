@@ -21,4 +21,6 @@ export type Jogador = { id: number; nome: string; numero: number | null; posicao
 export type Escalacao = { formacao: string | null; titulares: Jogador[]; reservas: Jogador[] };
 export type Escalacoes = { mandante: Escalacao; visitante: Escalacao };
 
-export type Detalhes = { estatisticas: Estatisticas | null; lances: Lance[]; escalacoes: Escalacoes | null };
+/** Nota TO de cada jogador (calculada com os números dele em campo): { "<id>": 8.7 }. */
+export type Notas = Record<string, number>;
+export type Detalhes = { estatisticas: Estatisticas | null; lances: Lance[]; escalacoes: Escalacoes | null; notas: Notas };
