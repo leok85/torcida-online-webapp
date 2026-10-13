@@ -226,7 +226,8 @@
 .grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr 388px;
+  /* O chat fica com a maior fatia; números e lances, a menor. A escalação mantém folga para o campo. */
+  grid-template-columns: minmax(360px, 0.95fr) minmax(300px, 0.8fr) minmax(420px, 1.25fr);
   min-height: 0;
 }
 
@@ -483,7 +484,7 @@
   padding: 9px 12px;
   font-size: 13.5px;
   line-height: 1.35;
-  max-width: 250px;
+  max-width: 420px;
   overflow-wrap: anywhere;
 }
 
