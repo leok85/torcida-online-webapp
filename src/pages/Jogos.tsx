@@ -103,7 +103,7 @@ function Temporada({ jogos, clubeId, campeonato }: { jogos: Partida[]; clubeId: 
               {m.jogos.map(({ partida: p, dia, semana, situacao, hoje: eHoje }) => {
                 const encerrada = p.status === 'encerrada';
                 const titulo = p.status === 'agendada' ? `${p.mandante_nome} × ${p.visitante_nome}` : placarDe(p);
-                const destino = p.status === 'ao_vivo' ? `/jogo/${p.id}` : encerrada ? `/jogo/${p.id}/notas` : '/escalacao';
+                const destino = p.status === 'ao_vivo' ? `/jogo/${p.id}` : encerrada ? `/jogo/${p.id}/notas` : `/jogo/${p.id}/escalacao`;
                 const rotulo = encerrada ? ROTULO_RESULTADO[situacao as 'V' | 'E' | 'D'] : situacao === 'AO VIVO' ? 'Ao vivo' : situacao;
                 return (
                   <li key={p.id}>
@@ -273,7 +273,7 @@ export function Jogos() {
                   return (
                     <li key={p.id}>
                       <Link
-                        to="/escalacao"
+                        to={`/jogo/${p.id}/escalacao`}
                         className={styles.linha}
                         aria-label={`${p.mandante_nome} x ${p.visitante_nome}, ${dia} ${mes} · ${infoDoProximo(p)} · ${palpite}`}
                       >

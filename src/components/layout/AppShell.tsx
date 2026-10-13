@@ -10,7 +10,6 @@ import { NotificationsPanel } from './NotificationsPanel';
 import { Sidebar } from './Sidebar';
 import { Campeonatos } from '../../pages/Campeonatos';
 import { Clube } from '../../pages/Clube';
-import { Escalacao } from '../../pages/Escalacao';
 import { Fotos } from '../../pages/Fotos';
 import { Inicio } from '../../pages/Inicio';
 import { Jogos } from '../../pages/Jogos';
@@ -28,7 +27,8 @@ import { Pagamento } from '../../pages/assinatura/Pagamento';
 import { Planos } from '../../pages/assinatura/Planos';
 import { Retorno } from '../../pages/assinatura/Retorno';
 import { Jogo } from '../../pages/jogo/Jogo';
-import { JogoDoMomento, NotasDoMomento } from '../../pages/jogo/JogoDoMomento';
+import { EscalacaoEPalpite } from '../../pages/jogo/Escalacao';
+import { EscalacaoDoMomento, JogoDoMomento, NotasDoMomento } from '../../pages/jogo/JogoDoMomento';
 import { PosJogo } from '../../pages/jogo/PosJogo';
 import styles from './AppShell.module.css';
 
@@ -77,7 +77,8 @@ export function AppShell() {
             <Route path="/ao-vivo" element={<JogoDoMomento />} />
             {/* Os mesmos itens marcados como premium em routes.ts. */}
             <Route element={<ApenasAssinante />}>
-              <Route path="/escalacao" element={<Escalacao />} />
+              <Route path="/escalacao" element={<EscalacaoDoMomento />} />
+              <Route path="/jogo/:id/escalacao" element={<EscalacaoEPalpite />} />
               <Route path="/pos-jogo" element={<NotasDoMomento />} />
               <Route path="/jogo/:id/notas" element={<PosJogo />} />
               <Route path="/missoes" element={<Missoes />} />

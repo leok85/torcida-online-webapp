@@ -1,5 +1,7 @@
 // Supabase falso em memória para os testes do Vitest. O setup.ts troca src/lib/supabase por este módulo
 // em todos os testes, então nada aqui fala com a rede.
+import { elencosDaPartida, elencosDeTeste, enviarPalpiteDeTeste, meuPalpiteDeTeste, type PalpiteDeTeste } from './palpitesDeTeste';
+import type { JogadorDoElenco } from '../data/tiposDoPalpite';
 import { vi, type Mock } from 'vitest';
 import { AuthApiError } from '@supabase/supabase-js';
 import type { Session, User, UserIdentity } from '@supabase/supabase-js';
@@ -138,6 +140,8 @@ function criar() {
   const detalhesDasPartidas = new Map<number, Detalhes>();
   const mensagensChat: MensagemDeTeste[] = [];
   const notasJogadores: NotaDeTeste[] = [];
+  const palpites: PalpiteDeTeste[] = [];
+  let elencos = elencosDeTeste();
   const canais = new Set<CanalFalso>();
   let tempoRealFora = false;
   let online = 1;
@@ -442,6 +446,11 @@ function criar() {
       if (!partidas.some((p) => p.id === id)) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'partida_nao_encontrada' }), { status: 404 }) } };
       return ok(detalhesDasPartidas.get(id) ?? SEM_DETALHES);
     }
+    if (nome === 'elenco-da-partida') {
+      const partida = partidas.find((p) => p.id === (body as { partida?: number }).partida);
+      if (!partida) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'partida_nao_encontrada' }), { status: 404 }) } };
+      return ok(elencosDaPartida(elencos, partida));
+    }
     if (nome === 'convidar-amigos') {
       const r = convidarAmigosDeTeste(convitesEmail, { id: sessao.user.id, email: sessao.user.email }, body as object);
       return r.status === 200 ? ok(r.corpo) : { data: null, error: { context: new Response(JSON.stringify(r.corpo), { status: r.status }) } };
@@ -548,6 +557,8 @@ function criar() {
     detalhesDasPartidas.clear();
     mensagensChat.length = 0;
     notasJogadores.length = 0;
+    palpites.length = 0;
+    elencos = elencosDeTeste();
     canais.clear();
     tempoRealFora = false;
     online = 1;
@@ -563,6 +574,13 @@ function criar() {
         const partida = partidas.find((p) => p.id === a.p_partida);
         const r = enviarNotasDeTeste(notasJogadores, eu, assinante, partida, detalhesDasPartidas.get(a.p_partida), a.p_notas);
         return typeof r === 'number' ? ok(r) : { data: null, error: { code: r.code, message: r.hint, hint: r.hint } };
+      }
+      if (fn === 'enviar_palpite' || fn === 'meu_palpite') {
+        const a = args as unknown as { p_partida: number };
+        if (fn === 'meu_palpite') return ok(meuPalpiteDeTeste(palpites, sessao?.user.id, a.p_partida));
+        const eu = sessao ? perfis.get(sessao.user.id) : undefined;
+        const r = enviarPalpiteDeTeste(palpites, eu, minhas().some(daAcesso), partidas, elencos, args as object);
+        return r ? { data: null, error: { code: r.code, message: r.hint, hint: r.hint } } : ok(null);
       }
       if (fn === 'convite_de') {
         const dono = donoDoConvite(perfis.values(), args!.codigo);
@@ -629,6 +647,10 @@ function criar() {
     definirDetalhes: (id: number, detalhes: Detalhes) => detalhesDasPartidas.set(id, detalhes),
     /** Notas dos jogadores gravadas (de todos os torcedores); empurre linhas para simular os votos da torcida. */
     notasDosJogadores: () => notasJogadores,
+    /** Escalações e palpites gravados (de todos os torcedores). */
+    palpites: () => palpites,
+    /** Elenco de um clube, como a função elenco-da-partida devolveria (padrão: Palmeiras e Corinthians). */
+    definirElenco: (clubeId: number, jogadores: JogadorDoElenco[]) => elencos.set(clubeId, jogadores),
     /** Mensagens do chat gravadas (de todas as torcidas). */
     mensagensDoChat: () => mensagensChat,
     /** Outro torcedor escreve no chat: grava e entrega pelo tempo real a quem pode ler. */

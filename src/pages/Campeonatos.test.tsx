@@ -81,7 +81,7 @@ describe('Campeonatos (W10)', () => {
     expect(caminho).toHaveTextContent('LDU 3 x 2 Palmeiras (3 x 4 pên.)');
 
     await user.click(within(fase).getByRole('link', { name: /Palpitar na ida/ }));
-    expect(local()).toBe('/escalacao');
+    expect(local()).toBe('/jogo/15/escalacao');
   });
 
   it('com jogo ao vivo, o palpite da próxima fase fica fechado', async () => {

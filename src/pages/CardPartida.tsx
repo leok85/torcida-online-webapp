@@ -181,7 +181,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
               <span className={styles.notaTexto}>Palpite e escalação abertos até 15 min antes</span>
               <span className={styles.notaXp}>+80 XP</span>
             </div>
-            <button type="button" className={styles.chatBtn} onClick={() => navigate('/escalacao')}>
+            <button type="button" className={styles.chatBtn} onClick={() => navigate(`/jogo/${jogo.id}/escalacao`)}>
               <Icon name="sports_soccer" size={20} />
               Dar palpite
             </button>
@@ -245,7 +245,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
               Palpite abre no apito final
             </span>
           ) : (
-            <Link to="/escalacao" className={styles.faixaBtn}>
+            <Link to={`/jogo/${proximo.id}/escalacao`} className={styles.faixaBtn}>
               Dar palpite
               <Icon name="arrow_forward" size={17} />
             </Link>

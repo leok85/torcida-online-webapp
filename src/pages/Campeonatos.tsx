@@ -259,7 +259,7 @@ function DetalheMataMata({ c, clubeId, haJogoAoVivo }: { c: Campeonato; clubeId:
             <div className={styles.cupPhase}>{fase.nome}</div>
             <ListaDeJogos jogos={fase.jogos} clubeId={clubeId} />
             {c.proximo && c.proximo.fase === fase.fase && c.proximo.status === 'agendada' && !haJogoAoVivo && (
-              <Link to="/escalacao" className={styles.palpitar}>
+              <Link to={`/jogo/${c.proximo.id}/escalacao`} className={styles.palpitar}>
                 {`Palpitar ${c.proximo.jogo_de_ida ? 'na volta' : fase.jogos.length > 1 ? 'na ida' : 'no jogo'}`}
                 <Icon name="arrow_forward" size={18} />
               </Link>
