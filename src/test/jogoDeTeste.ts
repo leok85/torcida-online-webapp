@@ -105,3 +105,65 @@ export function inserirMensagemDeTeste(
   mensagens.push(mensagem);
   return mensagem;
 }
+
+// ---------- notas dos jogadores (migration 20261019100000_notas_dos_jogadores.sql) ----------
+
+export type NotaDeTeste = { partida_id: number; jogador_id: number; usuario_id: string; clube_id: number; nota: number };
+
+/** notas_abertas(): do apito final (encerrada_em, ou início + 115 min) até 1 h depois. */
+export function notasAbertasDeTeste(p: Partida | undefined, agora = Date.now()) {
+  if (!p || p.status !== 'encerrada') return false;
+  const apito = p.encerrada_em ? new Date(p.encerrada_em).getTime() : new Date(p.inicio).getTime() + 115 * 60_000;
+  return agora < apito + 60 * 60_000;
+}
+
+/** jogadores_que_jogaram(): titulares do lado e quem entrou. */
+function jogaram(detalhes: Detalhes | undefined, mandante: boolean) {
+  const lado = detalhes?.escalacoes?.[mandante ? 'mandante' : 'visitante'];
+  const entraram = (detalhes?.lances ?? []).flatMap((l) => (l.tipo === 'substituicao' && l.mandante === mandante && l.entrou_id !== null ? [l.entrou_id] : []));
+  return new Set([...(lado?.titulares ?? []).map((j) => j.id), ...entraram]);
+}
+
+/** enviar_notas(): mesmas regras e hints do banco. */
+export function enviarNotasDeTeste(
+  notas: NotaDeTeste[],
+  autor: Autor | undefined,
+  assinante: boolean,
+  partida: Partida | undefined,
+  detalhes: Detalhes | undefined,
+  pedido: unknown,
+): number | { hint: string; code: string } {
+  const recusa = (hint: string) => ({ hint, code: 'P0001' });
+  if (!autor?.time_id) return recusa('sem_perfil');
+  if (!assinante) return recusa('so_membros');
+  if (!partida || ![partida.mandante_id, partida.visitante_id].includes(autor.time_id)) return recusa('outro_clube');
+  if (!notasAbertasDeTeste(partida)) return recusa('notas_fechadas');
+  const validos = jogaram(detalhes, autor.time_id === partida.mandante_id);
+  const itens = Array.isArray(pedido) ? (pedido as { jogador?: number; nota?: number }[]) : [];
+  for (const i of itens) {
+    if (!i.nota || i.nota < 1 || i.nota > 10) return recusa('nota_invalida');
+    if (!i.jogador || !validos.has(i.jogador)) return recusa('jogador_invalido');
+  }
+  for (const i of itens) {
+    const existente = notas.find((n) => n.partida_id === partida.id && n.jogador_id === i.jogador && n.usuario_id === autor.id);
+    if (existente) existente.nota = i.nota!;
+    else notas.push({ partida_id: partida.id, jogador_id: i.jogador!, usuario_id: autor.id, clube_id: autor.time_id, nota: i.nota! });
+  }
+  return itens.length;
+}
+
+/** notas_da_torcida(): média por jogador da torcida do meu clube, com a minha nota e quantos votaram. */
+export function notasDaTorcidaDeTeste(notas: NotaDeTeste[], eu: Autor | undefined, assinante: boolean, partidaId: number) {
+  if (!eu?.time_id || !assinante) return [];
+  const daTorcida = notas.filter((n) => n.partida_id === partidaId && n.clube_id === eu.time_id);
+  const votantes = new Set(daTorcida.map((n) => n.usuario_id)).size;
+  const porJogador = new Map<number, NotaDeTeste[]>();
+  for (const n of daTorcida) porJogador.set(n.jogador_id, [...(porJogador.get(n.jogador_id) ?? []), n]);
+  return [...porJogador].map(([jogador_id, lista]) => ({
+    jogador_id,
+    media: Math.round((lista.reduce((s, n) => s + n.nota, 0) / lista.length) * 10) / 10,
+    votos: lista.length,
+    minha: lista.find((n) => n.usuario_id === eu.id)?.nota ?? null,
+    votantes,
+  }));
+}

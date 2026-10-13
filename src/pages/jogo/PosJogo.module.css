@@ -1,0 +1,548 @@
+/* W04 · Jogo · pós-jogo e notas. A faixa e o placar vêm de Jogo.module.css. */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.corpo {
+  padding: 22px 28px 32px;
+}
+
+.topo {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.card,
+.xp {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+
+/* Seu XP neste jogo */
+.xp {
+  flex: 1;
+  min-width: 0;
+}
+
+.xpHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.xpSub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.xpTotal {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green-dark);
+}
+
+.xpItens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.xpItem {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  color: var(--muted-3);
+}
+
+.xpOk {
+  background: #f3faef;
+  border-color: #d6edc9;
+  color: var(--green-dark);
+}
+
+.xpTexto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.xpTexto strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.xpTexto span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.xpValor {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* MVP */
+.mvp {
+  flex: none;
+  width: 330px;
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(120deg, #fff9ec, #ffffff);
+}
+
+.mvpVazio {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.medalha {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  border: 2px solid var(--gold-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mvpRotulo {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+}
+
+.mvpNome {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 24px;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.mvpMeta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
+
+.mvpAberto {
+  flex: none;
+  width: 330px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mvpTopo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mvpTopo .mvpRotulo {
+  flex: 1;
+}
+
+.relogio {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--red-soft);
+  color: var(--red-dark);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.mvpEspera {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mvpEspera p {
+  flex: 1;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.ampulheta {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  border-radius: 999px;
+  background: #f7f7f6;
+  border: 2px dashed var(--gold-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Suas notas */
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.relogioGrande,
+.fechada {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--red-soft);
+  color: var(--red-dark);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.fechada {
+  background: var(--soft);
+  color: var(--ink-2);
+}
+
+.dica {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.vazio {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.jogadores {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.jogadores > li {
+  border-bottom: 1px solid var(--bg);
+}
+
+.jogadores > li:last-child {
+  border-bottom: 0;
+}
+
+.jogador {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.jogador {
+  cursor: pointer;
+}
+
+.jogadorAberto {
+  padding-bottom: 14px;
+}
+
+.jogadorAberto .jogador {
+  padding-bottom: 11px;
+}
+
+.camisa {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--ink-2);
+}
+
+.jogadorInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jogadorInfo strong {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.jogadorInfo span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.nota {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.escala {
+  display: flex;
+  gap: 4px;
+}
+
+.ponto {
+  flex: 1;
+  height: 44px;
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pontoCheio {
+  color: #fff;
+  border-color: transparent;
+}
+
+.erro {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--red-dark);
+}
+
+.enviar {
+  width: 100%;
+  height: 48px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--green);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.enviar:disabled {
+  background: #c7d2e1;
+  cursor: not-allowed;
+}
+
+/* Média da torcida */
+.votaram {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.medias {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.media {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.media:last-child {
+  border-bottom: 0;
+}
+
+.numero {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.mediaInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mediaNome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mediaNome strong {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.mediaInfo span {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
+.sua {
+  flex: none;
+  min-width: 46px;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: 9px;
+  border: 1.5px solid var(--line-3);
+  background: var(--bg);
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.suaDada {
+  border-color: var(--primary);
+  background: var(--blue-soft);
+  color: var(--primary);
+}
+
+.sua span,
+.daTorcida span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.sua strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.daTorcida {
+  flex: none;
+  min-width: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.daTorcida strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.daTorcida span {
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .topo,
+  .grid {
+    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .mvp,
+  .mvpAberto {
+    width: auto;
+  }
+
+  .xpItens {
+    grid-template-columns: 1fr;
+  }
+
+  .corpo {
+    padding: 16px;
+  }
+}

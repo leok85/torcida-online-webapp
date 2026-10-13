@@ -154,8 +154,8 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
       "A. Giay 78' (pên.)",
     ]);
     expect(screen.getByRole('list', { name: 'Gols do Corinthians' })).toHaveTextContent("M. Depay 52'");
-    expect(screen.getByRole('link', { name: /Pós-jogo e notas/ })).toHaveAttribute('href', '/pos-jogo');
-    expect(screen.getByRole('link', { name: /Dê suas notas e vote no MVP/ })).toHaveAttribute('href', '/pos-jogo');
+    expect(screen.getByRole('link', { name: /Pós-jogo e notas/ })).toHaveAttribute('href', '/jogo/7290/notas');
+    expect(screen.getByRole('link', { name: /Dê suas notas e vote no MVP/ })).toHaveAttribute('href', '/jogo/7290/notas');
   });
 
   it('encerrado com derrota do meu time', async () => {

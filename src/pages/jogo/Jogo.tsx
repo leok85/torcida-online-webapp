@@ -32,7 +32,7 @@ export const ATUALIZAR_PARTIDA_MS = 30_000;
 export const ATUALIZAR_DETALHES_MS = 60_000;
 
 /** O jogo e os detalhes da BSD, relidos enquanto a bola rola. */
-function useJogo(id: number) {
+export function useJogo(id: number) {
   const [partida, setPartida] = useState<Partida | null | undefined>(undefined);
   const [erro, setErro] = useState(false);
   const [detalhes, setDetalhes] = useState<Detalhes | null | undefined>(undefined);
@@ -83,15 +83,17 @@ function useJogo(id: number) {
 
 // ---------- faixa do jogo ----------
 
-const ABAS = [
-  { id: 'pre', rotulo: 'Escalação e palpite', icone: 'how_to_reg', para: '/escalacao' },
-  { id: 'aovivo', rotulo: 'Ao vivo e chat', icone: 'forum', para: null },
-  { id: 'pos', rotulo: 'Pós-jogo e notas', icone: 'star_rate', para: '/pos-jogo' },
-  { id: 'fotos', rotulo: 'Fotos', icone: 'photo_library', para: '/fotos' },
-] as const;
+type Aba = 'pre' | 'aovivo' | 'pos' | 'fotos';
+
+const ABAS: { id: Aba; rotulo: string; icone: string; para: (id: number) => string }[] = [
+  { id: 'pre', rotulo: 'Escalação e palpite', icone: 'how_to_reg', para: () => '/escalacao' },
+  { id: 'aovivo', rotulo: 'Ao vivo e chat', icone: 'forum', para: (id) => `/jogo/${id}` },
+  { id: 'pos', rotulo: 'Pós-jogo e notas', icone: 'star_rate', para: (id) => `/jogo/${id}/notas` },
+  { id: 'fotos', rotulo: 'Fotos', icone: 'photo_library', para: () => '/fotos' },
+];
 
 /** Faixa "← Jogos" com o selo, o confronto e as abas do jogo; pós-jogo só abre depois do apito final. */
-function FaixaDoJogo({ partida }: { partida: Partida | null }) {
+export function FaixaDoJogo({ partida, atual = 'aovivo' }: { partida: Partida | null; atual?: Aba }) {
   const selo = partida ? seloDoJogo(partida) : null;
   return (
     <div className={styles.faixa}>
@@ -120,15 +122,15 @@ function FaixaDoJogo({ partida }: { partida: Partida | null }) {
               {a.rotulo}
             </>
           );
-          if (!a.para) {
+          if (a.id === atual) {
             return (
               <span key={a.id} className={`${styles.aba} ${styles.abaAtual}`} aria-current="page">
                 {conteudo}
               </span>
             );
           }
-          return livre ? (
-            <Link key={a.id} to={a.para} className={styles.aba}>
+          return livre && partida ? (
+            <Link key={a.id} to={a.para(partida.id)} className={styles.aba}>
               {conteudo}
             </Link>
           ) : (
@@ -147,7 +149,7 @@ function FaixaDoJogo({ partida }: { partida: Partida | null }) {
 const RESULTADO = { V: 'VITÓRIA', E: 'EMPATE', D: 'DERROTA' } as const;
 
 /** Placar no centro com o selo (ao vivo com o relógio, ou encerrado com o resultado), os gols e a linha do tempo. */
-function Placar({ partida, clubeId }: { partida: Partida; clubeId: number | null }) {
+export function Placar({ partida, clubeId }: { partida: Partida; clubeId: number | null }) {
   const aoVivo = partida.status === 'ao_vivo';
   const encerrada = partida.status === 'encerrada';
   const penaltis = partida.penaltis_mandante !== null && partida.penaltis_visitante !== null;
@@ -505,7 +507,7 @@ export function Jogo() {
           <Numeros partida={partida} detalhes={detalhes} />
           <Lances partida={partida} detalhes={detalhes} clubeId={perfil?.time_id ?? null} />
           {partida.status === 'encerrada' && (
-            <Link to="/pos-jogo" className={styles.notas}>
+            <Link to={`/jogo/${partida.id}/notas`} className={styles.notas}>
               <Icon name="star_rate" size={26} color="var(--primary)" />
               <div className={styles.notasTexto}>
                 <strong>Dê suas notas e vote no MVP</strong>

@@ -182,7 +182,7 @@ export function Jogos() {
                 const placar = `${p.mandante_nome} ${p.gols_mandante ?? 0} x ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
                 return (
                   <li key={p.id}>
-                    <Link to="/pos-jogo" className={styles.linha} aria-label={`${ROTULO_RESULTADO[r]}: ${placar}, ${dia} ${mes} · ${infoDoResultado(p)}`}>
+                    <Link to={`/jogo/${p.id}/notas`} className={styles.linha} aria-label={`${ROTULO_RESULTADO[r]}: ${placar}, ${dia} ${mes} · ${infoDoResultado(p)}`}>
                       <Data inicio={p.inicio} />
                       <span className={`${styles.resultado} ${styles[`r${r}`]}`} title={ROTULO_RESULTADO[r]}>
                         {r}

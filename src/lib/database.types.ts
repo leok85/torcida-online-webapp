@@ -240,6 +240,7 @@ export type Database = {
       partidas: {
         Row: {
           atualizado_em: string;
+          encerrada_em: string | null;
           gols: Json;
           fase: string | null;
           fase_nome: string | null;
@@ -265,6 +266,7 @@ export type Database = {
         };
         Insert: {
           atualizado_em?: string;
+          encerrada_em?: string | null;
           gols?: Json;
           fase?: string | null;
           fase_nome?: string | null;
@@ -290,6 +292,7 @@ export type Database = {
         };
         Update: {
           atualizado_em?: string;
+          encerrada_em?: string | null;
           gols?: Json;
           fase?: string | null;
           fase_nome?: string | null;
@@ -408,6 +411,12 @@ export type Database = {
       aplicar_convite: { Args: { codigo: string }; Returns: string };
       convite_de: { Args: { codigo: string }; Returns: { apelido: string; clube: string | null }[] };
       chat_aberto: { Args: { p_partida: number }; Returns: boolean };
+      enviar_notas: { Args: { p_partida: number; p_notas: { jogador: number; nota: number }[] }; Returns: number };
+      notas_abertas: { Args: { p_partida: number }; Returns: boolean };
+      notas_da_torcida: {
+        Args: { p_partida: number };
+        Returns: { jogador_id: number; media: number; votos: number; minha: number | null; votantes: number }[];
+      };
       convites_restantes: { Args: Record<string, never>; Returns: number };
       meu_convidador: { Args: Record<string, never>; Returns: string | null };
       meus_convidados: {

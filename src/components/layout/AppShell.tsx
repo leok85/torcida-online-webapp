@@ -18,7 +18,6 @@ import { Loja } from '../../pages/Loja';
 import { Missoes } from '../../pages/Missoes';
 import { Noticias } from '../../pages/Noticias';
 import { Perfil } from '../../pages/Perfil';
-import { PosJogo } from '../../pages/PosJogo';
 import { Ranking } from '../../pages/Ranking';
 import { Cancelamento } from '../../pages/assinatura/Cancelamento';
 import { DadosDaConta } from '../../pages/conta/DadosDaConta';
@@ -29,7 +28,8 @@ import { Pagamento } from '../../pages/assinatura/Pagamento';
 import { Planos } from '../../pages/assinatura/Planos';
 import { Retorno } from '../../pages/assinatura/Retorno';
 import { Jogo } from '../../pages/jogo/Jogo';
-import { JogoDoMomento } from '../../pages/jogo/JogoDoMomento';
+import { JogoDoMomento, NotasDoMomento } from '../../pages/jogo/JogoDoMomento';
+import { PosJogo } from '../../pages/jogo/PosJogo';
 import styles from './AppShell.module.css';
 
 type Panel = 'notif' | 'account' | null;
@@ -78,7 +78,8 @@ export function AppShell() {
             {/* Os mesmos itens marcados como premium em routes.ts. */}
             <Route element={<ApenasAssinante />}>
               <Route path="/escalacao" element={<Escalacao />} />
-              <Route path="/pos-jogo" element={<PosJogo />} />
+              <Route path="/pos-jogo" element={<NotasDoMomento />} />
+              <Route path="/jogo/:id/notas" element={<PosJogo />} />
               <Route path="/missoes" element={<Missoes />} />
               <Route path="/ranking" element={<Ranking />} />
               <Route path="/fotos" element={<Fotos />} />

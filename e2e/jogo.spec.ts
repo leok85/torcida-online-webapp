@@ -64,7 +64,7 @@ test('encerrado: "Chat" do início abre o jogo com o fim de jogo e o pós-jogo l
   await expect(page).toHaveURL('/jogo/7290');
   await expect(page.getByLabel('Placar: 4 a 1')).toBeVisible();
   await expect(page.getByText('VITÓRIA')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Pós-jogo e notas/ })).toHaveAttribute('href', '/pos-jogo');
+  await expect(page.getByRole('link', { name: /Pós-jogo e notas/ })).toHaveAttribute('href', '/jogo/7290/notas');
   await expect(page.getByText('Os números deste jogo ainda não chegaram.')).toBeVisible();
 });
 

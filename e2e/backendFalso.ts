@@ -5,7 +5,7 @@ import type { BrowserContext, Route } from '@playwright/test';
 import type { ClassificacaoRow, CompeticaoRow, FeedbackRow, Partida } from '../src/lib/database.types';
 import { inicioDaSemana } from '../src/data/semana';
 import { aplicarConviteDeTeste, convidadosDe, convidarAmigosDeTeste, convitesHoje, donoDoConvite, LIMITE_DE_CONVITES, type ConviteEmailDeTeste } from '../src/test/convitesDeTeste';
-import { inserirMensagemDeTeste, SEM_DETALHES, type MensagemDeTeste } from '../src/test/jogoDeTeste';
+import { enviarNotasDeTeste, inserirMensagemDeTeste, notasDaTorcidaDeTeste, SEM_DETALHES, type MensagemDeTeste, type NotaDeTeste } from '../src/test/jogoDeTeste';
 import type { Detalhes } from '../src/data/tiposDoJogo';
 import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from '../src/test/catalogoDeTeste';
 
@@ -92,6 +92,8 @@ export class BackendFalso {
   readonly detalhes = new Map<number, Detalhes>();
   /** Mensagens do chat (tabela mensagens_chat), de todas as torcidas. */
   readonly mensagensChat: MensagemDeTeste[] = [];
+  /** Notas dos jogadores (tabela notas_jogadores), de todos os torcedores. */
+  readonly notasJogadores: NotaDeTeste[] = [];
   readonly competicoes: CompeticaoRow[] = [];
   readonly classificacao: ClassificacaoRow[] = [];
   private readonly codigos = new Map<string, { codigo: string; tipo: Email['tipo'] }>();
@@ -519,6 +521,18 @@ export class BackendFalso {
       return json(200, Math.max(0, LIMITE_DE_CONVITES - convitesHoje(this.convitesEmail, usuario.id)));
     }
 
+    if (caminho === '/rpc/enviar_notas' || caminho === '/rpc/notas_da_torcida') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied' });
+      const perfil = this.perfis.get(usuario.id);
+      const assinante = this.assinaturas.some(
+        (a) => a.usuario_id === usuario.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
+      );
+      const { p_partida, p_notas } = req.postDataJSON();
+      if (caminho === '/rpc/notas_da_torcida') return json(200, notasDaTorcidaDeTeste(this.notasJogadores, perfil, assinante, p_partida));
+      const r = enviarNotasDeTeste(this.notasJogadores, perfil, assinante, this.partidas.find((p) => p.id === p_partida), this.detalhes.get(p_partida), p_notas);
+      return typeof r === 'number' ? json(200, r) : json(400, { code: r.code, message: r.hint, hint: r.hint, details: null });
+    }
+
     if (caminho === '/rpc/sou_assinante') {
       // Mesma regra da função sou_assinante() da migration.
       const valida = this.assinaturas.some(
@@ -543,7 +557,10 @@ export class BackendFalso {
       // RLS: membros leem o chat da própria torcida. Filtros: partida_id=eq.X, id=gt.N, order=id.desc|asc, limit.
       const partidaId = Number(url.searchParams.get('partida_id')?.replace(/^eq\./, ''));
       const depoisDe = Number(url.searchParams.get('id')?.replace(/^gt\./, '') ?? 0);
-      let linhas = assinante ? this.mensagensChat.filter((m) => m.partida_id === partidaId && m.id > depoisDe && m.clube_id === perfil?.time_id) : [];
+      const autor = url.searchParams.get('autor_id')?.replace(/^eq\./, '');
+      let linhas = assinante
+        ? this.mensagensChat.filter((m) => m.partida_id === partidaId && m.id > depoisDe && m.clube_id === perfil?.time_id && (!autor || m.autor_id === autor))
+        : [];
       if (url.searchParams.get('order')?.includes('desc')) linhas = [...linhas].reverse();
       const limite = Number(url.searchParams.get('limit') ?? Infinity);
       const pagina = linhas.slice(0, limite);

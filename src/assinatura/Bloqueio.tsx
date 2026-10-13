@@ -10,7 +10,9 @@ export function ApenasAssinante() {
   const { assinante } = useAuth();
   const { pathname } = useLocation();
   if (assinante) return <Outlet />;
-  const recurso = [...NAV_MAIN, ...TELAS_DO_JOGO].find((i) => i.path === pathname);
+  // As notas de um jogo (/jogo/7290/notas) são o recurso "Pós-jogo e notas".
+  const caminho = /^\/jogo\/\d+\/notas$/.test(pathname) ? '/pos-jogo' : pathname;
+  const recurso = [...NAV_MAIN, ...TELAS_DO_JOGO].find((i) => i.path === caminho);
   return <Bloqueio titulo={recurso?.label ?? 'Este recurso'} icone={recurso?.icon ?? 'lock'} />;
 }
 
