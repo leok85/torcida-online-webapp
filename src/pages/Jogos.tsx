@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Icon } from '../components/ui/Icon';
 import { Carregando, Skeleton } from '../components/ui/Skeleton';
 import {
   aberturaDoPalpite,
+  anoDe,
+  campeonatosDosJogos,
   diaEMes,
   infoDoProximo,
   infoDoResultado,
   resultadoPara,
   separarJogos,
+  temporadaDoClube,
   type Partida,
 } from '../data/partidas';
 import { useJogosDoClube } from '../partidas/JogosDoClube';
@@ -50,10 +54,100 @@ function FaixaAoVivo({ partida }: { partida: Partida }) {
   );
 }
 
+const placarDe = (p: Partida) => `${p.mandante_nome} ${p.gols_mandante ?? 0} x ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
+
+/** Sem jogo em campo, o último resultado em destaque, com o caminho para as notas. */
+function UltimoJogo({ partida, clubeId }: { partida: Partida; clubeId: number }) {
+  const r = resultadoPara(partida, clubeId);
+  return (
+    <section aria-label="Último jogo">
+      <Link to={`/jogo/${partida.id}/notas`} className={styles.ultimo}>
+        <span className={styles.seloUltimo}>ÚLTIMO JOGO</span>
+        <strong className={styles.placarUltimo}>{placarDe(partida)}</strong>
+        <span className={`${styles.seloResultado} ${styles[`r${r}`]}`}>{ROTULO_RESULTADO[r].toUpperCase()}</span>
+        <span className={styles.infoUltimo}>{infoDoResultado(partida)}</span>
+        <span className={styles.notasEResumo}>
+          Notas e resumo
+          <Icon name="arrow_forward" size={18} />
+        </span>
+      </Link>
+    </section>
+  );
+}
+
+/** A temporada inteira, mês a mês, com a linha de hoje entre o que já foi e o que vem. */
+function Temporada({ jogos, clubeId, campeonato }: { jogos: Partida[]; clubeId: number; campeonato: string | null }) {
+  const agora = new Date();
+  const { ano, meses, resumo } = temporadaDoClube(jogos, clubeId, campeonato, agora);
+  const hoje = diaEMes(agora.toISOString());
+  return (
+    <section className={ui.cardFlush} aria-labelledby="titulo-temporada">
+      <div className={`${ui.cardHeader} ${styles.cabecalhoTemporada}`}>
+        <h3 id="titulo-temporada" className={styles.titulo}>
+          Temporada {ano}
+        </h3>
+        <span className={styles.resumo}>{resumo}</span>
+      </div>
+      {meses.length === 0 ? (
+        <p className={styles.vazio}>{campeonato ? `Nenhum jogo de ${campeonato} em ${ano}.` : `Nenhum jogo em ${ano}.`}</p>
+      ) : (
+        meses.map((m) => (
+          <div key={m.nome} role="group" aria-label={m.nome}>
+            <div className={styles.cabecalhoMes}>
+              <span>{m.nome}</span>
+              <span className={styles.qtd}>
+                {m.jogos.length} {m.jogos.length === 1 ? 'jogo' : 'jogos'}
+              </span>
+            </div>
+            <ul className={styles.lista}>
+              {m.jogos.map(({ partida: p, dia, semana, situacao, hoje: eHoje }) => {
+                const encerrada = p.status === 'encerrada';
+                const titulo = p.status === 'agendada' ? `${p.mandante_nome} × ${p.visitante_nome}` : placarDe(p);
+                const destino = p.status === 'ao_vivo' ? `/jogo/${p.id}` : encerrada ? `/jogo/${p.id}/notas` : '/escalacao';
+                const rotulo = encerrada ? ROTULO_RESULTADO[situacao as 'V' | 'E' | 'D'] : situacao === 'AO VIVO' ? 'Ao vivo' : situacao;
+                return (
+                  <li key={p.id}>
+                    {eHoje && (
+                      <div className={styles.hoje}>
+                        <span>
+                          HOJE · {hoje.dia} {hoje.mes}
+                        </span>
+                        <span className={styles.linhaHoje} />
+                      </div>
+                    )}
+                    <Link to={destino} className={`${styles.linha} ${styles.linhaTemporada}`} aria-label={`${titulo}, ${dia} ${semana} · ${infoDoResultado(p)} · ${rotulo}`}>
+                      <span className={styles.diaSemana}>
+                        <span className={styles.diaTemporada}>{dia}</span>
+                        <span className={styles.semana}>{semana}</span>
+                      </span>
+                      <span className={styles.corpoTemporada}>
+                        <span className={encerrada || p.status === 'ao_vivo' ? styles.confronto : `${styles.confronto} ${styles.futuro}`}>{titulo}</span>
+                        <span className={styles.info}>{infoDoResultado(p)}</span>
+                      </span>
+                      <span
+                        className={`${styles.situacao} ${encerrada ? styles[`r${situacao}`] : p.status === 'ao_vivo' ? styles.situacaoAoVivo : ''}`}
+                      >
+                        {situacao}
+                      </span>
+                      <Icon name="chevron_right" size={19} color="var(--muted-2)" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))
+      )}
+    </section>
+  );
+}
+
 /** W20 · jogos do clube: o ao vivo em destaque, os próximos (com a abertura do palpite) e os resultados. */
 export function Jogos() {
   const { perfil } = useAuth();
   const { jogos, erro, tentarDeNovo } = useJogosDoClube();
+  const [campeonato, setCampeonato] = useState<string | null>(null);
+  const [modo, setModo] = useState<'recentes' | 'temporada'>('recentes');
   const clubeId = perfil?.time_id ?? 0;
   const clubeNome = perfil?.clube?.nome ?? 'seu clube';
 
@@ -120,88 +214,122 @@ export function Jogos() {
     );
   }
 
-  const { aoVivo, proximos, resultados } = separarJogos(jogos);
+  const { aoVivo, resultados } = separarJogos(jogos);
+  const ultimo = aoVivo ? null : (resultados[0] ?? null);
+  const campeonatos = campeonatosDosJogos(jogos);
+  // Se o campeonato escolhido some da lista (troca de time), volta para Todas.
+  const filtro = campeonato && campeonatos.includes(campeonato) ? campeonato : null;
+  const filtrados = filtro ? jogos.filter((p) => p.liga_nome === filtro) : jogos;
+  const lista = separarJogos(filtrados);
+  const vazioDoFiltro = `Nenhum jogo de ${filtro} aqui.`;
 
   return (
     <div className={ui.page}>
       {cabecalho}
       {aoVivo && <FaixaAoVivo partida={aoVivo} />}
-      <div className={styles.colunas}>
-        <section className={ui.cardFlush} aria-labelledby="titulo-proximos">
-          <div className={ui.cardHeader}>
-            <h3 id="titulo-proximos" className={ui.titleLg}>
-              Próximos
-            </h3>
-          </div>
-          {proximos.length === 0 ? (
-            <p className={styles.vazio}>Nenhum jogo marcado por enquanto.</p>
-          ) : (
-            <ul className={styles.lista}>
-              {proximos.slice(0, LIMITE_DA_LISTA).map((p, i) => {
-                const palpite = aberturaDoPalpite(proximos, i, !!aoVivo);
-                const { dia, mes } = diaEMes(p.inicio);
-                return (
-                  <li key={p.id}>
-                    <Link
-                      to="/escalacao"
-                      className={styles.linha}
-                      aria-label={`${p.mandante_nome} x ${p.visitante_nome}, ${dia} ${mes} · ${infoDoProximo(p)} · ${palpite}`}
-                    >
-                      <Data inicio={p.inicio} />
-                      <div className={styles.corpo}>
-                        <span className={styles.confronto}>
-                          {p.mandante_nome} x {p.visitante_nome}
-                        </span>
-                        <span className={styles.info}>{infoDoProximo(p)}</span>
-                      </div>
-                      <span className={palpite === 'palpite aberto' ? `${styles.palpite} ${styles.palpiteAberto}` : styles.palpite}>
-                        {palpite}
-                      </span>
-                      <Icon name="chevron_right" size={20} color="var(--muted)" />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+      {ultimo && <UltimoJogo partida={ultimo} clubeId={clubeId} />}
 
-        <section className={ui.cardFlush} aria-labelledby="titulo-resultados">
-          <div className={ui.cardHeader}>
-            <h3 id="titulo-resultados" className={ui.titleLg}>
-              Resultados
-            </h3>
-          </div>
-          {resultados.length === 0 ? (
-            <p className={styles.vazio}>Nenhum resultado ainda.</p>
-          ) : (
-            <ul className={styles.lista}>
-              {resultados.slice(0, LIMITE_DA_LISTA).map((p) => {
-                const r = resultadoPara(p, clubeId);
-                const { dia, mes } = diaEMes(p.inicio);
-                const placar = `${p.mandante_nome} ${p.gols_mandante ?? 0} x ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
-                return (
-                  <li key={p.id}>
-                    <Link to={`/jogo/${p.id}/notas`} className={styles.linha} aria-label={`${ROTULO_RESULTADO[r]}: ${placar}, ${dia} ${mes} · ${infoDoResultado(p)}`}>
-                      <Data inicio={p.inicio} />
-                      <span className={`${styles.resultado} ${styles[`r${r}`]}`} title={ROTULO_RESULTADO[r]}>
-                        {r}
-                      </span>
-                      <div className={styles.corpo}>
-                        <span className={styles.confronto}>
-                          {placar}
-                        </span>
-                        <span className={styles.info}>{infoDoResultado(p)}</span>
-                      </div>
-                      <Icon name="chevron_right" size={20} color="var(--muted)" />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
+      <div className={styles.filtros}>
+        <div className={styles.campeonatos} role="group" aria-label="Campeonato">
+          {[null, ...campeonatos].map((c) => (
+            <button key={c ?? 'todas'} type="button" className={styles.chip} aria-pressed={c === filtro} onClick={() => setCampeonato(c)}>
+              {c ?? 'Todas'}
+            </button>
+          ))}
+        </div>
+        <div className={styles.modos} role="group" aria-label="Visualização">
+          {(
+            [
+              ['recentes', 'Próximos e recentes'],
+              ['temporada', `Temporada ${anoDe(new Date())}`],
+            ] as const
+          ).map(([id, rotulo]) => (
+            <button key={id} type="button" className={styles.modo} aria-pressed={modo === id} onClick={() => setModo(id)}>
+              {rotulo}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {modo === 'temporada' ? (
+        <Temporada jogos={jogos} clubeId={clubeId} campeonato={filtro} />
+      ) : (
+        <div className={styles.colunas}>
+          <section className={ui.cardFlush} aria-labelledby="titulo-proximos">
+            <div className={ui.cardHeader}>
+              <h3 id="titulo-proximos" className={styles.titulo}>
+                Próximos
+              </h3>
+            </div>
+            {lista.proximos.length === 0 ? (
+              <p className={styles.vazio}>{filtro ? vazioDoFiltro : 'Nenhum jogo marcado por enquanto.'}</p>
+            ) : (
+              <ul className={styles.lista}>
+                {lista.proximos.slice(0, LIMITE_DA_LISTA).map((p) => {
+                  // A abertura do palpite segue a ordem de todos os jogos, não só os do filtro.
+                  const todos = separarJogos(jogos).proximos;
+                  const palpite = aberturaDoPalpite(todos, todos.indexOf(p), !!aoVivo);
+                  const { dia, mes } = diaEMes(p.inicio);
+                  return (
+                    <li key={p.id}>
+                      <Link
+                        to="/escalacao"
+                        className={styles.linha}
+                        aria-label={`${p.mandante_nome} x ${p.visitante_nome}, ${dia} ${mes} · ${infoDoProximo(p)} · ${palpite}`}
+                      >
+                        <Data inicio={p.inicio} />
+                        <div className={styles.corpo}>
+                          <span className={styles.confronto}>
+                            {p.mandante_nome} × {p.visitante_nome}
+                          </span>
+                          <span className={styles.info}>{infoDoProximo(p)}</span>
+                        </div>
+                        <span className={palpite === 'palpite aberto' ? `${styles.palpite} ${styles.palpiteAberto}` : styles.palpite}>
+                          {palpite}
+                        </span>
+                        <Icon name="chevron_right" size={20} color="var(--muted-2)" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          <section className={ui.cardFlush} aria-labelledby="titulo-resultados">
+            <div className={ui.cardHeader}>
+              <h3 id="titulo-resultados" className={styles.titulo}>
+                Resultados
+              </h3>
+            </div>
+            {lista.resultados.length === 0 ? (
+              <p className={styles.vazio}>{filtro ? vazioDoFiltro : 'Nenhum resultado ainda.'}</p>
+            ) : (
+              <ul className={styles.lista}>
+                {lista.resultados.slice(0, LIMITE_DA_LISTA).map((p) => {
+                  const r = resultadoPara(p, clubeId);
+                  const { dia, mes } = diaEMes(p.inicio);
+                  return (
+                    <li key={p.id}>
+                      <Link to={`/jogo/${p.id}/notas`} className={styles.linha} aria-label={`${ROTULO_RESULTADO[r]}: ${placarDe(p)}, ${dia} ${mes} · ${infoDoResultado(p)}`}>
+                        <Data inicio={p.inicio} />
+                        <span className={`${styles.resultado} ${styles[`r${r}`]}`} title={ROTULO_RESULTADO[r]}>
+                          {r}
+                        </span>
+                        <div className={styles.corpo}>
+                          <span className={styles.confronto}>{placarDe(p)}</span>
+                          <span className={styles.info}>{infoDoResultado(p)}</span>
+                        </div>
+                        <Icon name="chevron_right" size={20} color="var(--muted-2)" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

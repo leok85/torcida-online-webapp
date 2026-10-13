@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { partidaDeTeste } from '../test/catalogoDeTeste';
-import { aberturaDoPalpite, contagemRegressiva, diaEMes, haJogoNaJanela, haQuanto, infoDoProximo, momentoDoInicio, resultadoPara, separarJogos } from './partidas';
+import { aberturaDoPalpite, contagemRegressiva, diaEMes, haJogoNaJanela, haQuanto, infoDoProximo, momentoDoInicio, resultadoPara, separarJogos, campeonatosDosJogos, temporadaDoClube } from './partidas';
 
 const marcada = (id: number, inicio: string) => partidaDeTeste({ id, inicio, status: 'agendada', periodo: null, minuto: null, gols_mandante: null, gols_visitante: null, gols: [] });
 const encerrada = (id: number, inicio: string, gm: number, gv: number) => partidaDeTeste({ id, inicio, status: 'encerrada', periodo: null, minuto: null, gols_mandante: gm, gols_visitante: gv });
@@ -105,4 +105,41 @@ describe('contagemRegressiva e haQuanto', () => {
     ['2026-10-12T01:30:00Z', 'HÁ 3 H'],
     ['2026-10-13T23:00:00Z', 'HÁ 2 D'],
   ])('jogo das 20:30 UTC, agora %s → %s', (agora, esperado) => expect(haQuanto('2026-10-11T20:30:00Z', new Date(agora))).toBe(esperado));
+});
+
+describe('filtros e temporada (W20)', () => {
+  const lib = { liga_id: 32, liga_nome: 'Copa Libertadores' };
+  const fim = { status: 'encerrada' as const, periodo: null, minuto: null };
+
+  it('campeonatos do que tem mais jogos para o que tem menos', () => {
+    const jogos = [partidaDeTeste({ id: 1, ...lib }), partidaDeTeste({ id: 2 }), partidaDeTeste({ id: 3 })];
+    expect(campeonatosDosJogos(jogos)).toEqual(['Brasileirão Série A', 'Copa Libertadores']);
+    expect(campeonatosDosJogos([])).toEqual([]);
+  });
+
+  it('temporada: só o ano de hoje (em Brasília), mês a mês, com o resumo e a linha de hoje', () => {
+    const jogos = [
+      partidaDeTeste({ id: 1, ...fim, inicio: '2025-12-20T19:00:00Z', gols_mandante: 1, gols_visitante: 0 }),
+      // 31/12 às 22h em Brasília: ainda é 2025.
+      partidaDeTeste({ id: 2, ...fim, inicio: '2026-01-01T01:00:00Z', gols_mandante: 1, gols_visitante: 0 }),
+      partidaDeTeste({ id: 3, ...fim, inicio: '2026-01-20T19:00:00Z', gols_mandante: 0, gols_visitante: 2 }),
+      partidaDeTeste({ id: 4, ...fim, ...lib, inicio: '2026-03-04T23:30:00Z', gols_mandante: 2, gols_visitante: 2 }),
+      partidaDeTeste({ id: 5, status: 'agendada', periodo: null, minuto: null, inicio: '2026-03-08T19:00:00Z' }),
+      partidaDeTeste({ id: 6, status: 'agendada', periodo: null, minuto: null, inicio: '2026-04-08T19:00:00Z' }),
+    ];
+    const t = temporadaDoClube(jogos, 162, null, new Date('2026-03-06T12:00:00Z'));
+    expect(t.ano).toBe(2026);
+    expect(t.resumo).toBe('4 jogos · 2 disputados · 0V 1E 1D');
+    expect(t.meses.map((m) => [m.nome, m.jogos.map((j) => j.partida.id)])).toEqual([
+      ['Janeiro', [3]],
+      ['Março', [4, 5]],
+      ['Abril', [6]],
+    ]);
+    expect(t.meses[1].jogos.map((j) => [j.dia, j.semana, j.situacao, j.hoje])).toEqual([
+      ['04', 'qua', 'E', false],
+      ['08', 'dom', 'dom 16:00', true],
+    ]);
+    expect(t.meses[2].jogos[0].hoje).toBe(false);
+    expect(temporadaDoClube(jogos, 162, 'Copa Libertadores', new Date('2026-03-06T12:00:00Z')).resumo).toBe('1 jogo · 1 disputados · 0V 1E 0D');
+  });
 });

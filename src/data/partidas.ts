@@ -168,3 +168,61 @@ export function infoDaVespera(p: Partida) {
   partes.push(`${semPonto(DIA_DA_SEMANA.format(data))} ${DIA_MES.format(data)} ${HORA.format(data)}`);
   return partes.join(' · ');
 }
+
+// ---------- Filtros e temporada da tela Jogos (W20) ----------
+
+/** Os campeonatos dos jogos do clube, do que tem mais jogos para o que tem menos, para o filtro. */
+export function campeonatosDosJogos(jogos: Partida[]) {
+  const contagem = new Map<string, number>();
+  for (const p of jogos) contagem.set(p.liga_nome, (contagem.get(p.liga_nome) ?? 0) + 1);
+  return [...contagem].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR')).map(([nome]) => nome);
+}
+
+const ANO = new Intl.DateTimeFormat('pt-BR', { year: 'numeric', timeZone: FUSO });
+const NOME_DO_MES = new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: FUSO });
+
+/** Ano da data em Brasília. */
+export const anoDe = (data: Date) => Number(ANO.format(data));
+
+export type JogoDaTemporada = {
+  partida: Partida;
+  /** "14" e "qua" */
+  dia: string;
+  semana: string;
+  /** "AO VIVO", "V"/"E"/"D" ou "qua 21:30". */
+  situacao: string;
+  /** Primeiro jogo ainda não terminado: a linha "HOJE" vem antes dele. */
+  hoje: boolean;
+};
+
+export type MesDaTemporada = { nome: string; jogos: JogoDaTemporada[] };
+
+/**
+ * A temporada do clube no ano de `agora`, mês a mês, com o resumo "N jogos · X disputados · VV EE DD".
+ * Vem filtrada pelo campeonato (null = todos).
+ */
+export function temporadaDoClube(jogos: Partida[], clubeId: number, campeonato: string | null, agora = new Date()) {
+  const ano = anoDe(agora);
+  const doAno = jogos.filter((p) => anoDe(new Date(p.inicio)) === ano && (!campeonato || p.liga_nome === campeonato));
+  const conta = { V: 0, E: 0, D: 0 };
+  const meses: MesDaTemporada[] = [];
+  let marcouHoje = false;
+  for (const p of doAno) {
+    const data = new Date(p.inicio);
+    let situacao: string;
+    if (p.status === 'encerrada') {
+      const r = resultadoPara(p, clubeId);
+      conta[r]++;
+      situacao = r;
+    } else situacao = p.status === 'ao_vivo' ? 'AO VIVO' : `${semPonto(DIA_DA_SEMANA.format(data))} ${HORA.format(data)}`;
+    const hoje = p.status !== 'encerrada' && !marcouHoje;
+    if (hoje) marcouHoje = true;
+    const mes = NOME_DO_MES.format(data);
+    const nome = mes.charAt(0).toUpperCase() + mes.slice(1);
+    if (meses.at(-1)?.nome !== nome) meses.push({ nome, jogos: [] });
+    meses.at(-1)!.jogos.push({ partida: p, dia: DIA.format(data), semana: semPonto(DIA_DA_SEMANA.format(data)), situacao, hoje });
+  }
+  const disputados = conta.V + conta.E + conta.D;
+  const resumo = `${doAno.length} ${doAno.length === 1 ? 'jogo' : 'jogos'} · ${disputados} disputados · ${conta.V}V ${conta.E}E ${conta.D}D`;
+  return { ano, meses, resumo };
+}

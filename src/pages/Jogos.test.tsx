@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { partidaDeTeste } from '../test/catalogoDeTeste';
 import { renderApp } from '../test/renderApp';
 import { assinaturaDeTeste, perfilDeTeste, supabaseFalso } from '../test/supabaseFalso';
@@ -162,5 +162,94 @@ describe('Jogos (W20)', () => {
     await user.click(within(screen.getByRole('region', { name: 'Resultados' })).getAllByRole('link')[0]);
     expect(await screen.findByText('SÓ PARA MEMBROS')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Pós-jogo e notas' })).toBeInTheDocument();
+  });
+
+  it('sem jogo em campo, o último jogo fica em destaque com o caminho para as notas', async () => {
+    temporada({ aoVivo: false });
+    supabaseFalso.logar(perfilDeTeste());
+    const { user, local } = renderApp('/jogos');
+    const ultimo = await screen.findByRole('region', { name: 'Último jogo' });
+    expect(ultimo).toHaveTextContent('ÚLTIMO JOGO');
+    expect(ultimo).toHaveTextContent('Palmeiras 1 x 0 Bahia');
+    expect(ultimo).toHaveTextContent('VITÓRIA');
+    expect(ultimo).toHaveTextContent('Brasileirão Série A · rodada 29');
+    await user.click(within(ultimo).getByRole('link', { name: /Notas e resumo/ }));
+    expect(local()).toBe('/jogo/7279/notas');
+  });
+
+  it('com jogo em campo, não mostra o último jogo', async () => {
+    temporada();
+    supabaseFalso.logar(perfilDeTeste());
+    renderApp('/jogos');
+    await screen.findByRole('region', { name: 'Jogo ao vivo' });
+    expect(screen.queryByRole('region', { name: 'Último jogo' })).not.toBeInTheDocument();
+  });
+
+  it('filtra por campeonato; o campeonato sem jogos na lista avisa', async () => {
+    temporada();
+    supabaseFalso.adicionarPartida(marcada(7400, '2026-10-21T00:30:00Z', { liga_id: 32, liga_nome: 'Copa Libertadores', rodada: null, visitante_id: 166, visitante_nome: 'Bahia' }));
+    supabaseFalso.logar(perfilDeTeste());
+    const { user } = renderApp('/jogos');
+    const filtro = await screen.findByRole('group', { name: 'Campeonato' });
+    expect(within(filtro).getAllByRole('button').map((b) => b.textContent)).toEqual(['Todas', 'Brasileirão Série A', 'Copa Libertadores']);
+    expect(within(filtro).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(within(filtro).getByRole('button', { name: 'Copa Libertadores' }));
+    expect(within(filtro).getByRole('button', { name: 'Copa Libertadores' })).toHaveAttribute('aria-pressed', 'true');
+    // O palpite segue a ordem de todos os jogos: este é o terceiro marcado.
+    expect(linhas('Próximos')).toEqual(['Palmeiras x Bahia, 20 OUT · Copa Libertadores · ter 21:30 · abre seg']);
+    expect(within(screen.getByRole('region', { name: 'Resultados' })).getByText('Nenhum jogo de Copa Libertadores aqui.')).toBeInTheDocument();
+
+    await user.click(within(filtro).getByRole('button', { name: 'Todas' }));
+    expect(linhas('Próximos')).toHaveLength(3);
+  });
+});
+
+describe('Jogos (W20) · temporada', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('mostra a temporada mês a mês, com o resumo e a linha de hoje antes do que vem', async () => {
+    vi.useFakeTimers({ now: new Date('2026-10-13T15:00:00Z'), shouldAdvanceTime: true });
+    temporada();
+    supabaseFalso.adicionarPartida(encerrada(7200, '2026-09-20T19:00:00Z', { visitante_id: 166, visitante_nome: 'Bahia', rodada: 25, gols_mandante: 3, gols_visitante: 0 }));
+    // De outra temporada: fica de fora.
+    supabaseFalso.adicionarPartida(encerrada(7000, '2025-11-20T19:00:00Z', { visitante_id: 166, visitante_nome: 'Bahia', rodada: 35, gols_mandante: 0, gols_visitante: 0 }));
+    supabaseFalso.logar(perfilDeTeste());
+    const { user, local } = renderApp('/jogos');
+    await user.click(await screen.findByRole('button', { name: 'Temporada 2026' }));
+    expect(screen.getByRole('button', { name: 'Temporada 2026' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('region', { name: 'Próximos' })).not.toBeInTheDocument();
+
+    const temporadaCard = screen.getByRole('region', { name: 'Temporada 2026' });
+    expect(temporadaCard).toHaveTextContent('7 jogos · 4 disputados · 2V 1E 1D');
+    expect(within(temporadaCard).getByRole('group', { name: 'Setembro' })).toHaveTextContent('1 jogo');
+    const outubro = within(temporadaCard).getByRole('group', { name: 'Outubro' });
+    expect(outubro).toHaveTextContent('6 jogos');
+    expect(within(outubro).getAllByRole('link').map((l) => l.getAttribute('aria-label'))).toEqual([
+      'Palmeiras 1 x 1 São Paulo, 01 qui · Brasileirão Série A · rodada 27 · Empate',
+      'Flamengo 2 x 0 Palmeiras, 05 seg · Brasileirão Série A · rodada 28 · Derrota',
+      'Palmeiras 1 x 0 Bahia, 08 qui · Brasileirão Série A · rodada 29 · Vitória',
+      'Palmeiras 1 x 0 Corinthians, 11 dom · Brasileirão Série A · rodada 30 · Ao vivo',
+      'Palmeiras × Flamengo, 14 qua · Brasileirão Série A · rodada 31 · qua 21:30',
+      'São Paulo × Palmeiras, 18 dom · Brasileirão Série A · rodada 32 · dom 16:00',
+    ]);
+    // A linha de hoje fica logo antes do primeiro jogo que não terminou.
+    const hoje = within(outubro).getByText('HOJE · 13 OUT');
+    expect(hoje.closest('li')).toHaveTextContent('Palmeiras 1 x 0 Corinthians');
+
+    await user.click(within(outubro).getByRole('link', { name: /Ao vivo$/ }));
+    expect(local()).toBe('/jogo/7290');
+  });
+
+  it('com filtro, a temporada mostra só o campeonato; sem jogos, avisa', async () => {
+    vi.useFakeTimers({ now: new Date('2026-10-13T15:00:00Z'), shouldAdvanceTime: true });
+    temporada();
+    supabaseFalso.adicionarPartida(encerrada(7000, '2025-11-20T19:00:00Z', { liga_id: 32, liga_nome: 'Copa Libertadores', gols_mandante: 0, gols_visitante: 0 }));
+    supabaseFalso.logar(perfilDeTeste());
+    const { user } = renderApp('/jogos');
+    await user.click(await screen.findByRole('button', { name: 'Temporada 2026' }));
+    await user.click(screen.getByRole('button', { name: 'Copa Libertadores' }));
+    expect(screen.getByText('Nenhum jogo de Copa Libertadores em 2026.')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Temporada 2026' })).toHaveTextContent('0 jogos · 0 disputados · 0V 0E 0D');
   });
 });
