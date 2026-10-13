@@ -5,6 +5,8 @@ import type { BrowserContext, Route } from '@playwright/test';
 import type { ClassificacaoRow, CompeticaoRow, FeedbackRow, Partida } from '../src/lib/database.types';
 import { inicioDaSemana } from '../src/data/semana';
 import { aplicarConviteDeTeste, convidadosDe, convidarAmigosDeTeste, convitesHoje, donoDoConvite, LIMITE_DE_CONVITES, type ConviteEmailDeTeste } from '../src/test/convitesDeTeste';
+import { inserirMensagemDeTeste, SEM_DETALHES, type MensagemDeTeste } from '../src/test/jogoDeTeste';
+import type { Detalhes } from '../src/data/tiposDoJogo';
 import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
@@ -86,6 +88,10 @@ export class BackendFalso {
   readonly assinaturas: Assinatura[] = [];
   /** Jogos como a sincronização com a BSD gravaria (tabela partidas). */
   readonly partidas: Partida[] = [];
+  /** O que a função detalhes-da-partida devolve por jogo (padrão: nada ainda). */
+  readonly detalhes = new Map<number, Detalhes>();
+  /** Mensagens do chat (tabela mensagens_chat), de todas as torcidas. */
+  readonly mensagensChat: MensagemDeTeste[] = [];
   readonly competicoes: CompeticaoRow[] = [];
   readonly classificacao: ClassificacaoRow[] = [];
   private readonly codigos = new Map<string, { codigo: string; tipo: Email['tipo'] }>();
@@ -346,6 +352,10 @@ export class BackendFalso {
     const corpo = req.postDataJSON?.() ?? {};
 
     if (nome === 'criar-checkout') return json(200, { clientSecret: 'cs_test_e2e_secret' });
+    if (nome === 'detalhes-da-partida') {
+      if (!this.partidas.some((p) => p.id === corpo.partida)) return json(404, { erro: 'partida_nao_encontrada' });
+      return json(200, this.detalhes.get(corpo.partida) ?? SEM_DETALHES);
+    }
     if (nome === 'convidar-amigos') {
       const r = convidarAmigosDeTeste(this.convitesEmail, { id: usuario.id, email: usuario.email }, corpo);
       return json(r.status, r.corpo);
@@ -517,6 +527,28 @@ export class BackendFalso {
       return json(200, valida);
     }
 
+    if (caminho === '/mensagens_chat') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for table mensagens_chat' });
+      const perfil = this.perfis.get(usuario.id);
+      const assinante = this.assinaturas.some(
+        (a) => a.usuario_id === usuario.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
+      );
+      if (req.method() === 'POST') {
+        // Trigger mensagens_chat_antes_de_inserir: autor, torcida e foto vêm do servidor.
+        const corpo = req.postDataJSON() as { partida_id: number; texto: string };
+        const r = inserirMensagemDeTeste(this.mensagensChat, perfil, assinante, this.partidas.find((p) => p.id === corpo.partida_id), corpo.texto);
+        if ('hint' in r) return json(400, { code: r.code, message: r.hint, hint: r.hint, details: null });
+        return json(201, req.headers()['accept']?.includes('vnd.pgrst.object') ? r : [r]);
+      }
+      // RLS: membros leem o chat da própria torcida. Filtros: partida_id=eq.X, id=gt.N, order=id.desc|asc, limit.
+      const partidaId = Number(url.searchParams.get('partida_id')?.replace(/^eq\./, ''));
+      const depoisDe = Number(url.searchParams.get('id')?.replace(/^gt\./, '') ?? 0);
+      let linhas = assinante ? this.mensagensChat.filter((m) => m.partida_id === partidaId && m.id > depoisDe && m.clube_id === perfil?.time_id) : [];
+      if (url.searchParams.get('order')?.includes('desc')) linhas = [...linhas].reverse();
+      const limite = Number(url.searchParams.get('limit') ?? Infinity);
+      return json(200, linhas.slice(0, limite));
+    }
+
     if (caminho === '/feedbacks') {
       if (!usuario) return json(401, { code: '42501', message: 'permission denied for table feedbacks' });
       const meus = () => this.feedbacks.filter((f) => f.usuario_id === usuario.id).sort((a, b) => b.criado_em.localeCompare(a.criado_em));
@@ -558,6 +590,12 @@ export class BackendFalso {
 
     if (caminho === '/partidas') {
       if (!usuario) return json(401, { code: '42501', message: 'permission denied for table partidas' });
+      // Página do jogo: id=eq.X, um objeto só.
+      const id = url.searchParams.get('id');
+      if (id) {
+        const partida = this.partidas.find((p) => p.id === Number(id.replace(/^eq\./, '')));
+        return req.headers()['accept']?.includes('vnd.pgrst.object') ? json(partida ? 200 : 406, partida ?? { code: 'PGRST116' }) : json(200, partida ? [partida] : []);
+      }
       // O app pede os jogos de um clube: or=(mandante_id.eq.X,visitante_id.eq.X)&order=inicio.asc.
       const clubeId = Number(/mandante_id\.eq\.(\d+)/.exec(url.searchParams.get('or') ?? '')?.[1]);
       return json(200, jogosDoClubeDeTeste(this.partidas, clubeId));

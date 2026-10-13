@@ -42,7 +42,7 @@ function FaixaAoVivo({ partida }: { partida: Partida }) {
         {partida.mandante_nome} {partida.gols_mandante ?? 0} x {partida.gols_visitante ?? 0} {partida.visitante_nome}
       </strong>
       <span className={styles.infoAoVivo}>{infoDoResultado(partida)}</span>
-      <Link to="/ao-vivo" className={styles.entrar}>
+      <Link to={`/jogo/${partida.id}`} className={styles.entrar}>
         Entrar no jogo
         <Icon name="arrow_forward" size={18} />
       </Link>

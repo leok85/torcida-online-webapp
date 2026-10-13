@@ -7,11 +7,20 @@ import type { Assinatura, FeedbackRow, Perfil } from '../lib/database.types';
 import { inicioDaSemana } from '../data/semana';
 import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.types';
 import { aplicarConviteDeTeste, convidadosDe, convidarAmigosDeTeste, convitesHoje, donoDoConvite, LIMITE_DE_CONVITES, type ConviteEmailDeTeste } from './convitesDeTeste';
+import { inserirMensagemDeTeste, SEM_DETALHES, type MensagemDeTeste } from './jogoDeTeste';
+import type { Detalhes } from '../data/tiposDoJogo';
 import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
 type Ouvinte = (evento: Evento, sessao: Session | null) => void;
 type Fn = (...args: any[]) => any;
+type CanalFalso = {
+  ouvintes: { tipo: string; filtro: { filter?: string }; cb: Fn }[];
+  on: Fn;
+  subscribe: Fn;
+  track: Fn;
+  presenceState: Fn;
+};
 
 export const EMAIL_PADRAO = 'rafa@example.com';
 /** Código de 6 dígitos que o falso aceita na troca de e-mail. */
@@ -125,6 +134,12 @@ function criar() {
   let recusarTroca = false;
   // Convidar amigos: convites por e-mail e o e-mail de cada conta (para "Seus convidados").
   const convitesEmail: ConviteEmailDeTeste[] = [];
+  // Página do jogo: detalhes da BSD por jogo, mensagens do chat e os canais de tempo real abertos.
+  const detalhesDasPartidas = new Map<number, Detalhes>();
+  const mensagensChat: MensagemDeTeste[] = [];
+  const canais = new Set<CanalFalso>();
+  let tempoRealFora = false;
+  let online = 1;
   const emailsDasContas = new Map<string, string>();
   // RLS: o torcedor só enxerga as próprias assinaturas.
   const minhas = () => assinaturas.filter((a) => a.usuario_id === sessao?.user.id);
@@ -261,8 +276,15 @@ function criar() {
   // Imita select().or('mandante_id.eq.X,visitante_id.eq.X').order('inicio') de jogosDoClube.
   function consultaPartidas() {
     let clubeId = 0;
+    let id = 0;
     const consulta = {
       select: () => consulta,
+      eq: (_coluna: string, valor: number) => ((id = valor), consulta),
+      // Cópia, como uma resposta nova do servidor (o teste muda o placar no objeto salvo).
+      maybeSingle: async () => {
+        const p = sessao ? partidas.find((x) => x.id === id) : undefined;
+        return ok(p ? { ...p } : null);
+      },
       or: (filtro: string) => ((clubeId = Number(/mandante_id\.eq\.(\d+)/.exec(filtro)?.[1])), consulta),
       order: async () => ok(sessao ? jogosDoClubeDeTeste(partidas, clubeId) : []),
     };
@@ -280,6 +302,69 @@ function criar() {
         Promise.resolve(ok(sessao ? linhas.filter((l) => ids.includes(l.liga_id)) : [])).then(resolver, rejeitar),
     };
     return consulta;
+  }
+
+  // RLS de mensagens_chat: membros leem o chat da própria torcida.
+  const podeLerChat = (m: MensagemDeTeste) => {
+    const eu = sessao && perfis.get(sessao.user.id);
+    return !!eu && eu.time_id === m.clube_id && minhas().some(daAcesso);
+  };
+
+  /** O Realtime entrega a mensagem nova a quem escuta o jogo e pode lê-la. */
+  function emitirMensagem(m: MensagemDeTeste) {
+    if (tempoRealFora || !podeLerChat(m)) return;
+    for (const canal of canais)
+      for (const h of canal.ouvintes)
+        if (h.tipo === 'postgres_changes' && h.filtro.filter === `partida_id=eq.${m.partida_id}`) h.cb({ new: m });
+  }
+
+  // Imita select().eq().order().limit(), select().eq().gt().order() e insert().select().single() de mensagens_chat.
+  function consultaChat() {
+    let partidaId = 0;
+    let depoisDe = 0;
+    let limite = Infinity;
+    let decrescente = false;
+    let novo: { partida_id?: number; texto?: unknown } | null = null;
+    const consulta = {
+      select: () => consulta,
+      insert: (linha: { partida_id: number; texto: unknown }) => ((novo = linha), consulta),
+      eq: (_coluna: string, valor: number) => ((partidaId = valor), consulta),
+      gt: (_coluna: string, valor: number) => ((depoisDe = valor), consulta),
+      order: (_coluna: string, opcoes?: { ascending?: boolean }) => ((decrescente = opcoes?.ascending === false), consulta),
+      limit: (n: number) => ((limite = n), consulta),
+      single: async () => {
+        const eu = sessao ? perfis.get(sessao.user.id) : undefined;
+        const r = inserirMensagemDeTeste(mensagensChat, eu, minhas().some(daAcesso), partidas.find((p) => p.id === novo?.partida_id), novo?.texto);
+        if ('hint' in r) return { data: null, error: { code: r.code, message: r.hint || 'check', hint: r.hint } };
+        emitirMensagem(r);
+        return ok(r);
+      },
+      then: (resolver: (r: unknown) => unknown, rejeitar?: (e: unknown) => unknown) => {
+        const linhas = mensagensChat.filter((m) => m.partida_id === partidaId && m.id > depoisDe && podeLerChat(m));
+        const ordenadas = decrescente ? [...linhas].reverse() : linhas;
+        return Promise.resolve(ok(ordenadas.slice(0, limite))).then(resolver, rejeitar);
+      },
+    };
+    return consulta;
+  }
+
+  /** Canal do Realtime: postgres_changes e presença ("N online"). */
+  function criarCanal(): CanalFalso {
+    const canal: CanalFalso = {
+      ouvintes: [],
+      on: (tipo: string, filtro: { filter?: string }, cb: Fn) => (canal.ouvintes.push({ tipo, filtro, cb }), canal),
+      subscribe: (cb?: (status: string) => void) => {
+        canais.add(canal);
+        queueMicrotask(() => {
+          cb?.(tempoRealFora ? 'CHANNEL_ERROR' : 'SUBSCRIBED');
+          if (!tempoRealFora) canal.ouvintes.filter((h) => h.tipo === 'presence').forEach((h) => h.cb());
+        });
+        return canal;
+      },
+      track: async () => 'ok',
+      presenceState: () => Object.fromEntries(Array.from({ length: online }, (_, i) => [`torcedor-${i}`, [{}]])),
+    };
+    return canal;
   }
 
   const padroes = {
@@ -342,10 +427,17 @@ function criar() {
   const rpc = vi.fn<Fn>();
   const from = vi.fn<Fn>();
   const invoke = vi.fn<Fn>();
+  const channel = vi.fn<Fn>();
+  const removeChannel = vi.fn<Fn>();
   // Mesmo contrato das Edge Functions (supabase/functions); erro vem como { context: Response } com { erro }.
   async function invocarPadrao(nome: string, { body }: { body: { acao?: string } }) {
     if (!sessao) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'sem_sessao' }), { status: 401 }) } };
     if (nome === 'criar-checkout') return ok({ clientSecret: 'cs_test_secret_teste' });
+    if (nome === 'detalhes-da-partida') {
+      const id = (body as { partida?: number }).partida!;
+      if (!partidas.some((p) => p.id === id)) return { data: null, error: { context: new Response(JSON.stringify({ erro: 'partida_nao_encontrada' }), { status: 404 }) } };
+      return ok(detalhesDasPartidas.get(id) ?? SEM_DETALHES);
+    }
     if (nome === 'convidar-amigos') {
       const r = convidarAmigosDeTeste(convitesEmail, { id: sessao.user.id, email: sessao.user.email }, body as object);
       return r.status === 200 ? ok(r.corpo) : { data: null, error: { context: new Response(JSON.stringify(r.corpo), { status: r.status }) } };
@@ -449,6 +541,13 @@ function criar() {
     codigoDeCobranca = null;
     recusarTroca = false;
     convitesEmail.length = 0;
+    detalhesDasPartidas.clear();
+    mensagensChat.length = 0;
+    canais.clear();
+    tempoRealFora = false;
+    online = 1;
+    channel.mockReset().mockImplementation(criarCanal);
+    removeChannel.mockReset().mockImplementation(async (canal: CanalFalso) => (canais.delete(canal), 'ok'));
     emailsDasContas.clear();
     rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number; sessao?: string; codigo?: string }) => {
       if (fn === 'convite_de') {
@@ -482,7 +581,9 @@ function criar() {
       return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id) && !apelidoReservado(args!.apelido!, sessao?.user.id));
     });
     from.mockReset().mockImplementation((tabela: string) =>
-      tabela === 'feedbacks'
+      tabela === 'mensagens_chat'
+        ? consultaChat()
+        : tabela === 'feedbacks'
         ? consultaFeedbacks()
         : tabela === 'assinaturas'
         ? consultaAssinaturas()
@@ -501,7 +602,7 @@ function criar() {
   resetar();
 
   return {
-    cliente: { auth, rpc, from, storage, functions: { invoke } },
+    cliente: { auth, rpc, from, storage, functions: { invoke }, channel, removeChannel },
     setManterConectado,
     provedoresAtivos,
     resetar,
@@ -510,6 +611,30 @@ function criar() {
       perfis.set(perfil.id, perfil);
       if (email) emailsDasContas.set(perfil.id, email);
     },
+    /** O que a função detalhes-da-partida devolve para o jogo (padrão: nada ainda). */
+    definirDetalhes: (id: number, detalhes: Detalhes) => detalhesDasPartidas.set(id, detalhes),
+    /** Mensagens do chat gravadas (de todas as torcidas). */
+    mensagensDoChat: () => mensagensChat,
+    /** Outro torcedor escreve no chat: grava e entrega pelo tempo real a quem pode ler. */
+    mensagemDaTorcida(campos: Partial<MensagemDeTeste> & { texto: string }) {
+      const m: MensagemDeTeste = {
+        id: (mensagensChat.at(-1)?.id ?? 0) + 1,
+        partida_id: 7290,
+        clube_id: 162,
+        autor_id: 'usuario-9',
+        autor_apelido: 'Bia.T',
+        autor_foto: null,
+        criado_em: new Date().toISOString(),
+        ...campos,
+      };
+      mensagensChat.push(m);
+      emitirMensagem(m);
+      return m;
+    },
+    /** O canal do Realtime não conecta (CHANNEL_ERROR): o app passa a buscar as novas de tempos em tempos. */
+    derrubarTempoReal: () => (tempoRealFora = true),
+    /** Quantos torcedores a presença do canal mostra. */
+    definirOnline: (n: number) => (online = n),
     /** Convites por e-mail gravados pela função convidar-amigos (de todos os torcedores). */
     convitesEmail: () => convitesEmail,
     perfil: (id: string) => perfis.get(id),

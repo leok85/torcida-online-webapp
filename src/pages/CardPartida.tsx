@@ -215,7 +215,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
         <Placar jogo={jogo} />
         <div className={styles.liveFoot}>
           {aoVivo ? (
-            <button type="button" className={styles.chatBtn} onClick={() => navigate('/ao-vivo')}>
+            <button type="button" className={styles.chatBtn} onClick={() => navigate(`/jogo/${jogo.id}`)}>
               <Icon name="forum" size={20} />
               Entrar no chat
             </button>
@@ -225,7 +225,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
                 <Icon name="star" size={20} />
                 Dar notas
               </button>
-              <button type="button" className={styles.outlineBtn} onClick={() => navigate('/ao-vivo')}>
+              <button type="button" className={styles.outlineBtn} onClick={() => navigate(`/jogo/${jogo.id}`)}>
                 <Icon name="forum" size={20} />
                 Chat
               </button>

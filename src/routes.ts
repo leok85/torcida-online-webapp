@@ -13,7 +13,7 @@ export type NavItem = {
 
 /** Telas de um jogo: não estão no menu, abrem a partir de Jogos. */
 export const TELAS_DO_JOGO: NavItem[] = [
-  { path: '/ao-vivo', label: 'Jogo ao vivo', icon: 'sports_soccer' },
+  { path: '/jogo', label: 'Jogo ao vivo e chat', icon: 'sports_soccer' },
   { path: '/escalacao', label: 'Escalação e palpite', icon: 'how_to_reg', premium: true },
   { path: '/pos-jogo', label: 'Pós-jogo e notas', icon: 'star_rate', premium: true },
   { path: '/fotos', label: 'Fotos', icon: 'photo_library', premium: true },
