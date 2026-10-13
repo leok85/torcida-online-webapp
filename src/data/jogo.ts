@@ -114,28 +114,48 @@ export function iconeDoLance(l: Lance) {
 
 // ---------- escalação no campo ----------
 
-export type NoCampo = { id: number; nome: string; numero: number | null; tag: string };
+/** Jogador no campo com os ícones do design: cartões, gols (com contador), gol contra e substituído. */
+export type NoCampo = {
+  id: number;
+  nome: string;
+  numero: number | null;
+  amarelo: boolean;
+  vermelho: boolean;
+  gols: number;
+  contra: boolean;
+  saiu: boolean;
+  /** O que os ícones dizem, para leitores de tela: "gol 16', amarelo, saiu 58'". */
+  descricao: string;
+};
 
 /**
  * A escalação inicial em linhas, do ataque (em cima) ao goleiro, pela formação ("3-4-2-1"). O campo não muda com as
- * trocas: quem saiu leva "saiu 58'" e as entradas ficam na lista de substituições. Gols e cartões viram a etiqueta.
+ * trocas: quem saiu ganha o ícone de substituído e as entradas ficam na lista de substituições.
  */
-export function linhasDoCampo(escalacao: Escalacao, lances: Lance[], mandante: boolean): NoCampo[][] {
-  const meus = [...lances].filter((l) => l.mandante === mandante).reverse(); // do primeiro ao último
-  const etiquetas = new Map<number, string[]>();
-  const etiquetar = (id: number | null, tag: string) => id !== null && etiquetas.set(id, [...(etiquetas.get(id) ?? []), tag]);
-  for (const l of meus) {
-    if (l.tipo === 'gol' && !l.contra) etiquetar(l.jogador_id, `gol ${l.minuto}'`);
-    if (l.tipo === 'cartao') etiquetar(l.jogador_id, l.cor);
-    if (l.tipo === 'substituicao') etiquetar(l.saiu_id, `saiu ${l.minuto}'`);
+export function linhasDoCampo(escalacao: Escalacao, lances: Lance[]): NoCampo[][] {
+  const doPrimeiro = [...lances].reverse();
+  const eventos = new Map<number, string[]>();
+  const anotar = (id: number | null, evento: string) => id !== null && eventos.set(id, [...(eventos.get(id) ?? []), evento]);
+  // Pelo id do jogador: o gol contra conta para o outro lado, mas o ícone fica em quem fez.
+  for (const l of doPrimeiro) {
+    if (l.tipo === 'gol') anotar(l.jogador_id, l.contra ? `gol contra ${l.minuto}'` : `gol ${l.minuto}'`);
+    if (l.tipo === 'cartao') anotar(l.jogador_id, l.cor);
+    if (l.tipo === 'substituicao') anotar(l.saiu_id, `saiu ${l.minuto}'`);
   }
 
   const noCampo = (j: Jogador): NoCampo => {
-    const tags = etiquetas.get(j.id) ?? [];
-    const gols = tags.filter((t) => t.startsWith('gol')).map((t) => t.slice(4));
-    const saiu = tags.find((t) => t.startsWith('saiu'));
-    const tag = gols.length ? `gol ${gols.join(', ')}` : tags.includes('vermelho') ? 'vermelho' : (saiu ?? (tags.includes('amarelo') ? 'amarelo' : ''));
-    return { id: j.id, nome: j.nome, numero: j.numero, tag };
+    const e = eventos.get(j.id) ?? [];
+    return {
+      id: j.id,
+      nome: j.nome,
+      numero: j.numero,
+      amarelo: e.includes('amarelo'),
+      vermelho: e.includes('vermelho'),
+      gols: e.filter((x) => x.startsWith('gol ') && !x.startsWith('gol contra')).length,
+      contra: e.some((x) => x.startsWith('gol contra')),
+      saiu: e.some((x) => x.startsWith('saiu')),
+      descricao: e.join(', '),
+    };
   };
 
   const [goleiro, ...linha] = escalacao.titulares;
