@@ -226,7 +226,11 @@
 .grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr 388px;
+  /*
+   * Em 1440 px as três colunas ficam praticamente iguais (~400 px). Escalação e números param em 440 px; em telas
+   * maiores (widescreen) todo o espaço extra vai para o chat.
+   */
+  grid-template-columns: minmax(0, 440px) minmax(0, 440px) minmax(400px, 1fr);
   min-height: 0;
 }
 
@@ -483,7 +487,7 @@
   padding: 9px 12px;
   font-size: 13.5px;
   line-height: 1.35;
-  max-width: 250px;
+  max-width: 420px;
   overflow-wrap: anywhere;
 }
 
