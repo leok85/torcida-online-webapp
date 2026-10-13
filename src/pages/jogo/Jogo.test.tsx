@@ -164,7 +164,7 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
   });
 
   it('sem os detalhes da BSD ainda, avisa em cada bloco', async () => {
-    abrir({ detalhes: { estatisticas: null, lances: [], escalacoes: null } });
+    abrir({ detalhes: { estatisticas: null, lances: [], escalacoes: null, notas: {} } });
     expect(await screen.findByText('Os números deste jogo ainda não chegaram.')).toBeInTheDocument();
     expect(screen.getByText('Nenhum lance ainda.')).toBeInTheDocument();
     expect(screen.getByText('A escalação oficial aparece cerca de 1 h antes do jogo.')).toBeInTheDocument();

@@ -335,7 +335,18 @@ function SuasNotas({
 
 // ---------- Média da torcida ----------
 
-function MediaDaTorcida({ jogadores, notas, abertas }: { jogadores: QuemJogou[]; notas: NotaDaTorcida[] | null | undefined; abertas: boolean }) {
+/** "Notas da partida": a sua, a nota TO (calculada com os números do jogador) e a média da torcida. */
+function NotasDaPartida({
+  jogadores,
+  notas,
+  notasTo,
+  abertas,
+}: {
+  jogadores: QuemJogou[];
+  notas: NotaDaTorcida[] | null | undefined;
+  notasTo: Record<string, number>;
+  abertas: boolean;
+}) {
   const porJogador = new Map((notas ?? []).map((n) => [n.jogador_id, n]));
   const votantes = notas?.[0]?.votantes ?? 0;
   const mvp = !abertas && notas ? mvpDe(notas) : null;
@@ -344,12 +355,13 @@ function MediaDaTorcida({ jogadores, notas, abertas }: { jogadores: QuemJogou[];
     <section className={styles.card} aria-labelledby="titulo-media">
       <div className={styles.cardHead}>
         <h3 id="titulo-media" className={ui.titleLg}>
-          Média da torcida
+          Notas da partida
         </h3>
         <span className={styles.votaram}>
           {votantes.toLocaleString('pt-BR')} {votantes === 1 ? 'votou' : 'votaram'}
         </span>
       </div>
+      <p className={styles.explicaTo}>Nota TO é calculada pela Torcida Online com os números de cada jogador em campo.</p>
       {notas === undefined ? (
         <Skeleton h={220} r={10} />
       ) : (
@@ -378,6 +390,10 @@ function MediaDaTorcida({ jogadores, notas, abertas }: { jogadores: QuemJogou[];
                 <div className={n?.minha ? `${styles.sua} ${styles.suaDada}` : styles.sua}>
                   <span>SUA</span>
                   <strong>{n?.minha ?? '—'}</strong>
+                </div>
+                <div className={styles.to}>
+                  <span>TO</span>
+                  <strong>{notasTo[String(j.id)] !== undefined ? formatarNota(notasTo[String(j.id)]) : '—'}</strong>
                 </div>
                 <div className={styles.daTorcida}>
                   <strong style={{ color: a.cor }}>{n ? formatarNota(n.media) : '—'}</strong>
@@ -470,7 +486,7 @@ export function PosJogo() {
               ) : (
                 <SuasNotas partida={partida} jogadores={jogadores} notas={notas} abertas={abertas} minutos={minutos} aoEnviar={recarregar} />
               )}
-              <MediaDaTorcida jogadores={jogadores} notas={notas} abertas={abertas} />
+              <NotasDaPartida jogadores={jogadores} notas={notas} notasTo={detalhes?.notas ?? {}} abertas={abertas} />
             </div>
           </>
         )}

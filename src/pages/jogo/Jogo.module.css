@@ -235,6 +235,7 @@
 }
 
 .col {
+  position: relative;
   overflow: auto;
   padding: 22px;
   border-right: 1px solid var(--line);

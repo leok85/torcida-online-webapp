@@ -127,3 +127,19 @@ test('colunas: praticamente iguais em 1440 px; em telas maiores o espaço extra 
   expect(numerosLarga).toBeLessThanOrEqual(440);
   expect(chatLargo).toBeGreaterThan(escalacaoLarga * 1.6);
 });
+
+// Regressão: os textos só para leitor de tela (position: absolute) escapavam da coluna que rola e esticavam o body,
+// criando uma segunda barra de rolagem na página do jogo.
+test('o body não rola nas páginas do jogo; só as áreas de conteúdo', async ({ page, backend }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  backend.partidas.push(partidaDeTeste({ status: 'encerrada', periodo: null, minuto: null, encerrada_em: new Date().toISOString() }));
+  backend.detalhes.set(7290, detalhesDeTeste());
+  await entrarComoMembro(page, backend);
+  for (const rota of ['/jogo/7290', '/jogo/7290/notas']) {
+    await page.goto(rota);
+    await expect(page.getByLabel('Placar: 1 a 0')).toBeVisible();
+    await expect(page.getByRole('region', { name: /Substituições|Suas notas/ }).first()).toBeVisible();
+    const sobra = await page.evaluate(() => document.scrollingElement!.scrollHeight - document.scrollingElement!.clientHeight);
+    expect(sobra, rota).toBe(0);
+  }
+});

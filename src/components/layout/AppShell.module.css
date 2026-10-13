@@ -14,6 +14,9 @@
 }
 
 .content {
+  /* Posicionado: elementos absolutos (como os textos só para leitor de tela) ficam presos à área que rola, sem
+     esticar o body e criar uma segunda barra de rolagem. */
+  position: relative;
   flex: 1;
   overflow: auto;
   min-height: 0;

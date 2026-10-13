@@ -53,11 +53,13 @@ export function detalhesDeTeste(campos: Partial<Detalhes> = {}): Detalhes {
         reservas: [],
       },
     },
+    // Nota TO de alguns jogadores do Palmeiras (o resto ficou sem nota).
+    notas: { '3876': 8.1, '24': 6.9, '33': 7.2, '37': 6.5 },
     ...campos,
   };
 }
 
-export const SEM_DETALHES: Detalhes = { estatisticas: null, lances: [], escalacoes: null };
+export const SEM_DETALHES: Detalhes = { estatisticas: null, lances: [], escalacoes: null, notas: {} };
 
 export type MensagemDeTeste = {
   id: number;
