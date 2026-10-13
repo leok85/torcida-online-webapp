@@ -13,6 +13,9 @@ import {
   dataDoJogo,
   linhaDoTempo,
   linhasDosNumeros,
+  MAXIMO_DE_SUBSTITUICOES,
+  substituicoesDe,
+  type Substituicao,
   momentoDoJogo,
   relogioDoJogo,
   partidaPorId,
@@ -245,6 +248,50 @@ function Placar({ partida, clubeId }: { partida: Partida; clubeId: number | null
   );
 }
 
+/** Lista "Substituições · Palmeiras" embaixo do campo: quem entrou (↑) e quem saiu (↓), na ordem do jogo. */
+function Substituicoes({ time, trocas }: { time: string; trocas: Substituicao[] }) {
+  const quem = (j: { numero: number | null; nome: string }) => (j.numero !== null ? `${j.numero} · ${j.nome}` : j.nome);
+  return (
+    <section className={styles.trocas} aria-labelledby="titulo-trocas">
+      <div className={styles.trocasHead}>
+        <h4 id="titulo-trocas" className={styles.trocasTitulo}>
+          Substituições · {time}
+        </h4>
+        <span className={styles.trocasQtd}>
+          {trocas.length} de {MAXIMO_DE_SUBSTITUICOES}
+        </span>
+      </div>
+      {trocas.length === 0 ? (
+        <p className={styles.vazio}>Nenhuma substituição ainda.</p>
+      ) : (
+        <ul className={styles.trocasLista}>
+          {trocas.map((t, i) => (
+            <li key={`${t.minuto}-${i}`} className={styles.troca}>
+              <span className={styles.trocaMin}>{t.minuto}'</span>
+              <div className={styles.trocaQuem}>
+                <span className={styles.entra}>
+                  <Icon name="arrow_upward" size={17} color="#2A6E0D" />
+                  <span>
+                    <span className={styles.oculto}>Entra </span>
+                    {quem(t.entra)}
+                  </span>
+                </span>
+                <span className={styles.sai}>
+                  <Icon name="arrow_downward" size={17} color="#C0342C" />
+                  <span>
+                    <span className={styles.oculto}>Sai </span>
+                    {quem(t.sai)}
+                  </span>
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes: Detalhes | null | undefined; clubeId: number | null }) {
   const [lado, setLado] = useState<'mandante' | 'visitante'>(partida.visitante_id === clubeId ? 'visitante' : 'mandante');
   const escalacao = detalhes?.escalacoes?.[lado];
@@ -262,9 +309,9 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
           onChange={setLado}
         />
       </div>
-      {linhas && <div className={styles.fonte}>Escalação oficial{escalacao?.formacao ? ` · ${escalacao.formacao}` : ''}</div>}
+      {linhas && <div className={styles.fonte}>Escalação inicial{escalacao?.formacao ? ` · ${escalacao.formacao}` : ''}</div>}
       {detalhes === undefined ? (
-        <Skeleton h={396} r={14} />
+        <Skeleton h={420} r={14} />
       ) : linhas ? (
         <>
           <Pitch className={styles.campo}>
@@ -282,6 +329,10 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
               </PitchRow>
             ))}
           </Pitch>
+          <Substituicoes
+            time={lado === 'mandante' ? partida.mandante_nome : partida.visitante_nome}
+            trocas={substituicoesDe(escalacao, detalhes!.lances, lado === 'mandante')}
+          />
         </>
       ) : (
         <p className={styles.vazio}>A escalação oficial aparece cerca de 1 h antes do jogo.</p>

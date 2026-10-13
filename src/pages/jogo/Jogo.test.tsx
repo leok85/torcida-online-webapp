@@ -67,17 +67,34 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     ]);
   });
 
-  it('escalação oficial do meu time no campo, com gol, substituição e cartão; dá para ver a do adversário', async () => {
+  it('o campo mostra a escalação inicial: quem saiu fica no campo com "saiu", com gol e cartão', async () => {
     const { user } = abrir();
-    expect(await screen.findByText('Escalação oficial · 3-4-2-1')).toBeInTheDocument();
+    expect(await screen.findByText('Escalação inicial · 3-4-2-1')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Palmeiras' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('A. Barboza').nextSibling).toHaveTextContent("gol 16'");
-    expect(screen.getByText('R. Sosa').nextSibling).toHaveTextContent("entrou 58'");
-    expect(screen.queryByText('V. Roque')).not.toBeInTheDocument();
+    expect(screen.getByText('V. Roque').nextSibling).toHaveTextContent("saiu 58'");
 
     await user.click(screen.getByRole('tab', { name: 'Corinthians' }));
-    expect(screen.getByText('Escalação oficial · 4-1-3-2')).toBeInTheDocument();
+    expect(screen.getByText('Escalação inicial · 4-1-3-2')).toBeInTheDocument();
     expect(screen.getByText('Raniele').nextSibling).toHaveTextContent('amarelo');
+  });
+
+  it('embaixo do campo, as substituições do time escolhido: quem entra e quem sai, com o número', async () => {
+    const { user } = abrir();
+    const trocas = await screen.findByRole('region', { name: 'Substituições · Palmeiras' });
+    expect(within(trocas).getByText('1 de 5')).toBeInTheDocument();
+    const [troca] = within(trocas).getAllByRole('listitem');
+    expect(troca).toHaveTextContent("58'");
+    expect(troca).toHaveTextContent('Entra 19 · R. Sosa');
+    expect(troca).toHaveTextContent('Sai 9 · V. Roque');
+    // Quem entrou não aparece no campo: o campo é a escalação inicial.
+    expect(screen.queryByTitle('R. Sosa')).not.toBeInTheDocument();
+    expect(screen.getByTitle('V. Roque')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Corinthians' }));
+    const doRival = screen.getByRole('region', { name: 'Substituições · Corinthians' });
+    expect(within(doRival).getByText('0 de 5')).toBeInTheDocument();
+    expect(within(doRival).getByText('Nenhuma substituição ainda.')).toBeInTheDocument();
   });
 
   it('encerrado: resultado para o meu time, competição e data, gols de cada lado e o atalho para as notas', async () => {

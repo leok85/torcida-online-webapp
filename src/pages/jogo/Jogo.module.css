@@ -530,8 +530,8 @@
 }
 
 /*
- * Campo da escalação: ocupa a altura que sobra na coluna (depende só da tela, nunca da formação) e tem um mínimo
- * em que cabem goleiro + 5 linhas (4-1-2-1-2). As linhas se espalham por igual e a coluna não rola.
+ * Campo da escalação com altura fixa: qualquer formação (até goleiro + 5 linhas, como 4-1-2-1-2) cabe sem mudar o
+ * tamanho. As linhas se espalham por igual; a lista de substituições vem embaixo.
  */
 .colEscalacao {
   display: flex;
@@ -539,8 +539,8 @@
 }
 
 .col .campo {
-  flex: 1 1 0;
-  min-height: 396px;
+  flex: none;
+  height: 420px;
   padding: 14px 8px;
   gap: 0;
   justify-content: space-around;
@@ -562,6 +562,108 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* Substituições embaixo do campo */
+.trocas {
+  flex: none;
+  margin-top: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.trocasHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.trocasTitulo {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.trocasQtd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.trocasLista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.troca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.troca:last-child {
+  border-bottom: 0;
+}
+
+.trocaMin {
+  width: 30px;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.trocaQuem {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.entra,
+.sai {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.entra > span:last-child,
+.sai > span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entra {
+  font-weight: 800;
+}
+
+.sai {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* faixa do jogo: ← Jogos, selo, confronto e abas */
@@ -820,10 +922,6 @@ a.aba:hover {
     border-bottom: 1px solid var(--line);
   }
 
-  .col .campo {
-    flex: none;
-    height: 452px;
-  }
 
   .chat {
     height: 560px;

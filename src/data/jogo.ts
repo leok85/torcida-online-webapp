@@ -117,34 +117,25 @@ export function iconeDoLance(l: Lance) {
 export type NoCampo = { id: number; nome: string; numero: number | null; tag: string };
 
 /**
- * Titulares em linhas, do ataque (em cima) ao goleiro, pela formação ("3-4-2-1"). Quem foi substituído dá lugar
- * a quem entrou ("entrou 58'"); gols e cartões viram a etiqueta embaixo do nome.
+ * A escalação inicial em linhas, do ataque (em cima) ao goleiro, pela formação ("3-4-2-1"). O campo não muda com as
+ * trocas: quem saiu leva "saiu 58'" e as entradas ficam na lista de substituições. Gols e cartões viram a etiqueta.
  */
 export function linhasDoCampo(escalacao: Escalacao, lances: Lance[], mandante: boolean): NoCampo[][] {
   const meus = [...lances].filter((l) => l.mandante === mandante).reverse(); // do primeiro ao último
   const etiquetas = new Map<number, string[]>();
   const etiquetar = (id: number | null, tag: string) => id !== null && etiquetas.set(id, [...(etiquetas.get(id) ?? []), tag]);
-  const substituto = new Map<number, Jogador & { tag: string }>();
-  const porId = new Map([...escalacao.titulares, ...escalacao.reservas].map((j) => [j.id, j]));
-
   for (const l of meus) {
     if (l.tipo === 'gol' && !l.contra) etiquetar(l.jogador_id, `gol ${l.minuto}'`);
     if (l.tipo === 'cartao') etiquetar(l.jogador_id, l.cor);
-    if (l.tipo === 'substituicao' && l.saiu_id !== null && l.entrou_id !== null) {
-      const entrou = porId.get(l.entrou_id) ?? { id: l.entrou_id, nome: l.entrou, numero: null, posicao: null, capitao: false };
-      // Quem saiu pode ter entrado antes no lugar de um titular: segue a cadeia até o titular.
-      const titular = [...substituto].find(([, s]) => s.id === l.saiu_id)?.[0] ?? l.saiu_id;
-      substituto.set(titular, { ...entrou, tag: `entrou ${l.minuto}'` });
-    }
+    if (l.tipo === 'substituicao') etiquetar(l.saiu_id, `saiu ${l.minuto}'`);
   }
 
   const noCampo = (j: Jogador): NoCampo => {
-    const s = substituto.get(j.id);
-    const quem = s ?? j;
-    const tags = etiquetas.get(quem.id) ?? [];
+    const tags = etiquetas.get(j.id) ?? [];
     const gols = tags.filter((t) => t.startsWith('gol')).map((t) => t.slice(4));
-    const tag = gols.length ? `gol ${gols.join(', ')}` : tags.includes('vermelho') ? 'vermelho' : s ? s.tag : tags.includes('amarelo') ? 'amarelo' : '';
-    return { id: quem.id, nome: quem.nome, numero: quem.numero, tag };
+    const saiu = tags.find((t) => t.startsWith('saiu'));
+    const tag = gols.length ? `gol ${gols.join(', ')}` : tags.includes('vermelho') ? 'vermelho' : (saiu ?? (tags.includes('amarelo') ? 'amarelo' : ''));
+    return { id: j.id, nome: j.nome, numero: j.numero, tag };
   };
 
   const [goleiro, ...linha] = escalacao.titulares;
@@ -159,3 +150,18 @@ export function linhasDoCampo(escalacao: Escalacao, lances: Lance[], mandante: b
   }
   return [...linhas.reverse(), ...(goleiro ? [[goleiro]] : [])].map((l) => l.map(noCampo));
 }
+
+export type Substituicao = { minuto: string; entra: { numero: number | null; nome: string }; sai: { numero: number | null; nome: string } };
+
+/** "Substituições": as trocas de um time na ordem do jogo, com o número de quem entra e de quem sai. */
+export function substituicoesDe(escalacao: Escalacao | undefined, lances: Lance[], mandante: boolean): Substituicao[] {
+  const porId = new Map([...(escalacao?.titulares ?? []), ...(escalacao?.reservas ?? [])].map((j) => [j.id, j]));
+  const numero = (id: number | null) => (id !== null ? (porId.get(id)?.numero ?? null) : null);
+  return [...lances]
+    .reverse()
+    .filter((l): l is Extract<Lance, { tipo: 'substituicao' }> => l.tipo === 'substituicao' && l.mandante === mandante)
+    .map((l) => ({ minuto: l.minuto, entra: { numero: numero(l.entrou_id), nome: l.entrou }, sai: { numero: numero(l.saiu_id), nome: l.saiu } }));
+}
+
+/** Limite de trocas por time (regra da IFAB nas competições da CBF e da Conmebol). */
+export const MAXIMO_DE_SUBSTITUICOES = 5;
