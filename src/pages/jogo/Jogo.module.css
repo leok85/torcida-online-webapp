@@ -397,6 +397,20 @@
   color: var(--muted);
 }
 
+/* Ícone do lance numa coluna fixa; o cartão é um retângulo colorido, como no design. */
+.eventIcone {
+  width: 19px;
+  flex: none;
+  display: flex;
+  justify-content: center;
+}
+
+.cartao {
+  width: 11px;
+  height: 15px;
+  border-radius: 2px;
+}
+
 .eventText {
   flex: 1;
   font-size: 12.5px;

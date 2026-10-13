@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { partidaDeTeste } from '../test/catalogoDeTeste';
 import { detalhesDeTeste } from '../test/jogoDeTeste';
-import { chatAberto, dataDoJogo, linhaDoTempo, linhasDoCampo, relogioDoJogo, substituicoesDe, linhasDosNumeros, momentoDoJogo, seloDoJogo, textoDoLance, type Lance } from './jogo';
+import { chatAberto, dataDoJogo, linhaDoTempo, linhasDoCampo, relogioDoJogo, substituicoesDe, linhasDosNumeros, momentoDoJogo, seloDoJogo, textoDoLance, itensDosLances, type Lance } from './jogo';
 
 const { escalacoes } = detalhesDeTeste();
 const palmeiras = escalacoes!.mandante;
@@ -74,6 +74,28 @@ describe('números e lances', () => {
     expect(linhas.map((l) => l.rotulo)).toEqual(['Posse de bola', 'Finalizações', 'No gol', 'Escanteios', 'Faltas', 'Passes certos']);
     expect(linhas[1]).toEqual({ rotulo: 'Finalizações', casa: '11', fora: '6', barraCasa: '65%', barraFora: '35%' });
     expect(linhas[0]).toMatchObject({ casa: '58%', fora: '42%' });
+  });
+
+  it('lances do ponto de vista de quem torce: o adversário leva o nome e cor própria', () => {
+    const lances: Lance[] = [
+      { tipo: 'substituicao', minuto: '70', mandante: false, entrou: 'Allan', saiu: 'Raniele', entrou_id: 1, saiu_id: 267 },
+      { tipo: 'gol', minuto: '52', mandante: false, jogador: 'M. Depay', jogador_id: 3940, assistencia: null, contra: false, penalti: false },
+      // Gol contra do Corinthians: conta para o Palmeiras (verde), mas quem fez é do adversário.
+      { tipo: 'gol', minuto: '46', mandante: true, jogador: 'M. Bidu', jogador_id: 257, assistencia: null, contra: true, penalti: false },
+      { tipo: 'cartao', minuto: '30', mandante: true, jogador: 'G. Gómez', jogador_id: 26, cor: 'amarelo' },
+      { tipo: 'cartao', minuto: '20', mandante: false, jogador: 'Raniele', jogador_id: 267, cor: 'vermelho' },
+    ];
+    expect(itensDosLances(partidaDeTeste(), lances, 162)).toEqual([
+      { minuto: '70', texto: 'Corinthians: entra Allan, sai Raniele', cor: '#6E7C93', icone: 'swap_horiz' },
+      { minuto: '52', texto: 'Gol de M. Depay (Corinthians)', cor: '#C0342C', icone: 'sports_soccer' },
+      { minuto: '46', texto: 'Gol contra de M. Bidu (Corinthians)', cor: '#2A6E0D', icone: 'sports_soccer' },
+      { minuto: '30', texto: 'Amarelo para G. Gómez', cor: '#F2C94C', icone: null },
+      { minuto: '20', texto: 'Vermelho para Raniele (Corinthians)', cor: '#E0342A', icone: null },
+    ]);
+    // Do lado do Corinthians, o adversário é o Palmeiras.
+    expect(itensDosLances(partidaDeTeste(), lances, 167)[3]).toEqual({ minuto: '30', texto: 'Amarelo para G. Gómez (Palmeiras)', cor: '#F2C94C', icone: null });
+    // Quem torce para outro time vê os lances sem marcação de lado.
+    expect(itensDosLances(partidaDeTeste(), lances, 160)[1]).toEqual({ minuto: '52', texto: 'Gol de M. Depay', cor: '#2A6E0D', icone: 'sports_soccer' });
   });
 
   it('texto de cada lance', () => {
