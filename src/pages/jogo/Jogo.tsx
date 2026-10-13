@@ -8,7 +8,7 @@ import { Segmented } from '../../components/ui/Segmented';
 import { Skeleton, TextoOculto } from '../../components/ui/Skeleton';
 import {
   buscarDetalhes,
-  iconeDoLance,
+  itensDosLances,
   linhasDoCampo,
   dataDoJogo,
   linhaDoTempo,
@@ -20,7 +20,6 @@ import {
   relogioDoJogo,
   partidaPorId,
   seloDoJogo,
-  textoDoLance,
   type Detalhes,
 } from '../../data/jogo';
 import { autoresDosGols, infoDoResultado, resultadoPara, type Partida } from '../../data/partidas';
@@ -392,7 +391,8 @@ function Numeros({ partida, detalhes }: { partida: Partida; detalhes: Detalhes |
   );
 }
 
-function Lances({ partida, detalhes }: { partida: Partida; detalhes: Detalhes | null | undefined }) {
+function Lances({ partida, detalhes, clubeId }: { partida: Partida; detalhes: Detalhes | null | undefined; clubeId: number | null }) {
+  const itens = detalhes ? itensDosLances(partida, detalhes.lances, clubeId) : [];
   return (
     <section className={styles.panel} aria-labelledby="titulo-lances">
       <h3 id="titulo-lances" className={`${styles.panelTitle} ${styles.tight}`}>
@@ -400,20 +400,19 @@ function Lances({ partida, detalhes }: { partida: Partida; detalhes: Detalhes | 
       </h3>
       {detalhes === undefined ? (
         <Skeleton h={90} r={10} />
-      ) : !detalhes?.lances.length ? (
+      ) : !itens.length ? (
         <p className={styles.vazio}>{partida.status === 'agendada' ? 'Gols, cartões e substituições aparecem aqui durante o jogo.' : 'Nenhum lance ainda.'}</p>
       ) : (
         <ul className={styles.lances}>
-          {detalhes.lances.map((l, i) => {
-            const { icone, cor } = iconeDoLance(l);
-            return (
-              <li key={`${l.minuto}-${i}`} className={styles.event}>
-                <span className={styles.eventMin}>{l.minuto}'</span>
-                <Icon name={icone} size={19} color={cor} />
-                <span className={styles.eventText}>{textoDoLance(l)}</span>
-              </li>
-            );
-          })}
+          {itens.map((l, i) => (
+            <li key={`${l.minuto}-${i}`} className={styles.event}>
+              <span className={styles.eventMin}>{l.minuto}'</span>
+              <span className={styles.eventIcone}>
+                {l.icone ? <Icon name={l.icone} size={19} color={l.cor} /> : <span className={styles.cartao} style={{ background: l.cor }} />}
+              </span>
+              <span className={styles.eventText}>{l.texto}</span>
+            </li>
+          ))}
         </ul>
       )}
     </section>
@@ -477,7 +476,7 @@ export function Jogo() {
         <Escalacao key={partida.id} partida={partida} detalhes={detalhes} clubeId={perfil?.time_id ?? null} />
         <div className={styles.colStack}>
           <Numeros partida={partida} detalhes={detalhes} />
-          <Lances partida={partida} detalhes={detalhes} />
+          <Lances partida={partida} detalhes={detalhes} clubeId={perfil?.time_id ?? null} />
           {partida.status === 'encerrada' && (
             <Link to="/pos-jogo" className={styles.notas}>
               <Icon name="star_rate" size={26} color="var(--primary)" />

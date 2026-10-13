@@ -106,10 +106,34 @@ export function textoDoLance(l: Lance) {
   return `Entra ${l.entrou}, sai ${l.saiu}`;
 }
 
-export function iconeDoLance(l: Lance) {
-  if (l.tipo === 'gol') return { icone: 'sports_soccer', cor: '#2A6E0D' };
-  if (l.tipo === 'cartao') return { icone: 'square', cor: l.cor === 'vermelho' ? '#C0342C' : '#C8901A' };
-  return { icone: 'swap_horiz', cor: '#00419B' };
+export const COR_DO_CARTAO = { amarelo: '#F2C94C', vermelho: '#E0342A' } as const;
+
+/** Linha de "Lances do jogo": um ícone ou o cartão desenhado (retângulo colorido), como no design. */
+export type ItemDoLance = { minuto: string; texto: string; cor: string; icone: string | null };
+
+/**
+ * Lances do ponto de vista do torcedor: os do adversário levam o nome do time e cor própria (gol em vermelho,
+ * substituição em cinza). Depois do apito, "Fim de jogo" com o placar abre a lista.
+ */
+export function itensDosLances(p: Partida, lances: Lance[], clubeId: number | null): ItemDoLance[] {
+  const souMandante = clubeId === p.mandante_id ? true : clubeId === p.visitante_id ? false : null;
+  const rival = souMandante === null ? null : souMandante ? p.visitante_nome : p.mandante_nome;
+  /** O jogador é do adversário? No gol contra, o lance conta para o outro lado do time de quem fez. */
+  const doRival = (mandante: boolean) => souMandante !== null && mandante !== souMandante;
+  const itens: ItemDoLance[] = lances.map((l) => {
+    if (l.tipo === 'substituicao') {
+      return doRival(l.mandante)
+        ? { minuto: l.minuto, texto: `${rival}: entra ${l.entrou}, sai ${l.saiu}`, cor: '#6E7C93', icone: 'swap_horiz' }
+        : { minuto: l.minuto, texto: textoDoLance(l), cor: '#00419B', icone: 'swap_horiz' };
+    }
+    const jogadorRival = doRival(l.tipo === 'gol' && l.contra ? !l.mandante : l.mandante);
+    const texto = jogadorRival ? `${textoDoLance(l)} (${rival})` : textoDoLance(l);
+    if (l.tipo === 'cartao') return { minuto: l.minuto, texto, cor: COR_DO_CARTAO[l.cor], icone: null };
+    return { minuto: l.minuto, texto, cor: doRival(l.mandante) ? '#C0342C' : '#2A6E0D', icone: 'sports_soccer' };
+  });
+  if (p.status !== 'encerrada') return itens;
+  const placar = `${p.mandante_nome} ${p.gols_mandante ?? 0} x ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
+  return [{ minuto: '90', texto: `Fim de jogo · ${placar}`, cor: '#091D37', icone: 'sports' }, ...itens];
 }
 
 // ---------- escalação no campo ----------

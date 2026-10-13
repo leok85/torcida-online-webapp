@@ -58,15 +58,25 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     expect(within(numeros).queryByText('Impedimentos')).not.toBeInTheDocument();
   });
 
-  it('lances do mais recente ao mais antigo', async () => {
+  it('lances do mais recente ao mais antigo; os do adversário com o nome do time e o cartão desenhado', async () => {
     abrir();
     const lances = await screen.findByRole('region', { name: 'Lances do jogo' });
     await within(lances).findAllByRole('listitem');
-    expect(within(lances).getAllByRole('listitem').map((l) => l.textContent?.replace(/sports_soccer|square|swap_horiz/, ''))).toEqual([
+    expect(within(lances).getAllByRole('listitem').map((l) => l.textContent?.replace(/sports_soccer|swap_horiz/, ''))).toEqual([
       "58'Entra R. Sosa, sai V. Roque",
-      "41'Amarelo para Raniele",
+      "41'Amarelo para Raniele (Corinthians)",
       "16'Gol de A. Barboza, assistência de L. Evangelista",
     ]);
+    // O cartão é um retângulo amarelo, não um ícone.
+    const cartao = within(lances).getAllByRole('listitem')[1].querySelector('[style*="background"]');
+    expect(cartao).toHaveStyle({ background: '#F2C94C' });
+  });
+
+  it('depois do apito, "Fim de jogo" com o placar abre a lista de lances', async () => {
+    abrir({ partida: encerrada() });
+    const lances = await screen.findByRole('region', { name: 'Lances do jogo' });
+    const [primeiro] = await within(lances).findAllByRole('listitem');
+    expect(primeiro).toHaveTextContent("90'sportsFim de jogo · Palmeiras 4 x 1 Corinthians");
   });
 
   it('o campo mostra a escalação inicial: quem saiu fica no campo com "saiu", com gol e cartão', async () => {
