@@ -1,6 +1,7 @@
-export type Position = 'GOL' | 'ZAG' | 'LAT' | 'ALA' | 'VOL' | 'MEI' | 'PON' | 'ATA';
+// Formações e vagas da escalação ideal (W03). O elenco vem da BSD, com as posições G, D, M e F.
+import type { JogadorDoElenco } from './tiposDoPalpite';
 
-export type Player = { id: string; n: string; name: string; pos: Position };
+export type Position = 'GOL' | 'ZAG' | 'LAT' | 'ALA' | 'VOL' | 'MEI' | 'PON' | 'ATA';
 
 export type Slot = { id: string; pos: Position; line: string };
 
@@ -14,57 +15,72 @@ export const FORMATIONS: Record<string, Position[][]> = {
   '4-1-4-1': [['LAT', 'ZAG', 'ZAG', 'LAT'], ['VOL'], ['PON', 'MEI', 'MEI', 'PON'], ['ATA']],
 };
 
-export const SQUAD: Player[] = [
-  { id: 'j1', n: '1', name: 'Alves', pos: 'GOL' }, { id: 'j12', n: '12', name: 'Nunes', pos: 'GOL' },
-  { id: 'j3', n: '3', name: 'Bruno', pos: 'ZAG' }, { id: 'j4', n: '4', name: 'Diego', pos: 'ZAG' }, { id: 'j14', n: '14', name: 'Rocha', pos: 'ZAG' },
-  { id: 'j2', n: '2', name: 'Kaio', pos: 'LAT' }, { id: 'j6', n: '6', name: 'Léo', pos: 'LAT' }, { id: 'j13', n: '13', name: 'Tiago', pos: 'LAT' },
-  { id: 'j5', n: '5', name: 'Pedro', pos: 'VOL' }, { id: 'j8', n: '8', name: 'Caio', pos: 'VOL' }, { id: 'j15', n: '15', name: 'Moura', pos: 'VOL' },
-  { id: 'j10', n: '10', name: 'Vitor', pos: 'MEI' }, { id: 'j20', n: '20', name: 'Enzo', pos: 'MEI' }, { id: 'j18', n: '18', name: 'Juan', pos: 'MEI' },
-  { id: 'j7', n: '7', name: 'Luan', pos: 'PON' }, { id: 'j11', n: '11', name: 'Davi', pos: 'PON' }, { id: 'j17', n: '17', name: 'Ryan', pos: 'PON' },
-  { id: 'j9', n: '9', name: 'Gabriel', pos: 'ATA' }, { id: 'j19', n: '19', name: 'Iago', pos: 'ATA' },
-];
+export const FORMACAO_PADRAO = '4-3-3';
 
-/** Quais posições do elenco podem ocupar cada posição da formação. */
-export const ELIGIBLE: Record<Position, Position[]> = {
-  GOL: ['GOL'], ZAG: ['ZAG'], LAT: ['LAT'], ALA: ['LAT', 'PON'], VOL: ['VOL'], MEI: ['MEI', 'VOL'], PON: ['PON'], ATA: ['ATA', 'PON'],
+/** Posições do elenco (BSD) que cabem em cada vaga; a primeira é a natural, usada no preenchimento automático. */
+export const ELIGIBLE: Record<Position, JogadorDoElenco['posicao'][]> = {
+  GOL: ['G'],
+  ZAG: ['D'],
+  LAT: ['D'],
+  ALA: ['D', 'M'],
+  VOL: ['M'],
+  MEI: ['M'],
+  PON: ['F', 'M'],
+  ATA: ['F'],
 };
 
 export const GOALKEEPER_SLOT = 'gol0';
 
 export function slotsFor(formation: string): Slot[] {
-  const conf = FORMATIONS[formation] ?? FORMATIONS['4-3-3'];
+  const conf = FORMATIONS[formation] ?? FORMATIONS[FORMACAO_PADRAO];
   const slots: Slot[] = [{ id: GOALKEEPER_SLOT, pos: 'GOL', line: 'gol' }];
   conf.forEach((line, li) => line.forEach((pos, pi) => slots.push({ id: `l${li}p${pi}`, pos, line: `l${li}` })));
   return slots;
 }
 
+export type Escalacao = Record<string, number>;
+
+/** Quem está disponível para o jogo (lesionado e suspenso ficam fora do preenchimento automático). */
+export const disponivel = (j: JogadorDoElenco) => j.disponibilidade !== 'injured' && j.disponibilidade !== 'suspended';
+
 /**
- * Resolve quem ocupa cada vaga: primeiro as escolhas do torcedor, depois
- * jogadores da posição exata e, por fim, qualquer elegível ainda no banco.
+ * Quem ocupa cada vaga: primeiro as escolhas do torcedor (só jogadores do elenco, sem repetir), depois quem está
+ * disponível na posição natural da vaga e, por fim, qualquer disponível que caiba nela.
  */
-export function resolveLineup(slots: Slot[], picks: Record<string, string>): Record<string, string> {
-  const used = new Set<string>();
-  const lineup: Record<string, string> = {};
-  const fill = (match: (p: Player, s: Slot) => boolean) =>
+export function resolveLineup(slots: Slot[], escolhas: Escalacao, elenco: JogadorDoElenco[]): Escalacao {
+  const ids = new Set(elenco.map((j) => j.id));
+  const usados = new Set<number>();
+  const lineup: Escalacao = {};
+  for (const s of slots) {
+    const id = escolhas[s.id];
+    if (id != null && ids.has(id) && !usados.has(id)) {
+      lineup[s.id] = id;
+      usados.add(id);
+    }
+  }
+  const preencher = (cabe: (j: JogadorDoElenco, s: Slot) => boolean) =>
     slots.forEach((s) => {
-      if (lineup[s.id]) return;
-      const p = SQUAD.find((j) => !used.has(j.id) && match(j, s));
-      if (p) {
-        lineup[s.id] = p.id;
-        used.add(p.id);
+      if (lineup[s.id] != null) return;
+      const j = elenco.find((x) => !usados.has(x.id) && disponivel(x) && cabe(x, s));
+      if (j) {
+        lineup[s.id] = j.id;
+        usados.add(j.id);
       }
     });
-
-  slots.forEach((s) => {
-    const pick = picks[s.id];
-    if (pick && !used.has(pick)) {
-      lineup[s.id] = pick;
-      used.add(pick);
-    }
-  });
-  fill((p, s) => p.pos === s.pos);
-  fill((p, s) => ELIGIBLE[s.pos].includes(p.pos));
+  preencher((j, s) => j.posicao === ELIGIBLE[s.pos][0]);
+  preencher((j, s) => ELIGIBLE[s.pos].includes(j.posicao));
   return lineup;
 }
 
-export const playerById = (id: string | undefined) => SQUAD.find((p) => p.id === id);
+/** Põe o jogador na vaga; se ele já estava em outra, troca de lugar com quem estava nesta. */
+export function escalar(lineup: Escalacao, vaga: string, jogador: number): Escalacao {
+  const novo = { ...lineup };
+  const deOnde = Object.keys(novo).find((v) => novo[v] === jogador);
+  const quemEstava = novo[vaga];
+  novo[vaga] = jogador;
+  if (deOnde && deOnde !== vaga) {
+    if (quemEstava != null) novo[deOnde] = quemEstava;
+    else delete novo[deOnde];
+  }
+  return novo;
+}

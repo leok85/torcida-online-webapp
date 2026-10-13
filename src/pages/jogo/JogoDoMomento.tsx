@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import { jogoDoPalpite } from '../../data/palpite';
 import { separarJogos } from '../../data/partidas';
 import { useJogosDoClube } from '../../partidas/JogosDoClube';
 
@@ -18,4 +19,13 @@ export function NotasDoMomento() {
   if (!jogos) return null;
   const [ultimo] = separarJogos(jogos).resultados;
   return <Navigate to={ultimo ? `/jogo/${ultimo.id}/notas` : '/jogos'} replace />;
+}
+
+/** /escalacao (menu antigo e avisos): a escalação e o palpite do próximo jogo do clube; sem nenhum, a lista de jogos. */
+export function EscalacaoDoMomento() {
+  const { jogos, erro } = useJogosDoClube();
+  if (erro) return <Navigate to="/jogos" replace />;
+  if (!jogos) return null;
+  const proximo = jogoDoPalpite(jogos);
+  return <Navigate to={proximo ? `/jogo/${proximo.id}/escalacao` : '/jogos'} replace />;
 }

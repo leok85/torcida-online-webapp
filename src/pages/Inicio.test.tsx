@@ -73,7 +73,7 @@ describe('Início · card do jogo', () => {
 
     const faixa = within(jogo).getByRole('group', { name: 'Próximo jogo' });
     expect(faixa).toHaveTextContent('Brasileirão Série A · rodada 31 · qua 21:30');
-    expect(within(faixa).getByRole('link', { name: /Dar palpite/ })).toHaveAttribute('href', '/escalacao');
+    expect(within(faixa).getByRole('link', { name: /Dar palpite/ })).toHaveAttribute('href', '/jogo/7301/escalacao');
 
     await user.click(within(jogo).getByRole('button', { name: /Fotos/ }));
     expect(local()).toBe('/fotos');
@@ -110,7 +110,7 @@ describe('Início · card do jogo', () => {
     expect(within(faixa).getByRole('link', { name: /Notas e fotos/ })).toHaveAttribute('href', '/jogo/7290/notas');
 
     await user.click(within(jogo).getByRole('button', { name: /Dar palpite/ }));
-    expect(local()).toBe('/escalacao');
+    expect(local()).toBe('/jogo/7301/escalacao');
   });
 
   it('a contagem regressiva anda sozinha', async () => {

@@ -41,7 +41,7 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     expect(screen.getByText('Brasileirão Série A · rodada 30 · dom 11/10 · 17:30')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Voltar para Jogos' })).toHaveAttribute('href', '/jogos');
     expect(screen.getByText('Ao vivo e chat').closest('[aria-current]')).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: /Escalação e palpite/ })).toHaveAttribute('href', '/escalacao');
+    expect(screen.getByRole('link', { name: /Escalação e palpite/ })).toHaveAttribute('href', '/jogo/7290/escalacao');
     expect(screen.queryByRole('link', { name: /Pós-jogo e notas/ })).not.toBeInTheDocument();
     expect(screen.getByText('Pós-jogo e notas').closest('[aria-disabled]')).toHaveAttribute('title', 'Abre no apito final');
   });

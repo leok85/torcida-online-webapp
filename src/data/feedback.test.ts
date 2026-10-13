@@ -7,6 +7,7 @@ describe('feedback', () => {
     expect(areaDaRota('/jogo/7290')).toBe('jogo');
     expect(areaDaRota('/jogos')).toBe('jogo');
     expect(areaDaRota('/escalacao')).toBe('palpite');
+    expect(areaDaRota('/jogo/7301/escalacao')).toBe('palpite');
     expect(areaDaRota('/loja')).toBe('loja');
     expect(areaDaRota('/assinar/pagamento')).toBe('assinatura');
     expect(areaDaRota('/conta/assinatura')).toBe('assinatura');

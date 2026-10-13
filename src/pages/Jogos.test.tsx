@@ -98,7 +98,7 @@ describe('Jogos (W20)', () => {
       'Palmeiras x Flamengo, 14 OUT · Brasileirão Série A · rodada 31 · qua 21:30 · abre no apito final',
       'São Paulo x Palmeiras, 18 OUT · Brasileirão Série A · rodada 32 · dom 16:00 · abre qui',
     ]);
-    expect(within(screen.getByRole('region', { name: 'Próximos' })).getAllByRole('link')[0]).toHaveAttribute('href', '/escalacao');
+    expect(within(screen.getByRole('region', { name: 'Próximos' })).getAllByRole('link')[0]).toHaveAttribute('href', '/jogo/7301/escalacao');
   });
 
   it('sem jogo em campo, o palpite do próximo já está aberto', async () => {

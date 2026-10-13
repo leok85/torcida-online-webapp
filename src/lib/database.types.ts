@@ -413,6 +413,29 @@ export type Database = {
       chat_aberto: { Args: { p_partida: number }; Returns: boolean };
       enviar_notas: { Args: { p_partida: number; p_notas: { jogador: number; nota: number }[] }; Returns: number };
       notas_abertas: { Args: { p_partida: number }; Returns: boolean };
+      situacao_do_palpite: { Args: { p_partida: number; p_clube: number }; Returns: string };
+      enviar_palpite: {
+        Args: {
+          p_partida: number;
+          p_formacao: string;
+          p_escalacao: { [vaga: string]: number };
+          p_gols_mandante: number;
+          p_gols_visitante: number;
+          p_autores?: { mandante: boolean; jogador: number }[];
+        };
+        Returns: undefined;
+      };
+      meu_palpite: {
+        Args: { p_partida: number };
+        Returns: {
+          formacao: string;
+          escalacao: { [vaga: string]: number };
+          gols_mandante: number;
+          gols_visitante: number;
+          autores: { mandante: boolean; jogador: number }[];
+          atualizado_em: string;
+        }[];
+      };
       notas_da_torcida: {
         Args: { p_partida: number };
         Returns: { jogador_id: number; media: number; votos: number; minha: number | null; votantes: number }[];

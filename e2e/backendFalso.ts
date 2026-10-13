@@ -1,6 +1,7 @@
 // Supabase falso para o Playwright: intercepta /auth/v1 e /rest/v1 no navegador e guarda tudo em memória.
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
+import { elencosDaPartida, elencosDeTeste, enviarPalpiteDeTeste, meuPalpiteDeTeste, type PalpiteDeTeste } from '../src/test/palpitesDeTeste';
 import type { BrowserContext, Route } from '@playwright/test';
 import type { ClassificacaoRow, CompeticaoRow, FeedbackRow, Partida } from '../src/lib/database.types';
 import { inicioDaSemana } from '../src/data/semana';
@@ -94,6 +95,10 @@ export class BackendFalso {
   readonly mensagensChat: MensagemDeTeste[] = [];
   /** Notas dos jogadores (tabela notas_jogadores), de todos os torcedores. */
   readonly notasJogadores: NotaDeTeste[] = [];
+  /** Escalações e palpites (tabela palpites), de todos os torcedores. */
+  readonly palpites: PalpiteDeTeste[] = [];
+  /** Elencos que a função elenco-da-partida devolve (padrão: Palmeiras e Corinthians). */
+  readonly elencos = elencosDeTeste();
   readonly competicoes: CompeticaoRow[] = [];
   readonly classificacao: ClassificacaoRow[] = [];
   private readonly codigos = new Map<string, { codigo: string; tipo: Email['tipo'] }>();
@@ -358,6 +363,11 @@ export class BackendFalso {
       if (!this.partidas.some((p) => p.id === corpo.partida)) return json(404, { erro: 'partida_nao_encontrada' });
       return json(200, this.detalhes.get(corpo.partida) ?? SEM_DETALHES);
     }
+    if (nome === 'elenco-da-partida') {
+      const partida = this.partidas.find((p) => p.id === corpo.partida);
+      if (!partida) return json(404, { erro: 'partida_nao_encontrada' });
+      return json(200, elencosDaPartida(this.elencos, partida));
+    }
     if (nome === 'convidar-amigos') {
       const r = convidarAmigosDeTeste(this.convitesEmail, { id: usuario.id, email: usuario.email }, corpo);
       return json(r.status, r.corpo);
@@ -519,6 +529,17 @@ export class BackendFalso {
         return json(200, convidadosDe(this.perfis.values(), this.convitesEmail, (id) => this.usuarios.get(id)?.email, usuario.id));
       }
       return json(200, Math.max(0, LIMITE_DE_CONVITES - convitesHoje(this.convitesEmail, usuario.id)));
+    }
+
+    if (caminho === '/rpc/enviar_palpite' || caminho === '/rpc/meu_palpite') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied' });
+      const pedido = req.postDataJSON();
+      if (caminho === '/rpc/meu_palpite') return json(200, meuPalpiteDeTeste(this.palpites, usuario.id, pedido.p_partida));
+      const assinante = this.assinaturas.some(
+        (a) => a.usuario_id === usuario.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
+      );
+      const r = enviarPalpiteDeTeste(this.palpites, this.perfis.get(usuario.id), assinante, this.partidas, this.elencos, pedido);
+      return r ? json(400, { code: r.code, message: r.hint, hint: r.hint, details: null }) : json(200, null);
     }
 
     if (caminho === '/rpc/enviar_notas' || caminho === '/rpc/notas_da_torcida') {
