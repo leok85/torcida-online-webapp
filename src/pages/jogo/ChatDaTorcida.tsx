@@ -17,7 +17,7 @@ export function ChatDaTorcida({ partida }: { partida: Partida }) {
   const clubeId = perfil?.time_id ?? null;
   const daTorcida = clubeId !== null && (partida.mandante_id === clubeId || partida.visitante_id === clubeId);
   const ativo = !!assinante && daTorcida;
-  const { mensagens, erroAoCarregar, online, enviar } = useChat(partida.id, clubeId, perfil?.id ?? null, ativo);
+  const { mensagens, erroAoCarregar, online, total, enviar } = useChat(partida.id, clubeId, perfil?.id ?? null, ativo);
   const aberto = chatAberto(partida);
 
   const [rascunho, setRascunho] = useState('');
@@ -52,7 +52,12 @@ export function ChatDaTorcida({ partida }: { partida: Partida }) {
         <h3 id="titulo-chat" className={styles.chatTitle}>
           Chat da torcida
         </h3>
-        {ativo && online !== null && <div className={styles.online}>{NUMERO.format(online)} online</div>}
+        {ativo && aberto && online !== null && <div className={styles.online}>{NUMERO.format(online)} online</div>}
+        {ativo && !aberto && total !== null && (
+          <div className={styles.online}>
+            {NUMERO.format(total)} {total === 1 ? 'mensagem' : 'mensagens'} · encerrado
+          </div>
+        )}
       </div>
 
       {!assinante ? (
@@ -118,7 +123,8 @@ export function ChatDaTorcida({ partida }: { partida: Partida }) {
             </form>
           ) : (
             <div className={styles.chatFechado}>
-              <Icon name="lock_clock" size={18} />O chat fechou 2 h depois do apito final.
+              <Icon name="lock" size={20} color="var(--muted)" />
+              <span>Chat encerrado com o apito final. As mensagens ficam disponíveis para leitura.</span>
             </div>
           )}
         </>

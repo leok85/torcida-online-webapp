@@ -9,40 +9,215 @@
   flex: none;
   background: var(--ink);
   color: #fff;
-  padding: 20px 28px;
-  display: flex;
+  padding: 18px 28px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 28px;
+  gap: 24px;
 }
 
-.team {
+.barInfo {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.barCentro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.confronto {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 22px;
+}
+
+.timeCasa,
+.timeFora {
+  width: 170px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.timeCasa {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.nomeTime {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1;
   text-transform: uppercase;
 }
 
-.away {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.center {
-  text-align: center;
+.timeFora .nomeTime {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .score {
-  composes: score from '../../styles/ui.module.css';
-  font-size: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 54px;
+  line-height: 0.85;
 }
 
-.minute {
+.scoreX {
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.seloVivo,
+.seloFim {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 6px 0 12px;
+  border-radius: 999px;
+  background: var(--red);
+}
+
+.seloFim {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.seloPonto {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #fff;
+  animation: livepulse 1.4s ease-in-out infinite;
+}
+
+.seloTexto {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.seloFim .seloTexto:last-child {
+  padding-right: 6px;
+}
+
+.relogio {
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #fff;
+  color: #b3241b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.relogio span {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a2a24;
+}
+
+.resultado {
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.resultadoV {
+  background: var(--green);
+}
+
+.resultadoE {
+  background: var(--muted);
+}
+
+.resultadoD {
+  background: var(--red);
+}
+
+.penaltis {
   font-family: var(--font-mono);
   font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.55);
-  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.golsAoVivo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.golsFim {
+  display: grid;
+  grid-template-columns: 170px 50px 170px;
+  gap: 22px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.golsFim ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.golsFim ul:first-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.golsFim > :global(.ms) {
+  justify-self: center;
+}
+
+.tempo {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.tempoTrilho {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.tempoTrilho > div {
+  flex: 45;
 }
 
 .grid {
@@ -68,8 +243,27 @@
 .colHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 14px;
+}
+
+.colTitulo {
+  flex: 1;
+}
+
+/* "Escalação oficial · 4-4-2": sem a escalação da torcida, os dois times mostram a oficial. */
+.fonte {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--line-2);
+  border-radius: 9px;
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
 }
 
 .slot {
@@ -336,29 +530,35 @@
 }
 
 /*
- * Campo da escalação com altura fixa: qualquer formação (até goleiro + 5 linhas, como 4-1-2-1-2) cabe sem mudar
- * o tamanho nem rolar a coluna. As linhas se espalham por igual na altura.
+ * Campo da escalação: ocupa a altura que sobra na coluna (depende só da tela, nunca da formação) e tem um mínimo
+ * em que cabem goleiro + 5 linhas (4-1-2-1-2). As linhas se espalham por igual e a coluna não rola.
  */
+.colEscalacao {
+  display: flex;
+  flex-direction: column;
+}
+
 .col .campo {
-  flex: none;
-  height: 452px;
-  padding: 16px 8px;
+  flex: 1 1 0;
+  min-height: 396px;
+  padding: 14px 8px;
   gap: 0;
   justify-content: space-around;
 }
 
 .campo .slot {
-  gap: 3px;
+  gap: 2px;
 }
 
 .campo .shirt {
-  width: 38px;
-  height: 38px;
-  font-size: 17px;
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
 }
 
 .campo .player {
   max-width: 100%;
+  font-size: 10.5px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -492,40 +692,10 @@ a.aba:hover {
   cursor: default;
 }
 
-.encerradoPill {
-  display: flex;
-  align-items: center;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-}
-
-.formacao {
-  margin-top: 10px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--muted);
-  text-align: center;
-}
-
 .vazio {
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--muted);
-}
-
-.numerosTimes {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--ink-2);
-  margin: -6px 0 4px;
 }
 
 .lances {
@@ -536,17 +706,6 @@ a.aba:hover {
 
 .event:last-child {
   border-bottom: 0;
-}
-
-.eventTime {
-  flex: none;
-  max-width: 96px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--muted);
 }
 
 .aviso {
@@ -599,12 +758,51 @@ a.aba:hover {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px 18px 18px;
+  gap: 10px;
+  padding: 14px 18px 16px;
   border-top: 1px solid var(--line);
+  background: #f7f7f6;
   font-size: 12.5px;
-  color: var(--muted);
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+/* Depois do jogo: atalho para as notas e o MVP. */
+.notas {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--blue-soft-2);
+  border-radius: 14px;
+  background: var(--blue-soft);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.notas:hover {
+  border-color: var(--primary);
+  text-decoration: none;
+}
+
+.notasTexto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notasTexto strong {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.notasTexto span {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--primary);
 }
 
 @media (max-width: 1180px) {
@@ -620,6 +818,11 @@ a.aba:hover {
     overflow: visible;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .col .campo {
+    flex: none;
+    height: 452px;
   }
 
   .chat {
@@ -639,8 +842,18 @@ a.aba:hover {
   }
 
   .bar {
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 16px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px 16px 0;
+  }
+
+  .timeCasa,
+  .timeFora {
+    width: auto;
+  }
+
+  .golsFim {
+    grid-template-columns: 1fr 24px 1fr;
+    gap: 10px;
   }
 }

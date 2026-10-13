@@ -342,7 +342,7 @@ function criar() {
       then: (resolver: (r: unknown) => unknown, rejeitar?: (e: unknown) => unknown) => {
         const linhas = mensagensChat.filter((m) => m.partida_id === partidaId && m.id > depoisDe && podeLerChat(m));
         const ordenadas = decrescente ? [...linhas].reverse() : linhas;
-        return Promise.resolve(ok(ordenadas.slice(0, limite))).then(resolver, rejeitar);
+        return Promise.resolve({ ...ok(ordenadas.slice(0, limite)), count: linhas.length }).then(resolver, rejeitar);
       },
     };
     return consulta;

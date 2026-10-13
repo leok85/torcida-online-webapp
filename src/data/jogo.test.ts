@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { partidaDeTeste } from '../test/catalogoDeTeste';
 import { detalhesDeTeste } from '../test/jogoDeTeste';
-import { chatAberto, linhasDoCampo, linhasDosNumeros, momentoDoJogo, seloDoJogo, textoDoLance, type Lance } from './jogo';
+import { chatAberto, dataDoJogo, linhaDoTempo, linhasDoCampo, relogioDoJogo, linhasDosNumeros, momentoDoJogo, seloDoJogo, textoDoLance, type Lance } from './jogo';
 
 const { escalacoes } = detalhesDeTeste();
 const palmeiras = escalacoes!.mandante;
@@ -74,11 +74,26 @@ describe('momento do jogo', () => {
     expect(seloDoJogo(partidaDeTeste({ status: 'encerrada' }), new Date('2026-10-12T02:25:00Z'))).toEqual({ selo: 'ENCERRADO', sub: 'há 4 h', tom: 'encerrado' });
   });
 
-  it('chat aberto ao vivo e até 2 h depois do fim estimado', () => {
-    const fim = partidaDeTeste({ status: 'encerrada' }); // início 20:30Z, fim estimado 22:25Z
+  it('chat aberto só com a bola rolando', () => {
     expect(chatAberto(partidaDeTeste())).toBe(true);
-    expect(chatAberto(fim, new Date('2026-10-12T00:20:00Z'))).toBe(true);
-    expect(chatAberto(fim, new Date('2026-10-12T00:30:00Z'))).toBe(false);
+    expect(chatAberto(partidaDeTeste({ status: 'encerrada' }))).toBe(false);
     expect(chatAberto(partidaDeTeste({ status: 'agendada' }))).toBe(false);
+  });
+
+  it('relógio do selo ao vivo', () => {
+    expect(relogioDoJogo(partidaDeTeste())).toEqual({ minuto: "67'", periodo: '2º tempo' });
+    expect(relogioDoJogo(partidaDeTeste({ periodo: 'INT', minuto: 45 }))).toEqual({ minuto: null, periodo: 'Intervalo' });
+  });
+
+  it('linha do tempo: quanto de cada tempo já passou', () => {
+    expect(linhaDoTempo(partidaDeTeste())).toEqual({ primeiro: 100, segundo: 49, emAndamento: 2 });
+    expect(linhaDoTempo(partidaDeTeste({ periodo: '1T', minuto: 30 }))).toEqual({ primeiro: 67, segundo: 0, emAndamento: 1 });
+    expect(linhaDoTempo(partidaDeTeste({ periodo: 'INT', minuto: 45 }))).toEqual({ primeiro: 100, segundo: 0, emAndamento: null });
+    expect(linhaDoTempo(partidaDeTeste({ periodo: '2T', minuto: 95 }))).toEqual({ primeiro: 100, segundo: 100, emAndamento: 2 });
+    expect(linhaDoTempo(partidaDeTeste({ status: 'encerrada' }))).toEqual({ primeiro: 100, segundo: 100, emAndamento: null });
+  });
+
+  it('data do jogo no horário de Brasília', () => {
+    expect(dataDoJogo(partidaDeTeste())).toBe('dom 11/10 · 17:30');
   });
 });
