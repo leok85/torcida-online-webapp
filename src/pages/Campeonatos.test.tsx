@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { COMPETICOES_DE_TESTE, partidaDeTeste, TABELAS_DE_TESTE, temporadaDoPalmeiras } from '../test/catalogoDeTeste';
+import { COMPETICOES_DE_TESTE, linhaDaTabela, partidaDeTeste, TABELAS_DE_TESTE, temporadaDoPalmeiras } from '../test/catalogoDeTeste';
 import { renderApp } from '../test/renderApp';
 import { assinaturaDeTeste, perfilDeTeste, supabaseFalso } from '../test/supabaseFalso';
 
@@ -52,6 +52,46 @@ describe('Campeonatos (W10)', () => {
       'R32Palmeiras x Flamengodom 25/10',
     ]);
     expect(within(screen.getByRole('region', { name: 'Últimos 5' })).getAllByTitle(/Vitória|Empate|Derrota/).map((e) => e.textContent)).toEqual(['V', 'V']);
+  });
+
+  it('a tabela da liga mostra as 8 primeiras; "Ver tabela completa" abre a classificação inteira', async () => {
+    for (const p of temporadaDoPalmeiras()) supabaseFalso.adicionarPartida(p);
+    const brasileirao = TABELAS_DE_TESTE.filter((l) => l.liga_id === 9).map((l) => (l.clube_id === 162 ? { ...l, forma: 'WWDLW' } : l));
+    const resto = Array.from({ length: 8 }, (_, i) => linhaDaTabela(9, '', 5 + i, 1000 + i, `Time ${5 + i}`, 30 - i));
+    supabaseFalso.adicionarCompeticoes(COMPETICOES_DE_TESTE, [...brasileirao, ...resto, ...TABELAS_DE_TESTE.filter((l) => l.liga_id !== 9)]);
+    supabaseFalso.assinar(assinaturaDeTeste());
+    supabaseFalso.logar(perfilDeTeste());
+    const { user } = renderApp('/campeonatos');
+
+    const tabela = await screen.findByRole('region', { name: 'Brasileirão Série A · rodada 30' });
+    expect(within(tabela).getAllByRole('listitem')).toHaveLength(8);
+    await user.click(within(tabela).getByRole('button', { name: /Ver tabela completa/ }));
+
+    const janela = screen.getByRole('dialog', { name: 'Brasileirão Série A · classificação' });
+    expect(janela).toHaveTextContent('rodada 30 de 38 · atualizada seg 12/10 às 06:40');
+    const linhas = within(janela).getAllByRole('listitem');
+    expect(linhas).toHaveLength(12);
+    // Palmeiras: 61 pts em 30 jogos (20V 1E 9D), 40 x 30 de gols, 68% de aproveitamento.
+    expect(linhas[1]).toHaveAttribute('aria-current', 'true');
+    expect(linhas[1].textContent?.replace(/sports_soccer/g, '')).toBe('2Palmeiras613020194030+1068%VVEDV');
+    expect(within(linhas[1]).getByLabelText('Últimos 5: V V E D V')).toBeInTheDocument();
+    expect(janela).toHaveTextContent('LibertadoresSul-AmericanaRebaixamento');
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('com o clube abaixo do 8º, o resumo mostra as 7 primeiras e a linha do clube', async () => {
+    for (const p of temporadaDoPalmeiras()) supabaseFalso.adicionarPartida(p);
+    const tabela = Array.from({ length: 12 }, (_, i) => (i === 10 ? linhaDaTabela(9, '', 11, 162, 'Palmeiras', 20) : linhaDaTabela(9, '', i + 1, 1000 + i, `Time ${i + 1}`, 40 - i)));
+    supabaseFalso.adicionarCompeticoes(COMPETICOES_DE_TESTE, tabela);
+    supabaseFalso.assinar(assinaturaDeTeste());
+    supabaseFalso.logar(perfilDeTeste());
+    renderApp('/campeonatos');
+    const regiao = await screen.findByRole('region', { name: 'Brasileirão Série A · rodada 30' });
+    const linhas = within(regiao).getAllByRole('listitem');
+    expect(linhas.map((l) => l.textContent?.match(/^\d+/)?.[0])).toEqual(['1', '2', '3', '4', '5', '6', '7', '11']);
+    expect(linhas[7]).toHaveAttribute('aria-current', 'true');
   });
 
   it('mata-mata: fase atual com ida e volta, palpite na ida e o caminho com as fases para abrir', async () => {

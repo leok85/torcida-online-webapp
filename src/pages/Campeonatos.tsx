@@ -1,14 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Crest } from '../components/ui/Crest';
 import { Icon } from '../components/ui/Icon';
+import { Modal } from '../components/ui/Modal';
 import { Carregando, Skeleton, SkeletonEscudo } from '../components/ui/Skeleton';
 import {
+  aproveitamento,
+  atualizacaoDaTabela,
   dadosDosCampeonatos,
   diaCurto,
   ehAmistoso,
+  formaDaLinha,
   montarCampeonatos,
+  resumoDaTabela,
   type Campeonato,
   type Competicao,
   type EtapaDoCaminho,
@@ -57,7 +62,19 @@ function useDadosDosCampeonatos(ligaIds: number[]) {
   return { dados: atual?.dados, erro: !!atual?.erro, tentarDeNovo: () => setTentativa((t) => t + 1) };
 }
 
-function Tabela({ titulo, linhas, clubeId, legenda = true }: { titulo: string; linhas: LinhaDaTabela[]; clubeId: number; legenda?: boolean }) {
+function Tabela({
+  titulo,
+  linhas,
+  clubeId,
+  legenda = true,
+  rodape,
+}: {
+  titulo: string;
+  linhas: LinhaDaTabela[];
+  clubeId: number;
+  legenda?: boolean;
+  rodape?: ReactNode;
+}) {
   const zonas = [...new Map(linhas.filter((l) => l.zona).map((l) => [l.zona!, corDaZona(l)])).entries()];
   return (
     <section className={ui.cardFlush} aria-label={titulo}>
@@ -104,7 +121,88 @@ function Tabela({ titulo, linhas, clubeId, legenda = true }: { titulo: string; l
           );
         })}
       </ol>
+      {rodape}
     </section>
+  );
+}
+
+const sinal = (n: number) => (n > 0 ? `+${n}` : String(n));
+
+/** W10 · a classificação inteira da liga numa janela, com v/e/d, gols, aproveitamento e os últimos 5. */
+function TabelaCompleta({ c, clubeId, onFechar }: { c: Campeonato; clubeId: number; onFechar: () => void }) {
+  const zonas = [...new Map(c.tabela.filter((l) => l.zona).map((l) => [l.zona!, corDaZona(l)])).entries()];
+  const rodada = c.rodada ? (c.rodadas ? `rodada ${c.rodada} de ${c.rodadas}` : `rodada ${c.rodada}`) : null;
+  const sub = [rodada, atualizacaoDaTabela(c.tabela)].filter(Boolean).join(' · ');
+  return (
+    <Modal rotulo={`${c.nome} · classificação`} onFechar={onFechar} largura={960}>
+      <div className={styles.tcTopo}>
+        <div className={styles.tcTitulos}>
+          <h2 className={styles.tcTitulo}>{c.nome} · classificação</h2>
+          {sub && <div className={styles.tcSub}>{sub}</div>}
+        </div>
+        <button type="button" className={styles.tcFechar} aria-label="Fechar" onClick={onFechar}>
+          <Icon name="close" size={21} />
+        </button>
+      </div>
+      <div className={styles.tcCabeca} aria-hidden="true">
+        <span className={styles.tcPos}>#</span>
+        <span className={styles.tcTime}>time</span>
+        <span className={styles.tc42}>pts</span>
+        <span className={styles.tc34}>j</span>
+        <span className={styles.tc34}>v</span>
+        <span className={styles.tc34}>e</span>
+        <span className={styles.tc34}>d</span>
+        <span className={styles.tc38}>gp</span>
+        <span className={styles.tc38}>gc</span>
+        <span className={styles.tc42}>sg</span>
+        <span className={styles.tc42}>%</span>
+        <span className={styles.tcUltimos}>últimos 5</span>
+      </div>
+      <ol className={styles.tcLista}>
+        {c.tabela.map((l) => {
+          const eu = l.clube_id === clubeId;
+          const forma = formaDaLinha(l.forma);
+          return (
+            <li key={l.clube_id} className={eu ? `${styles.tcLinha} ${styles.tcEu}` : styles.tcLinha} aria-current={eu ? 'true' : undefined}>
+              <span className={styles.tcPos}>
+                <span className={styles.tcMarca} style={{ background: corDaZona(l) ?? 'transparent' }} title={l.zona ?? undefined} />
+                {l.posicao}
+              </span>
+              <span className={styles.tcTime}>
+                <Crest width={22} height={26} clubeId={l.clube_id} />
+                <span className={styles.tcNome}>{l.clube_nome ?? `Time ${l.clube_id}`}</span>
+              </span>
+              <span className={`${styles.tc42} ${styles.tcPts}`}>{l.pontos}</span>
+              <span className={styles.tc34}>{l.jogos}</span>
+              <span className={styles.tc34}>{l.vitorias}</span>
+              <span className={styles.tc34}>{l.empates}</span>
+              <span className={styles.tc34}>{l.derrotas}</span>
+              <span className={styles.tc38}>{l.gols_pro}</span>
+              <span className={styles.tc38}>{l.gols_contra}</span>
+              <span className={styles.tc42}>{sinal(l.gols_pro - l.gols_contra)}</span>
+              <span className={styles.tc42}>{aproveitamento(l)}%</span>
+              <span className={styles.tcUltimos} aria-label={forma.length ? `Últimos 5: ${forma.join(' ')}` : undefined}>
+                {forma.map((r, i) => (
+                  <span key={i} className={`${styles.tcResultado} ${styles[`r${r}`]}`} title={ROTULO_RESULTADO[r]}>
+                    {r}
+                  </span>
+                ))}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {zonas.length > 0 && (
+        <div className={styles.tcLegenda}>
+          {zonas.map(([zona, cor]) => (
+            <div key={zona} className={styles.tcZona}>
+              <span className={styles.mark} style={{ background: cor ?? undefined }} />
+              {zona}
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -201,10 +299,23 @@ function Caminho({ etapas, clubeId }: { etapas: EtapaDoCaminho[]; clubeId: numbe
 }
 
 function DetalhePontosCorridos({ c, clubeId }: { c: Campeonato; clubeId: number }) {
+  const [completa, setCompleta] = useState(false);
+  const resumo = resumoDaTabela(c.tabela, clubeId);
   return (
     <div className={styles.detalhe}>
+      {completa && <TabelaCompleta c={c} clubeId={clubeId} onFechar={() => setCompleta(false)} />}
       {c.tabela.length > 0 ? (
-        <Tabela titulo={c.rodada ? `${c.nome} · rodada ${c.rodada}` : c.nome} linhas={c.tabela} clubeId={clubeId} />
+        <Tabela
+          titulo={c.rodada ? `${c.nome} · rodada ${c.rodada}` : c.nome}
+          linhas={resumo}
+          clubeId={clubeId}
+          rodape={
+            <button type="button" className={styles.verCompleta} onClick={() => setCompleta(true)}>
+              Ver tabela completa
+              <Icon name="arrow_forward" size={18} />
+            </button>
+          }
+        />
       ) : (
         <section className={ui.card}>
           <p className={styles.vazio}>A tabela aparece aqui assim que a BSD publicar a classificação.</p>

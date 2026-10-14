@@ -530,3 +530,220 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* "Ver tabela completa" e a janela da classificação inteira */
+.verCompleta {
+  width: 100%;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.verCompleta:hover {
+  background: #f8fafc;
+}
+
+.tcTopo {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tcTitulos {
+  flex: 1;
+  min-width: 0;
+}
+
+.tcTitulo {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.tcSub {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tcFechar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tcFechar:hover {
+  background: var(--bg);
+}
+
+.tcCabeca,
+.tcLinha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px;
+}
+
+.tcCabeca {
+  flex: none;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tcLista {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+}
+
+.tcLinha {
+  height: 44px;
+  border-bottom: 1px solid var(--bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.tcEu {
+  background: var(--blue-soft);
+  color: var(--primary);
+}
+
+.tcPos {
+  width: 34px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.tcMarca {
+  width: 3px;
+  height: 20px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.tcTime {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tcNome {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tcEu .tcNome,
+.tcEu .tcPts {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.tc34,
+.tc38,
+.tc42 {
+  flex: none;
+  text-align: center;
+}
+
+.tc34 {
+  width: 34px;
+}
+
+.tc38 {
+  width: 38px;
+}
+
+.tc42 {
+  width: 42px;
+}
+
+.tcPts {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.tcUltimos {
+  width: 118px;
+  flex: none;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.tcResultado {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tcLegenda {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+.tcZona {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

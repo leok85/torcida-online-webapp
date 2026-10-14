@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CompeticaoRow, Partida } from '../lib/database.types';
 import { COMPETICOES_DE_TESTE, partidaDeTeste, TABELAS_DE_TESTE, temporadaDoPalmeiras } from '../test/catalogoDeTeste';
-import { montarCampeonatos, ordemDaFase, resultadoDoConfronto, type Competicao } from './campeonatos';
+import { aproveitamento, atualizacaoDaTabela, formaDaLinha, montarCampeonatos, ordemDaFase, resultadoDoConfronto, resumoDaTabela, type Competicao } from './campeonatos';
+import { linhaDaTabela } from '../test/catalogoDeTeste';
 
 const AGORA = new Date('2026-10-12T15:00:00Z');
 const competicoes = COMPETICOES_DE_TESTE as Competicao[];
@@ -122,5 +123,25 @@ describe('ordemDaFase', () => {
       'semifinals',
       'final',
     ]);
+  });
+});
+
+describe('tabela completa', () => {
+  const tabela = Array.from({ length: 12 }, (_, i) => linhaDaTabela(9, '', i + 1, 100 + i, `Time ${i + 1}`, 40 - i));
+
+  it('resumo: as 8 primeiras; com o clube mais abaixo, as 7 primeiras e ele; tabela curta inteira', () => {
+    expect(resumoDaTabela(tabela, 103).map((l) => l.posicao)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(resumoDaTabela(tabela, 110).map((l) => l.posicao)).toEqual([1, 2, 3, 4, 5, 6, 7, 11]);
+    expect(resumoDaTabela(tabela, 999)).toHaveLength(8);
+    expect(resumoDaTabela(tabela.slice(0, 5), 110)).toHaveLength(5);
+  });
+
+  it('forma da BSD em V/E/D, aproveitamento e a hora da atualização', () => {
+    expect(formaDaLinha('WDLwx')).toEqual(['V', 'E', 'D', 'V']);
+    expect(formaDaLinha(null)).toEqual([]);
+    expect(aproveitamento({ pontos: 61, jogos: 30 })).toBe(68);
+    expect(aproveitamento({ pontos: 0, jogos: 0 })).toBe(0);
+    expect(atualizacaoDaTabela([{ ...tabela[0], atualizado_em: '2026-10-13T09:40:00Z' }, tabela[1]])).toBe('atualizada ter 13/10 às 06:40');
+    expect(atualizacaoDaTabela([])).toBeNull();
   });
 });

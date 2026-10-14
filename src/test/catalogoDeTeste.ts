@@ -140,7 +140,7 @@ export function resumoDoClubeDeTeste(perfis: { time_id: number | null; onboardin
 
 // ---------- Temporada do Palmeiras para a tela de Campeonatos ----------
 
-const linhaDaTabela = (liga_id: number, grupo: string, posicao: number, clube_id: number, clube_nome: string, pontos: number, zona: string | null = null, zona_tipo: string | null = null): ClassificacaoRow => ({
+export const linhaDaTabela = (liga_id: number, grupo: string, posicao: number, clube_id: number, clube_nome: string, pontos: number, zona: string | null = null, zona_tipo: string | null = null): ClassificacaoRow => ({
   liga_id,
   grupo,
   clube_id,
