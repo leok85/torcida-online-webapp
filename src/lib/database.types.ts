@@ -425,6 +425,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      escalacao_mais_votada: {
+        Args: { p_partida: number };
+        Returns: { votantes: number; formacao: string | null; jogadores: { vaga: string; id: number; nome: string; numero: number | null; votos: number }[] }[];
+      };
       meu_palpite: {
         Args: { p_partida: number };
         Returns: {

@@ -47,7 +47,7 @@ describe('escalação e palpite (W03)', () => {
     // Do banco para a vaga.
     await user.click(within(campo()).getByRole('button', { name: 'ZAG: B. Fuchs' }));
     expect(screen.getByRole('heading', { name: 'Quem joga de ZAG' })).toBeInTheDocument();
-    expect(within(jogadores()).getByRole('button', { name: 'A. Giay, defensor · suspenso · no banco' })).toBeInTheDocument();
+    expect(within(jogadores()).getByRole('button', { name: 'A. Giay, defensor · suspenso · volta 18/10 · no banco' })).toBeInTheDocument();
     await user.click(within(jogadores()).getByRole('button', { name: 'Murilo, defensor · no banco' }));
     expect(within(campo()).getByRole('button', { name: 'ZAG: Murilo' })).toBeInTheDocument();
     // Quem já está em campo troca de lugar.
@@ -85,6 +85,45 @@ describe('escalação e palpite (W03)', () => {
     // Mudou algo: volta a pedir confirmação.
     await user.click(screen.getByRole('button', { name: 'Menos um gol do Corinthians' }));
     expect(confirmar()).toBeEnabled();
+  });
+
+  it('lesionado fica bloqueado: não entra no time nem em quem marca', async () => {
+    relogio(ANTES);
+    const { user } = abrir();
+    await user.click(await screen.findByRole('button', { name: 'ATA: Paulinho' }));
+    const sosa = within(jogadores()).getByRole('button', { name: 'R. Sosa, atacante · lesionado · volta 31/10 · não pode ser escalado' });
+    expect(sosa).toBeDisabled();
+    expect(within(sosa).getByTitle('Lesionado')).toBeInTheDocument();
+    await user.click(sosa);
+    expect(within(campo()).getByRole('button', { name: 'ATA: Paulinho' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Mais um gol do Palmeiras' }));
+    await user.click(screen.getByRole('button', { name: /Quem marca\?/ }));
+    expect(screen.getByRole('option', { name: '1º gol · R. Sosa (lesionado)' })).toBeDisabled();
+  });
+
+  it('se alguém do palpite salvo se lesionou, ele sai da escalação e a tela pede para confirmar de novo', async () => {
+    relogio(ANTES);
+    supabaseFalso.palpites().push({ partida_id: 7301, usuario_id: 'usuario-1', clube_id: 162, formacao: '4-3-3', escalacao: { ...AUTOMATICA, l2p1: 37 }, gols_mandante: 1, gols_visitante: 0, autores: [] });
+    const { user } = abrir();
+    expect(await screen.findByRole('status')).toHaveTextContent('R. Sosa se lesionou e saiu da sua escalação. Confira e confirme de novo.');
+    expect(within(campo()).getByRole('button', { name: 'ATA: Paulinho' })).toBeInTheDocument();
+    await user.click(confirmar());
+    await screen.findByRole('button', { name: /Escalação e palpite confirmados/ });
+    expect(supabaseFalso.palpites()[0].escalacao).toEqual(AUTOMATICA);
+  });
+
+  it('o banco recusa lesionado (ex.: a lesão saiu com a tela aberta)', async () => {
+    relogio(ANTES);
+    const { user } = abrir();
+    await screen.findByRole('button', { name: 'GOL: C. Miguel' });
+    supabaseFalso.definirElenco(
+      162,
+      supabaseFalso.elenco(162).map((j) => (j.id === 33 ? { ...j, disponibilidade: 'injured' } : j)),
+    );
+    await user.click(confirmar());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Um jogador da sua escalação se lesionou. Troque ele e confirme de novo.');
+    expect(supabaseFalso.palpites()).toEqual([]);
   });
 
   it('a formação nova remonta o time; com 0 x 0 não há autores', async () => {

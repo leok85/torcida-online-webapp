@@ -1,6 +1,6 @@
 // Supabase falso em memória para os testes do Vitest. O setup.ts troca src/lib/supabase por este módulo
 // em todos os testes, então nada aqui fala com a rede.
-import { elencosDaPartida, elencosDeTeste, enviarPalpiteDeTeste, meuPalpiteDeTeste, type PalpiteDeTeste } from './palpitesDeTeste';
+import { elencosDaPartida, elencosDeTeste, enviarPalpiteDeTeste, maisVotadaDeTeste, meuPalpiteDeTeste, type PalpiteDeTeste } from './palpitesDeTeste';
 import type { JogadorDoElenco } from '../data/tiposDoPalpite';
 import { vi, type Mock } from 'vitest';
 import { AuthApiError } from '@supabase/supabase-js';
@@ -575,6 +575,10 @@ function criar() {
         const r = enviarNotasDeTeste(notasJogadores, eu, assinante, partida, detalhesDasPartidas.get(a.p_partida), a.p_notas);
         return typeof r === 'number' ? ok(r) : { data: null, error: { code: r.code, message: r.hint, hint: r.hint } };
       }
+      if (fn === 'escalacao_mais_votada') {
+        const eu = sessao ? perfis.get(sessao.user.id) : undefined;
+        return ok(maisVotadaDeTeste(palpites, eu, minhas().some(daAcesso), partidas, elencos, (args as unknown as { p_partida: number }).p_partida));
+      }
       if (fn === 'enviar_palpite' || fn === 'meu_palpite') {
         const a = args as unknown as { p_partida: number };
         if (fn === 'meu_palpite') return ok(meuPalpiteDeTeste(palpites, sessao?.user.id, a.p_partida));
@@ -651,6 +655,7 @@ function criar() {
     palpites: () => palpites,
     /** Elenco de um clube, como a função elenco-da-partida devolveria (padrão: Palmeiras e Corinthians). */
     definirElenco: (clubeId: number, jogadores: JogadorDoElenco[]) => elencos.set(clubeId, jogadores),
+    elenco: (clubeId: number) => elencos.get(clubeId) ?? [],
     /** Mensagens do chat gravadas (de todas as torcidas). */
     mensagensDoChat: () => mensagensChat,
     /** Outro torcedor escreve no chat: grava e entrega pelo tempo real a quem pode ler. */

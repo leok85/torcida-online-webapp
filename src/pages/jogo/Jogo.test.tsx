@@ -105,6 +105,34 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     expect(screen.getByTitle('V. Roque')).toBeInTheDocument();
   });
 
+  it('"Mais votada" no meu time: com o palpite fechado, a formação e, vaga a vaga, o jogador mais votado pela torcida', async () => {
+    const esc = { gol0: 24, l0p0: 3876, l0p1: 35, l0p2: 25, l0p3: 28, l1p0: 3624, l1p1: 30, l1p2: 530, l2p0: 33, l2p1: 5053, l2p2: 34 };
+    const voto = (usuario_id: string, formacao: string, escalacao: Record<string, number>, clube_id = 162) =>
+      supabaseFalso.palpites().push({ partida_id: 7290, usuario_id, clube_id, formacao, escalacao, gols_mandante: 1, gols_visitante: 0, autores: [] });
+    voto('t1', '4-3-3', esc);
+    voto('t2', '4-3-3', { ...esc, l2p1: 27 });
+    voto('t3', '4-3-3', { ...esc, l2p1: 27, l2p2: 5053 });
+    voto('t4', '3-5-2', esc);
+    // Torcida do Corinthians: não conta.
+    voto('t5', '4-4-2', esc, 167);
+    voto('t6', '4-4-2', esc, 167);
+    const { user } = abrir();
+    await user.click(await screen.findByRole('tab', { name: 'Mais votada' }));
+    expect(await screen.findByText('4-3-3 · 4 palpites da torcida')).toBeInTheDocument();
+    expect(screen.getByTitle('Murilo').nextSibling).toHaveTextContent('2 votos');
+    // Só contam os palpites da formação mais votada (o 3-5-2 fica de fora).
+    expect(screen.getByTitle('C. Miguel').nextSibling).toHaveTextContent('3 votos');
+    // Paulinho teve 1 voto em cada vaga e perdeu as duas (Murilo e J. López tiveram 2); ninguém repete.
+    expect(screen.getByTitle('J. López').nextSibling).toHaveTextContent('2 votos');
+    expect(screen.queryByTitle('Paulinho')).not.toBeInTheDocument();
+  });
+
+  it('"Mais votada" antes do palpite fechar: ainda em votação', async () => {
+    const { user } = abrir({ partida: partidaDeTeste({ status: 'agendada', inicio: '2099-01-01T00:00:00Z', periodo: null, minuto: null, gols_mandante: null, gols_visitante: null }) });
+    await user.click(await screen.findByRole('tab', { name: 'Mais votada' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('A votação ainda está aberta');
+  });
+
   it('quem torce para outro time vê a escalação inicial dos dois, sem "Mais votada"', async () => {
     abrir({ perfil: perfilDeTeste({ time_id: 160 }) });
     expect(await screen.findByText('Escalação inicial · 3-4-2-1')).toBeInTheDocument();
