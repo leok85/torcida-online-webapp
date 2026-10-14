@@ -91,7 +91,7 @@ describe('escalação e palpite (W03)', () => {
     relogio(ANTES);
     const { user } = abrir();
     await user.click(await screen.findByRole('button', { name: 'ATA: Paulinho' }));
-    const sosa = within(jogadores()).getByRole('button', { name: 'R. Sosa, atacante · lesionado · volta 31/10 · não pode ser escalado' });
+    const sosa = within(jogadores()).getByRole('button', { name: 'R. Sosa, atacante · lesionado · volta 31/10' });
     expect(sosa).toBeDisabled();
     expect(within(sosa).getByTitle('Lesionado')).toBeInTheDocument();
     await user.click(sosa);
