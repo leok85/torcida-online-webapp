@@ -76,7 +76,7 @@ describe('Início · card do jogo', () => {
     expect(within(faixa).getByRole('link', { name: /Dar palpite/ })).toHaveAttribute('href', '/jogo/7301/escalacao');
 
     await user.click(within(jogo).getByRole('button', { name: /Fotos/ }));
-    expect(local()).toBe('/fotos');
+    expect(local()).toBe('/jogo/7290/fotos');
   });
 
   it.each([

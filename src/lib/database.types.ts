@@ -439,6 +439,25 @@ export type Database = {
         Args: { p_partida: number };
         Returns: { gols_mandante: number; gols_visitante: number; votos: number; total: number }[];
       };
+      janela_da_foto: { Args: { p_partida: number }; Returns: string | null };
+      registrar_foto: { Args: { p_partida: number; p_caminho: string; p_etiqueta: string; p_legenda?: string }; Returns: string };
+      curtir_foto: { Args: { p_foto: string }; Returns: boolean };
+      denunciar_foto: { Args: { p_foto: string }; Returns: undefined };
+      fotos_do_jogo: {
+        Args: { p_partida: number };
+        Returns: {
+          id: string;
+          autor_apelido: string;
+          momento: string;
+          etiqueta: string;
+          caminho: string;
+          legenda: string;
+          curtidas: number;
+          eu_curti: boolean;
+          minha: boolean;
+          criado_em: string;
+        }[];
+      };
       meu_palpite: {
         Args: { p_partida: number };
         Returns: {

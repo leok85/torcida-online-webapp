@@ -11,7 +11,7 @@ export function ApenasAssinante() {
   const { pathname } = useLocation();
   if (assinante) return <Outlet />;
   // As notas de um jogo (/jogo/7290/notas) são o recurso "Pós-jogo e notas"; a escalação, "Escalação e palpite".
-  const caminho = /^\/jogo\/\d+\/notas$/.test(pathname) ? '/pos-jogo' : /^\/jogo\/\d+\/escalacao$/.test(pathname) ? '/escalacao' : pathname;
+  const caminho = /^\/jogo\/\d+\/notas$/.test(pathname) ? '/pos-jogo' : /^\/jogo\/\d+\/escalacao$/.test(pathname) ? '/escalacao' : /^\/jogo\/\d+\/fotos$/.test(pathname) ? '/fotos' : pathname;
   const recurso = [...NAV_MAIN, ...TELAS_DO_JOGO].find((i) => i.path === caminho);
   return <Bloqueio titulo={recurso?.label ?? 'Este recurso'} icone={recurso?.icon ?? 'lock'} />;
 }

@@ -10,7 +10,6 @@ import { NotificationsPanel } from './NotificationsPanel';
 import { Sidebar } from './Sidebar';
 import { Campeonatos } from '../../pages/Campeonatos';
 import { Clube } from '../../pages/Clube';
-import { Fotos } from '../../pages/Fotos';
 import { Inicio } from '../../pages/Inicio';
 import { Jogos } from '../../pages/Jogos';
 import { Loja } from '../../pages/Loja';
@@ -28,7 +27,8 @@ import { Planos } from '../../pages/assinatura/Planos';
 import { Retorno } from '../../pages/assinatura/Retorno';
 import { Jogo } from '../../pages/jogo/Jogo';
 import { EscalacaoEPalpite } from '../../pages/jogo/Escalacao';
-import { EscalacaoDoMomento, JogoDoMomento, NotasDoMomento } from '../../pages/jogo/JogoDoMomento';
+import { FotosDoJogo } from '../../pages/jogo/Fotos';
+import { EscalacaoDoMomento, FotosDoMomento, JogoDoMomento, NotasDoMomento } from '../../pages/jogo/JogoDoMomento';
 import { PosJogo } from '../../pages/jogo/PosJogo';
 import styles from './AppShell.module.css';
 
@@ -83,7 +83,8 @@ export function AppShell() {
               <Route path="/jogo/:id/notas" element={<PosJogo />} />
               <Route path="/missoes" element={<Missoes />} />
               <Route path="/ranking" element={<Ranking />} />
-              <Route path="/fotos" element={<Fotos />} />
+              <Route path="/fotos" element={<FotosDoMomento />} />
+              <Route path="/jogo/:id/fotos" element={<FotosDoJogo />} />
               <Route path="/loja" element={<Loja />} />
             </Route>
             <Route path="/noticias" element={<Noticias />} />

@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import { janelaDaFoto } from '../../data/janelaDasFotos';
 import { jogoDoPalpite } from '../../data/palpite';
 import { separarJogos } from '../../data/partidas';
 import { useJogosDoClube } from '../../partidas/JogosDoClube';
@@ -28,4 +29,15 @@ export function EscalacaoDoMomento() {
   if (!jogos) return null;
   const proximo = jogoDoPalpite(jogos);
   return <Navigate to={proximo ? `/jogo/${proximo.id}/escalacao` : '/jogos'} replace />;
+}
+
+/** /fotos (menu antigo e avisos): o jogo com o envio de fotos aberto; senão o último encerrado; sem nenhum, a lista. */
+export function FotosDoMomento() {
+  const { jogos, erro } = useJogosDoClube();
+  if (erro) return <Navigate to="/jogos" replace />;
+  if (!jogos) return null;
+  const aberto = jogos.find((p) => janelaDaFoto(p));
+  const [ultimo] = separarJogos(jogos).resultados;
+  const jogo = aberto ?? ultimo;
+  return <Navigate to={jogo ? `/jogo/${jogo.id}/fotos` : '/jogos'} replace />;
 }
