@@ -38,6 +38,12 @@ export function slotsFor(formation: string): Slot[] {
   return slots;
 }
 
+/** As vagas em linhas, de cima (ataque) para baixo (goleiro), como o campo desenha. */
+export function linhasDaFormacao(slots: Slot[]): Slot[][] {
+  const linhas = [...new Set(slots.filter((s) => s.line !== 'gol').map((s) => s.line))].reverse();
+  return [...linhas, 'gol'].map((l) => slots.filter((s) => s.line === l));
+}
+
 export type Escalacao = Record<string, number>;
 
 /** Quem está disponível para o jogo (lesionado e suspenso ficam fora do preenchimento automático). */

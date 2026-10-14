@@ -44,6 +44,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      lembretes_palpite: {
+        Row: { partida_id: number; usuario_id: string; criado_em: string };
+        Insert: { partida_id: number; usuario_id?: string; criado_em?: string };
+        Update: { partida_id?: number; usuario_id?: string; criado_em?: string };
+        Relationships: [];
+      };
       cidades: {
         Row: { codigo: string; fonte: string; id: number; nome: string; nome_busca: string; pais: string; regiao: string | null };
         Insert: { codigo: string; fonte: string; id?: never; nome: string; nome_busca: string; pais: string; regiao?: string | null };
@@ -428,6 +434,10 @@ export type Database = {
       escalacao_mais_votada: {
         Args: { p_partida: number };
         Returns: { votantes: number; formacao: string | null; jogadores: { vaga: string; id: number; nome: string; numero: number | null; votos: number }[] }[];
+      };
+      palpites_da_torcida: {
+        Args: { p_partida: number };
+        Returns: { gols_mandante: number; gols_visitante: number; votos: number; total: number }[];
       };
       meu_palpite: {
         Args: { p_partida: number };

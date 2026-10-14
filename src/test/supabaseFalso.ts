@@ -1,6 +1,14 @@
 // Supabase falso em memória para os testes do Vitest. O setup.ts troca src/lib/supabase por este módulo
 // em todos os testes, então nada aqui fala com a rede.
-import { elencosDaPartida, elencosDeTeste, enviarPalpiteDeTeste, maisVotadaDeTeste, meuPalpiteDeTeste, type PalpiteDeTeste } from './palpitesDeTeste';
+import {
+  elencosDaPartida,
+  elencosDeTeste,
+  enviarPalpiteDeTeste,
+  maisVotadaDeTeste,
+  meuPalpiteDeTeste,
+  placaresDaTorcidaDeTeste,
+  type PalpiteDeTeste,
+} from './palpitesDeTeste';
 import type { JogadorDoElenco } from '../data/tiposDoPalpite';
 import { vi, type Mock } from 'vitest';
 import { AuthApiError } from '@supabase/supabase-js';
@@ -141,6 +149,7 @@ function criar() {
   const mensagensChat: MensagemDeTeste[] = [];
   const notasJogadores: NotaDeTeste[] = [];
   const palpites: PalpiteDeTeste[] = [];
+  const lembretes: { partida_id: number; usuario_id: string }[] = [];
   let elencos = elencosDeTeste();
   const canais = new Set<CanalFalso>();
   let tempoRealFora = false;
@@ -218,6 +227,27 @@ function criar() {
 
   // Imita insert().select().single() e select().order() de feedbacks, com as regras do trigger
   // feedbacks_antes_de_inserir: +50 XP nos 2 primeiros envios da semana, até 10 por dia, e-mail só com resposta.
+  /** lembretes_palpite: RLS, cada um lê, cria e apaga só os próprios. */
+  function consultaLembretes() {
+    const meus = (partida: number) => lembretes.filter((l) => l.usuario_id === sessao?.user.id && l.partida_id === partida);
+    const negado = { data: null, error: { code: '42501', message: 'permission denied' } };
+    return {
+      select: () => ({ eq: async (_coluna: string, partida: number) => ok(meus(partida).map((l) => ({ partida_id: l.partida_id }))) }),
+      insert: async ({ partida_id }: { partida_id: number }) => {
+        if (!sessao) return negado;
+        if (meus(partida_id).length) return { data: null, error: { code: '23505', message: 'duplicate key' } };
+        lembretes.push({ partida_id, usuario_id: sessao.user.id });
+        return ok(null);
+      },
+      delete: () => ({
+        eq: async (_coluna: string, partida: number) => {
+          for (const l of meus(partida)) lembretes.splice(lembretes.indexOf(l), 1);
+          return ok(null);
+        },
+      }),
+    };
+  }
+
   function consultaFeedbacks() {
     let novo: Partial<FeedbackRow> | null = null;
     const meus = () => feedbacks.filter((f) => f.usuario_id === sessao?.user.id).sort((a, b) => b.criado_em.localeCompare(a.criado_em));
@@ -558,6 +588,7 @@ function criar() {
     mensagensChat.length = 0;
     notasJogadores.length = 0;
     palpites.length = 0;
+    lembretes.length = 0;
     elencos = elencosDeTeste();
     canais.clear();
     tempoRealFora = false;
@@ -574,6 +605,10 @@ function criar() {
         const partida = partidas.find((p) => p.id === a.p_partida);
         const r = enviarNotasDeTeste(notasJogadores, eu, assinante, partida, detalhesDasPartidas.get(a.p_partida), a.p_notas);
         return typeof r === 'number' ? ok(r) : { data: null, error: { code: r.code, message: r.hint, hint: r.hint } };
+      }
+      if (fn === 'palpites_da_torcida') {
+        const eu = sessao ? perfis.get(sessao.user.id) : undefined;
+        return ok(placaresDaTorcidaDeTeste(palpites, eu, minhas().some(daAcesso), partidas, (args as unknown as { p_partida: number }).p_partida));
       }
       if (fn === 'escalacao_mais_votada') {
         const eu = sessao ? perfis.get(sessao.user.id) : undefined;
@@ -621,6 +656,8 @@ function criar() {
         ? consultaChat()
         : tabela === 'feedbacks'
         ? consultaFeedbacks()
+        : tabela === 'lembretes_palpite'
+        ? consultaLembretes()
         : tabela === 'assinaturas'
         ? consultaAssinaturas()
         : tabela === 'partidas'
@@ -653,6 +690,8 @@ function criar() {
     notasDosJogadores: () => notasJogadores,
     /** Escalações e palpites gravados (de todos os torcedores). */
     palpites: () => palpites,
+    /** Pedidos de "Me avise" do próximo palpite (de todos os torcedores). */
+    lembretes: () => lembretes,
     /** Elenco de um clube, como a função elenco-da-partida devolveria (padrão: Palmeiras e Corinthians). */
     definirElenco: (clubeId: number, jogadores: JogadorDoElenco[]) => elencos.set(clubeId, jogadores),
     elenco: (clubeId: number) => elencos.get(clubeId) ?? [],

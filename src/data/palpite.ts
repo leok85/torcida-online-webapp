@@ -2,9 +2,9 @@
 // tela precisa para mostrar e o mesmo cálculo da janela, para não oferecer o que o banco vai recusar.
 import { chamarFuncao } from '../assinatura/funcoes';
 import { supabase } from '../lib/supabase';
-import type { Elencos, JogadorDoElenco, MaisVotada, Palpite } from './tiposDoPalpite';
+import type { Elencos, JogadorDoElenco, MaisVotada, Palpite, PlacarDaTorcida } from './tiposDoPalpite';
 
-export type { Autor, Elencos, JogadorDoElenco, MaisVotada, Palpite } from './tiposDoPalpite';
+export type { Autor, Elencos, JogadorDoElenco, MaisVotada, Palpite, PlacarDaTorcida } from './tiposDoPalpite';
 export { FECHA_ANTES_MS, jogoDoPalpite, situacaoDoPalpite, type SituacaoDoPalpite } from './janelaDoPalpite';
 
 export async function buscarElencos(partida: number): Promise<Elencos | null> {
@@ -62,6 +62,26 @@ export async function buscarMaisVotada(partida: number): Promise<MaisVotada | nu
   const { data, error } = await supabase.rpc('escalacao_mais_votada', { p_partida: partida });
   if (error) return null;
   return ((data ?? []) as MaisVotada[])[0] ?? { votantes: 0, formacao: null, jogadores: [] };
+}
+
+/** Os placares mais palpitados pela torcida do meu clube (vazio sem palpites suficientes); null quando não deu. */
+export async function buscarPalpitesDaTorcida(partida: number): Promise<PlacarDaTorcida[] | null> {
+  const { data, error } = await supabase.rpc('palpites_da_torcida', { p_partida: partida });
+  return error ? null : ((data ?? []) as PlacarDaTorcida[]);
+}
+
+/** Se pedi aviso quando o palpite do jogo abrir. */
+export async function temLembrete(partida: number): Promise<boolean> {
+  const { data } = await supabase.from('lembretes_palpite').select('partida_id').eq('partida_id', partida);
+  return !!data?.length;
+}
+
+/** Pede (ou cancela) o aviso de quando o palpite do jogo abrir. */
+export async function lembrarPalpite(partida: number, lembrar: boolean): Promise<boolean> {
+  const { error } = lembrar
+    ? await supabase.from('lembretes_palpite').insert({ partida_id: partida })
+    : await supabase.from('lembretes_palpite').delete().eq('partida_id', partida);
+  return !error;
 }
 
 const POSICAO = { G: 'goleiro', D: 'defensor', M: 'meia', F: 'atacante' } as const;

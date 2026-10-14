@@ -165,7 +165,9 @@ describe('escalação e palpite (W03)', () => {
     supabaseFalso.palpites().push({ partida_id: 7301, usuario_id: 'usuario-1', clube_id: 162, formacao: '4-3-3', escalacao: AUTOMATICA, gols_mandante: 2, gols_visitante: 1, autores: [] });
     abrir();
     expect(await screen.findByRole('status')).toHaveTextContent('O palpite fechou 15 min antes do início.');
-    expect(screen.getByText('Palmeiras × Corinthians · palpite fechado')).toBeInTheDocument();
+    expect(screen.getByText('Palmeiras × Corinthians · fechou às 21:15')).toBeInTheDocument();
+    expect(screen.getByText('Encerrado')).toBeInTheDocument();
+    expect(screen.queryByText('+80 XP')).not.toBeInTheDocument();
     expect(screen.getByText('Sua escalação · 4-3-3')).toBeInTheDocument();
     expect(within(campo()).getByText('C. Miguel')).toBeInTheDocument();
     expect(within(campo()).queryByRole('button')).not.toBeInTheDocument();
@@ -175,11 +177,50 @@ describe('escalação e palpite (W03)', () => {
     expect(screen.queryByRole('group', { name: 'Formação' })).not.toBeInTheDocument();
   });
 
-  it('fechado sem palpite: avisa que não mandou', async () => {
+  it('fechado sem palpite: avisa, mostra a escalação e os placares da torcida e o próximo palpite com "Me avise"', async () => {
     relogio(FECHOU);
+    const voto = (usuario_id: string, gols_mandante: number, gols_visitante: number) =>
+      supabaseFalso.palpites().push({ partida_id: 7301, usuario_id, clube_id: 162, formacao: '4-3-3', escalacao: AUTOMATICA, gols_mandante, gols_visitante, autores: [] });
+    voto('t1', 2, 1);
+    voto('t2', 2, 1);
+    voto('t3', 1, 0);
+    // O próximo jogo do Palmeiras: domingo 16:00 em Brasília.
+    supabaseFalso.adicionarPartida(marcada({ id: 7310, inicio: '2026-10-18T19:00:00Z', mandante_id: 158, mandante_nome: 'São Paulo', visitante_id: 162, visitante_nome: 'Palmeiras' }));
+    const { user } = abrir();
+
+    const aviso = await screen.findByRole('region', { name: 'Palpite encerrado' });
+    expect(aviso).toHaveTextContent('Você não enviou escalação nem palpite para este jogo');
+    expect(aviso).toHaveTextContent('O prazo fecha 15 min antes do apito. O ao vivo e o chat abrem às 21:30, e as notas no fim do jogo.');
+    expect(aviso).toHaveTextContent('Ao vivo abre às 21:30');
+    expect(screen.getByText('Palmeiras × Corinthians · fechou às 21:15')).toBeInTheDocument();
+
+    const mais = screen.getByRole('region', { name: 'Escalação mais votada' });
+    expect(await within(mais).findByText('4-3-3 · 3 torcedores')).toBeInTheDocument();
+    expect(within(mais).getByText('C. Miguel')).toBeInTheDocument();
+    expect(within(mais).getByText('V. Roque')).toBeInTheDocument();
+
+    const placares = screen.getByRole('region', { name: 'Palpites da torcida' });
+    await waitFor(() => expect(within(placares).getAllByRole('listitem').map((l) => l.textContent)).toEqual(['2 x 167%', '1 x 033%']));
+
+    const proximo = screen.getByRole('region', { name: 'Próximo palpite' });
+    expect(proximo).toHaveTextContent('Próximo palpite: São Paulo × Palmeiras');
+    expect(proximo).toHaveTextContent('abre no apito final · fecha dom 15:45');
+    await user.click(await within(proximo).findByRole('button', { name: /Me avise/ }));
+    expect(within(proximo).getByRole('button', { name: /Vamos avisar/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(supabaseFalso.lembretes()).toEqual([{ partida_id: 7310, usuario_id: 'usuario-1' }]);
+    await user.click(within(proximo).getByRole('button', { name: /Vamos avisar/ }));
+    expect(supabaseFalso.lembretes()).toEqual([]);
+  });
+
+  it('fechado sem palpite e sem palpites suficientes da torcida: não teve dados', async () => {
+    relogio(FECHOU);
+    supabaseFalso.lembretes().push({ partida_id: 7310, usuario_id: 'usuario-1' });
+    supabaseFalso.adicionarPartida(marcada({ id: 7310, inicio: '2026-10-18T19:00:00Z' }));
     abrir();
-    expect(await screen.findByText('O palpite fechou 15 min antes do início e você não mandou escalação nem palpite para este jogo.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ver o jogo' })).toHaveAttribute('href', '/jogo/7301');
+    expect(await within(await screen.findByRole('region', { name: 'Escalação mais votada' })).findByText(/Não teve dados suficientes/)).toBeInTheDocument();
+    expect(await within(screen.getByRole('region', { name: 'Palpites da torcida' })).findByText(/Não teve dados suficientes/)).toBeInTheDocument();
+    // O lembrete pedido antes aparece ligado.
+    expect(await within(screen.getByRole('region', { name: 'Próximo palpite' })).findByRole('button', { name: /Vamos avisar/ })).toBeInTheDocument();
   });
 
   it('com a tela aberta, o palpite fecha na hora e o envio atrasado é recusado', async () => {
@@ -193,13 +234,26 @@ describe('escalação e palpite (W03)', () => {
     expect(supabaseFalso.palpites()).toEqual([]);
     // Na conferência seguinte a tela trava.
     await act(() => vi.advanceTimersByTimeAsync(CONFERIR_FECHAMENTO_MS));
-    expect(await screen.findByText('O palpite fechou 15 min antes do início e você não mandou escalação nem palpite para este jogo.')).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Palpite encerrado' })).toHaveTextContent('Você não enviou escalação nem palpite para este jogo');
   });
 
   it('jogo ao vivo ou encerrado: fechado', async () => {
     relogio(ANTES);
     abrir({ partida: marcada({ status: 'ao_vivo', gols_mandante: 0, gols_visitante: 0 }) });
-    expect(await screen.findByText(/O palpite fechou 15 min antes do início/)).toBeInTheDocument();
+    const aviso = await screen.findByRole('region', { name: 'Palpite encerrado' });
+    expect(aviso).toHaveTextContent('O prazo fechou 15 min antes do apito.');
+    expect(within(aviso).getByRole('link', { name: /Entrar no ao vivo/ })).toHaveAttribute('href', '/jogo/7301');
+  });
+
+  it('jogo encerrado sem palpite: leva às notas e o próximo palpite já está aberto', async () => {
+    relogio(ANTES);
+    supabaseFalso.adicionarPartida(marcada({ id: 7310, inicio: '2026-10-18T19:00:00Z' }));
+    abrir({ partida: marcada({ status: 'encerrada', inicio: '2026-10-13T22:00:00Z', gols_mandante: 1, gols_visitante: 0 }) });
+    const aviso = await screen.findByRole('region', { name: 'Palpite encerrado' });
+    expect(within(aviso).getByRole('link', { name: /Ver notas do jogo/ })).toHaveAttribute('href', '/jogo/7301/notas');
+    const proximo = screen.getByRole('region', { name: 'Próximo palpite' });
+    expect(proximo).toHaveTextContent('aberto · fecha dom 15:45');
+    expect(within(proximo).getByRole('link', { name: /Palpitar/ })).toHaveAttribute('href', '/jogo/7310/escalacao');
   });
 
   it('só abre quando o jogo anterior do clube termina', async () => {
