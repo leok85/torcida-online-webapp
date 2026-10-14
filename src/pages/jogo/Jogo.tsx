@@ -150,7 +150,7 @@ export function FaixaDoJogo({ partida, atual = 'aovivo' }: { partida: Partida | 
 
 const RESULTADO = { V: 'VITÓRIA', E: 'EMPATE', D: 'DERROTA' } as const;
 
-/** Placar no centro com o selo (ao vivo com o relógio, ou encerrado com o resultado), os gols e a linha do tempo. */
+/** Placar no centro com o selo (ao vivo com o relógio, ou encerrado com o resultado), os gols e, ao vivo, a linha do tempo. */
 export function Placar({ partida, clubeId }: { partida: Partida; clubeId: number | null }) {
   const aoVivo = partida.status === 'ao_vivo';
   const encerrada = partida.status === 'encerrada';
@@ -165,7 +165,7 @@ export function Placar({ partida, clubeId }: { partida: Partida; clubeId: number
     background: atual ? `linear-gradient(90deg, var(--red) 0 ${feito}%, transparent ${feito}%)` : feito ? 'rgba(255, 255, 255, 0.55)' : 'transparent',
   });
   return (
-    <div className={styles.bar}>
+    <div className={aoVivo ? styles.bar : `${styles.bar} ${styles.barSemTempo}`}>
       <div />
       <div className={styles.barCentro}>
         <div className={styles.competicao}>
@@ -234,14 +234,17 @@ export function Placar({ partida, clubeId }: { partida: Partida; clubeId: number
       </div>
       <div />
 
-      <div className={styles.tempo} aria-hidden="true">
-        <span>0'</span>
-        <div className={styles.tempoTrilho}>
-          <div style={metade(tempo.primeiro, tempo.emAndamento === 1)} />
-          <div style={metade(tempo.segundo, tempo.emAndamento === 2)} />
+      {/* A linha do tempo só faz sentido com a bola rolando. */}
+      {aoVivo && (
+        <div className={styles.tempo} aria-hidden="true">
+          <span>0'</span>
+          <div className={styles.tempoTrilho}>
+            <div style={metade(tempo.primeiro, tempo.emAndamento === 1)} />
+            <div style={metade(tempo.segundo, tempo.emAndamento === 2)} />
+          </div>
+          <span>90'</span>
         </div>
-        <span>90'</span>
-      </div>
+      )}
     </div>
   );
 }
