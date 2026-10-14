@@ -24,6 +24,8 @@ import {
 } from '../../data/jogo';
 import { autoresDosGols, infoDoResultado, resultadoPara, type Partida } from '../../data/partidas';
 import ui from '../../styles/ui.module.css';
+import { slotsFor } from '../../data/lineup';
+import { buscarMaisVotada, situacaoDoPalpite, type MaisVotada } from '../../data/palpite';
 import { ChatDaTorcida } from './ChatDaTorcida';
 import styles from './Jogo.module.css';
 
@@ -288,6 +290,62 @@ function Substituicoes({ time, trocas }: { time: string; trocas: Substituicao[] 
   );
 }
 
+/** A escalação mais votada pela torcida (W03), revelada quando o palpite fecha; sem palpites suficientes, avisa. */
+function MaisVotadaDoJogo({ partida }: { partida: Partida }) {
+  const [mais, setMais] = useState<MaisVotada | null | undefined>(undefined);
+  useEffect(() => {
+    let vivo = true;
+    buscarMaisVotada(partida.id).then((m) => vivo && setMais(m));
+    return () => void (vivo = false);
+  }, [partida.id]);
+
+  if (mais === undefined) return <Skeleton h={420} r={14} />;
+  if (!mais?.formacao) {
+    const aberto = situacaoDoPalpite(partida, []) !== 'fechado';
+    return (
+      <div className={styles.semVotos} role="status">
+        <Icon name="how_to_vote" size={30} color="#9BD6FF" />
+        <strong>{aberto ? 'A votação ainda está aberta' : 'Não teve dados suficientes'}</strong>
+        <span>
+          {aberto
+            ? 'A escalação mais votada aparece quando o palpite fechar, 15 min antes do jogo.'
+            : mais
+              ? 'A torcida não votou o bastante para montar a escalação mais votada deste jogo.'
+              : 'Não deu para carregar a escalação mais votada agora.'}
+        </span>
+      </div>
+    );
+  }
+  const porVaga = new Map(mais.jogadores.map((j) => [j.vaga, j]));
+  const slots = slotsFor(mais.formacao);
+  const linhas = [...new Set(slots.filter((s) => s.line !== 'gol').map((s) => s.line))].reverse().concat('gol').map((l) => slots.filter((s) => s.line === l));
+  return (
+    <>
+      <Pitch className={styles.campo}>
+        {linhas.map((linha) => (
+          <PitchRow key={linha[0].line}>
+            {linha.map((s) => {
+              const j = porVaga.get(s.id);
+              return (
+                <div key={s.id} className={styles.slot}>
+                  <div className={styles.shirt}>{j?.numero ?? ''}</div>
+                  <div className={styles.player} title={j?.nome}>
+                    {j?.nome ?? '—'}
+                  </div>
+                  {j && <span className={styles.oculto}>{`${j.votos} ${j.votos === 1 ? 'voto' : 'votos'}`}</span>}
+                </div>
+              );
+            })}
+          </PitchRow>
+        ))}
+      </Pitch>
+      <p className={styles.legendaVotos}>
+        {mais.formacao} · {mais.votantes} palpites da torcida
+      </p>
+    </>
+  );
+}
+
 function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes: Detalhes | null | undefined; clubeId: number | null }) {
   const meuLado = clubeId === partida.mandante_id ? 'mandante' : clubeId === partida.visitante_id ? 'visitante' : null;
   const [lado, setLado] = useState<'mandante' | 'visitante'>(meuLado ?? 'mandante');
@@ -329,12 +387,7 @@ function Escalacao({ partida, detalhes, clubeId }: { partida: Partida; detalhes:
       ) : linhas ? (
         <>
           {nosso && fonte === 'torcida' ? (
-            // A votação da escalação (W03) ainda não guarda votos: sem eles, avisa no lugar do campo.
-            <div className={styles.semVotos} role="status">
-              <Icon name="how_to_vote" size={30} color="#9BD6FF" />
-              <strong>Não teve dados suficientes</strong>
-              <span>A torcida não votou o bastante para montar a escalação mais votada deste jogo.</span>
-            </div>
+            <MaisVotadaDoJogo partida={partida} />
           ) : (
             <Pitch className={styles.campo}>
               {linhas.map((linha, i) => (

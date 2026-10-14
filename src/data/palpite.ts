@@ -2,9 +2,9 @@
 // tela precisa para mostrar e o mesmo cálculo da janela, para não oferecer o que o banco vai recusar.
 import { chamarFuncao } from '../assinatura/funcoes';
 import { supabase } from '../lib/supabase';
-import type { Elencos, Palpite } from './tiposDoPalpite';
+import type { Elencos, JogadorDoElenco, MaisVotada, Palpite } from './tiposDoPalpite';
 
-export type { Autor, Elencos, JogadorDoElenco, Palpite } from './tiposDoPalpite';
+export type { Autor, Elencos, JogadorDoElenco, MaisVotada, Palpite } from './tiposDoPalpite';
 export { FECHA_ANTES_MS, jogoDoPalpite, situacaoDoPalpite, type SituacaoDoPalpite } from './janelaDoPalpite';
 
 export async function buscarElencos(partida: number): Promise<Elencos | null> {
@@ -25,6 +25,7 @@ export type ErroDoPalpite =
   | 'so_membros'
   | 'outro_clube'
   | 'escalacao_invalida'
+  | 'jogador_lesionado'
   | 'autor_invalido'
   | 'falha';
 
@@ -34,7 +35,8 @@ export const MENSAGEM_DO_PALPITE: Record<ErroDoPalpite, string> = {
   so_membros: 'Escalação e palpite são para membros.',
   outro_clube: 'O palpite é da torcida dos times em campo.',
   escalacao_invalida: 'Algum jogador saiu do elenco. Recarregue a página e confira a escalação.',
-  autor_invalido: 'Confira quem marca: um dos jogadores não está no elenco.',
+  jogador_lesionado: 'Um jogador da sua escalação se lesionou. Troque ele e confirme de novo.',
+  autor_invalido: 'Confira quem marca: um dos jogadores não está no elenco ou se lesionou.',
   falha: 'Não deu para enviar agora. Tente de novo.',
 };
 
@@ -52,11 +54,22 @@ export async function enviarPalpite(partida: number, p: Palpite): Promise<{ ok: 
   return { ok: false, erro: hint && hint in MENSAGEM_DO_PALPITE ? (hint as ErroDoPalpite) : 'falha' };
 }
 
+/** Lesionado não pode ser escalado nem marcar no palpite. */
+export const lesionado = (j: Pick<JogadorDoElenco, 'disponibilidade'>) => j.disponibilidade === 'injured';
+
+/** A escalação mais votada pela torcida do meu clube; null quando não deu para buscar. */
+export async function buscarMaisVotada(partida: number): Promise<MaisVotada | null> {
+  const { data, error } = await supabase.rpc('escalacao_mais_votada', { p_partida: partida });
+  if (error) return null;
+  return ((data ?? []) as MaisVotada[])[0] ?? { votantes: 0, formacao: null, jogadores: [] };
+}
+
 const POSICAO = { G: 'goleiro', D: 'defensor', M: 'meia', F: 'atacante' } as const;
 const FORA = { injured: 'lesionado', suspended: 'suspenso', doubtful: 'dúvida' } as const;
 
-/** "defensor", "atacante · lesionado". */
-export function descricaoDoJogador(j: { posicao: keyof typeof POSICAO | null; disponibilidade: string }) {
+/** "defensor", "atacante · lesionado · volta 31/10". */
+export function descricaoDoJogador(j: { posicao: keyof typeof POSICAO | null; disponibilidade: string; volta?: string | null }) {
   const fora = FORA[j.disponibilidade as keyof typeof FORA];
-  return [j.posicao ? POSICAO[j.posicao] : null, fora].filter(Boolean).join(' · ');
+  const volta = fora && j.volta && /^\d{4}-\d{2}-\d{2}/.test(j.volta) ? `volta ${j.volta.slice(8, 10)}/${j.volta.slice(5, 7)}` : null;
+  return [j.posicao ? POSICAO[j.posicao] : null, fora, volta].filter(Boolean).join(' · ');
 }

@@ -44,11 +44,12 @@ export type Escalacao = Record<string, number>;
 export const disponivel = (j: JogadorDoElenco) => j.disponibilidade !== 'injured' && j.disponibilidade !== 'suspended';
 
 /**
- * Quem ocupa cada vaga: primeiro as escolhas do torcedor (só jogadores do elenco, sem repetir), depois quem está
+ * Quem ocupa cada vaga: primeiro as escolhas do torcedor (só jogadores do elenco, sem repetir e sem lesionado), depois quem está
  * disponível na posição natural da vaga e, por fim, qualquer disponível que caiba nela.
  */
 export function resolveLineup(slots: Slot[], escolhas: Escalacao, elenco: JogadorDoElenco[]): Escalacao {
-  const ids = new Set(elenco.map((j) => j.id));
+  // Lesionado não pode ser escalado: se a escolha salva ficou lesionada, a vaga é preenchida de novo.
+  const ids = new Set(elenco.filter((j) => j.disponibilidade !== 'injured').map((j) => j.id));
   const usados = new Set<number>();
   const lineup: Escalacao = {};
   for (const s of slots) {

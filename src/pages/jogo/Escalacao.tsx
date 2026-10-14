@@ -12,6 +12,7 @@ import {
   buscarMeuPalpite,
   descricaoDoJogador,
   enviarPalpite,
+  lesionado,
   situacaoDoPalpite,
   type Autor,
   type Elencos,
@@ -85,8 +86,9 @@ function AutoresDoTime({
               >
                 <option value="">{i + 1}º gol · escolher jogador</option>
                 {elenco.map((j) => (
-                  <option key={j.id} value={j.id}>
+                  <option key={j.id} value={j.id} disabled={lesionado(j)}>
                     {i + 1}º gol · {j.nome}
+                    {lesionado(j) ? ' (lesionado)' : ''}
                   </option>
                 ))}
               </select>
@@ -130,7 +132,14 @@ function Formulario({
   const [autoresMandante, setAutoresMandante] = useState<(number | null)[]>(() => autoresDe(salvo, true));
   const [autoresVisitante, setAutoresVisitante] = useState<(number | null)[]>(() => autoresDe(salvo, false));
   const [quemMarcaAberto, setQuemMarcaAberto] = useState(() => (salvo?.autores.length ?? 0) > 0);
-  const [confirmado, setConfirmado] = useState(!!salvo);
+  // Quem se lesionou depois do palpite sai da escalação: a tela avisa e pede para confirmar de novo.
+  const [saiuLesionado] = useState(() =>
+    Object.values(salvo?.escalacao ?? {})
+      .map((id) => meuElenco.find((j) => j.id === id))
+      .filter((j): j is JogadorDoElenco => !!j && lesionado(j))
+      .map((j) => j.nome),
+  );
+  const [confirmado, setConfirmado] = useState(!!salvo && !saiuLesionado.length);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<ErroDoPalpite | null>(null);
 
@@ -189,172 +198,187 @@ function Formulario({
   const semGols = golsMandante === 0 && golsVisitante === 0;
 
   return (
-    <div className={styles.grid}>
-      <section className={ui.card} aria-label="Escalação">
-        {!travado && (
-          <div className={styles.formations} role="group" aria-label="Formação">
-            {Object.keys(FORMATIONS).map((f) => (
-              <button key={f} type="button" aria-pressed={f === formacao} className={f === formacao ? `${styles.formation} ${styles.active}` : styles.formation} onClick={() => escolherFormacao(f)}>
-                {f}
-              </button>
-            ))}
-          </div>
-        )}
-        {travado && <div className={styles.formacaoTravada}>Sua escalação · {formacao}</div>}
-        <Pitch size="lg">
-          {linhas.map((linha) => (
-            <PitchRow key={linha[0].line}>
-              {linha.map((slot) => {
-                const j = porId.get(lineup[slot.id]);
-                const conteudo = (
-                  <>
-                    <div className={styles.shirt}>{j?.numero ?? '?'}</div>
-                    <div className={styles.name}>{j?.nome ?? 'vazio'}</div>
-                    <div className={styles.pos}>{slot.pos}</div>
-                  </>
-                );
-                return travado ? (
-                  <div key={slot.id} className={styles.slot}>
-                    {conteudo}
-                  </div>
-                ) : (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    aria-label={`${slot.pos}: ${j?.nome ?? 'vazio'}`}
-                    aria-pressed={slot.id === vaga}
-                    className={slot.id === vaga ? `${styles.slot} ${styles.active}` : styles.slot}
-                    onClick={() => setVaga(slot.id)}
-                  >
-                    {conteudo}
-                  </button>
-                );
-              })}
-            </PitchRow>
-          ))}
-        </Pitch>
-      </section>
-
-      <div className={styles.stack}>
-        {!travado && (
-          <section className={ui.card} aria-labelledby="quem-joga">
-            <div className={styles.pickHead}>
-              <h3 id="quem-joga" className={ui.title}>
-                Quem joga de {selecionada.pos}
-              </h3>
-              <div className={ui.goldPill}>
-                <Icon name="touch_app" size={15} />
-                clique no campo
-              </div>
-            </div>
-            <p className={styles.hint}>Clique numa posição no campo e escolha o jogador. Se ele já estiver escalado, os dois trocam de lugar.</p>
-            <div className={styles.options} role="group" aria-label="Jogadores para a posição">
-              {opcoes.map((j) => {
-                const aqui = lineup[selecionada.id] === j.id;
-                const estado = aqui ? 'escalado aqui' : emCampo.has(j.id) ? 'já está em campo' : 'no banco';
-                return (
-                  <button
-                    key={j.id}
-                    type="button"
-                    aria-label={`${j.nome}, ${descricaoDoJogador(j)} · ${estado}`}
-                    className={aqui ? `${styles.option} ${styles.here}` : styles.option}
-                    onClick={() => escolherJogador(j.id)}
-                  >
-                    <div className={styles.num}>{j.numero ?? '–'}</div>
-                    <div>
-                      <div className={styles.optionName}>{j.nome}</div>
-                      <div className={styles.optionMeta}>
-                        {descricaoDoJogador(j)} · {estado}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        <section className={ui.card} aria-labelledby="titulo-palpite">
-          <h3 id="titulo-palpite" className={styles.guessTitle}>
-            {travado ? 'Seu palpite' : 'Palpite do resultado'}
-          </h3>
-          <div className={styles.guess}>
-            <div className={styles.side}>
-              <Crest width={42} height={47} tone="lightHome" clubeId={partida.mandante_id} />
-              <Stepper valor={golsMandante} onChange={mudou(setGolsMandante)} time={partida.mandante_nome} travado={travado} />
-            </div>
-            <div className={styles.times}>×</div>
-            <div className={styles.side}>
-              <Crest width={42} height={47} tone="light" clubeId={partida.visitante_id} />
-              <Stepper valor={golsVisitante} onChange={mudou(setGolsVisitante)} time={partida.visitante_nome} travado={travado} />
-            </div>
-          </div>
-          <div className={styles.rewardFirst}>
-            <span>Placar exato</span>
-            <strong>+240 XP</strong>
-          </div>
-          <div className={styles.reward}>
-            <span>Só o vencedor</span>
-            <strong>+60 XP</strong>
-          </div>
-
-          <div className={styles.quemMarca}>
-            <button type="button" className={styles.quemMarcaTopo} aria-expanded={quemMarcaAberto} onClick={() => setQuemMarcaAberto((a) => !a)}>
-              <span className={styles.quemMarcaTexto}>
-                <span className={styles.quemMarcaTitulo}>
-                  Quem marca? <span className={styles.opcional}>(opcional)</span>
-                </span>
-                <span className={styles.quemMarcaSub}>+40 XP por autor de gol certo</span>
-              </span>
-              <Icon name={quemMarcaAberto ? 'expand_less' : 'expand_more'} size={22} color="var(--primary)" />
-            </button>
-            {quemMarcaAberto && (
-              <div className={styles.autores}>
-                {golsMandante > 0 && (
-                  <AutoresDoTime
-                    time={partida.mandante_nome}
-                    gols={golsMandante}
-                    elenco={elencos.mandante}
-                    escolhas={autoresMandante}
-                    onChange={(i, jogador) => mudarAutor('mandante')({ i, jogador })}
-                    travado={travado}
-                  />
-                )}
-                {golsVisitante > 0 && (
-                  <AutoresDoTime
-                    time={partida.visitante_nome}
-                    gols={golsVisitante}
-                    elenco={elencos.visitante}
-                    escolhas={autoresVisitante}
-                    onChange={(i, jogador) => mudarAutor('visitante')({ i, jogador })}
-                    travado={travado}
-                  />
-                )}
-                {semGols && <p className={styles.semAutores}>Com placar 0 x 0 não há autores para palpitar.</p>}
-              </div>
-            )}
-          </div>
-
-          {erro && (
-            <p className={styles.erro} role="alert">
-              {MENSAGEM_DO_PALPITE[erro]}
-            </p>
-          )}
+    <>
+      {!travado && saiuLesionado.length > 0 && (
+        <div className={styles.avisoLesao} role="status">
+          <Icon name="personal_injury" size={18} />
+          {saiuLesionado.join(', ')} se {saiuLesionado.length > 1 ? 'lesionaram e saíram' : 'lesionou e saiu'} da sua escalação. Confira e confirme de novo.
+        </div>
+      )}
+      <div className={styles.grid}>
+        <section className={ui.card} aria-label="Escalação">
           {!travado && (
-            <button
-              type="button"
-              className={confirmado ? `${styles.confirm} ${styles.confirmed}` : styles.confirm}
-              disabled={enviando || confirmado || !completa}
-              onClick={confirmar}
-            >
-              <Icon name="check" size={20} />
-              {confirmado ? 'Escalação e palpite confirmados' : enviando ? 'Enviando…' : 'Confirmar escalação e palpite'}
-            </button>
+            <div className={styles.formations} role="group" aria-label="Formação">
+              {Object.keys(FORMATIONS).map((f) => (
+                <button key={f} type="button" aria-pressed={f === formacao} className={f === formacao ? `${styles.formation} ${styles.active}` : styles.formation} onClick={() => escolherFormacao(f)}>
+                  {f}
+                </button>
+              ))}
+            </div>
           )}
-          {!travado && !completa && <p className={styles.semAutores}>Faltam jogadores no elenco para completar o time.</p>}
+          {travado && <div className={styles.formacaoTravada}>Sua escalação · {formacao}</div>}
+          <Pitch size="lg">
+            {linhas.map((linha) => (
+              <PitchRow key={linha[0].line}>
+                {linha.map((slot) => {
+                  const j = porId.get(lineup[slot.id]);
+                  const conteudo = (
+                    <>
+                      <div className={styles.shirt}>{j?.numero ?? '?'}</div>
+                      <div className={styles.name}>{j?.nome ?? 'vazio'}</div>
+                      <div className={styles.pos}>{slot.pos}</div>
+                    </>
+                  );
+                  return travado ? (
+                    <div key={slot.id} className={styles.slot}>
+                      {conteudo}
+                    </div>
+                  ) : (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      aria-label={`${slot.pos}: ${j?.nome ?? 'vazio'}`}
+                      aria-pressed={slot.id === vaga}
+                      className={slot.id === vaga ? `${styles.slot} ${styles.active}` : styles.slot}
+                      onClick={() => setVaga(slot.id)}
+                    >
+                      {conteudo}
+                    </button>
+                  );
+                })}
+              </PitchRow>
+            ))}
+          </Pitch>
         </section>
+
+        <div className={styles.stack}>
+          {!travado && (
+            <section className={ui.card} aria-labelledby="quem-joga">
+              <div className={styles.pickHead}>
+                <h3 id="quem-joga" className={ui.title}>
+                  Quem joga de {selecionada.pos}
+                </h3>
+                <div className={ui.goldPill}>
+                  <Icon name="touch_app" size={15} />
+                  clique no campo
+                </div>
+              </div>
+              <p className={styles.hint}>Clique numa posição no campo e escolha o jogador. Se ele já estiver escalado, os dois trocam de lugar.</p>
+              <div className={styles.options} role="group" aria-label="Jogadores para a posição">
+                {opcoes.map((j) => {
+                  const aqui = lineup[selecionada.id] === j.id;
+                  const fora = lesionado(j);
+                  const estado = fora ? 'não pode ser escalado' : aqui ? 'escalado aqui' : emCampo.has(j.id) ? 'já está em campo' : 'no banco';
+                  return (
+                    <button
+                      key={j.id}
+                      type="button"
+                      disabled={fora}
+                      aria-label={`${j.nome}, ${descricaoDoJogador(j)} · ${estado}`}
+                      className={aqui ? `${styles.option} ${styles.here}` : fora ? `${styles.option} ${styles.lesionado}` : styles.option}
+                      onClick={() => escolherJogador(j.id)}
+                    >
+                      <div className={styles.num}>{j.numero ?? '–'}</div>
+                      <div className={styles.optionTexto}>
+                        <div className={styles.optionName}>{j.nome}</div>
+                        <div className={styles.optionMeta}>
+                          {descricaoDoJogador(j)} · {estado}
+                        </div>
+                      </div>
+                      {fora && (
+                        <span className={styles.icLesao} title="Lesionado">
+                          <Icon name="personal_injury" size={18} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          <section className={ui.card} aria-labelledby="titulo-palpite">
+            <h3 id="titulo-palpite" className={styles.guessTitle}>
+              {travado ? 'Seu palpite' : 'Palpite do resultado'}
+            </h3>
+            <div className={styles.guess}>
+              <div className={styles.side}>
+                <Crest width={42} height={47} tone="lightHome" clubeId={partida.mandante_id} />
+                <Stepper valor={golsMandante} onChange={mudou(setGolsMandante)} time={partida.mandante_nome} travado={travado} />
+              </div>
+              <div className={styles.times}>×</div>
+              <div className={styles.side}>
+                <Crest width={42} height={47} tone="light" clubeId={partida.visitante_id} />
+                <Stepper valor={golsVisitante} onChange={mudou(setGolsVisitante)} time={partida.visitante_nome} travado={travado} />
+              </div>
+            </div>
+            <div className={styles.rewardFirst}>
+              <span>Placar exato</span>
+              <strong>+240 XP</strong>
+            </div>
+            <div className={styles.reward}>
+              <span>Só o vencedor</span>
+              <strong>+60 XP</strong>
+            </div>
+
+            <div className={styles.quemMarca}>
+              <button type="button" className={styles.quemMarcaTopo} aria-expanded={quemMarcaAberto} onClick={() => setQuemMarcaAberto((a) => !a)}>
+                <span className={styles.quemMarcaTexto}>
+                  <span className={styles.quemMarcaTitulo}>
+                    Quem marca? <span className={styles.opcional}>(opcional)</span>
+                  </span>
+                  <span className={styles.quemMarcaSub}>+40 XP por autor de gol certo</span>
+                </span>
+                <Icon name={quemMarcaAberto ? 'expand_less' : 'expand_more'} size={22} color="var(--primary)" />
+              </button>
+              {quemMarcaAberto && (
+                <div className={styles.autores}>
+                  {golsMandante > 0 && (
+                    <AutoresDoTime
+                      time={partida.mandante_nome}
+                      gols={golsMandante}
+                      elenco={elencos.mandante}
+                      escolhas={autoresMandante}
+                      onChange={(i, jogador) => mudarAutor('mandante')({ i, jogador })}
+                      travado={travado}
+                    />
+                  )}
+                  {golsVisitante > 0 && (
+                    <AutoresDoTime
+                      time={partida.visitante_nome}
+                      gols={golsVisitante}
+                      elenco={elencos.visitante}
+                      escolhas={autoresVisitante}
+                      onChange={(i, jogador) => mudarAutor('visitante')({ i, jogador })}
+                      travado={travado}
+                    />
+                  )}
+                  {semGols && <p className={styles.semAutores}>Com placar 0 x 0 não há autores para palpitar.</p>}
+                </div>
+              )}
+            </div>
+
+            {erro && (
+              <p className={styles.erro} role="alert">
+                {MENSAGEM_DO_PALPITE[erro]}
+              </p>
+            )}
+            {!travado && (
+              <button
+                type="button"
+                className={confirmado ? `${styles.confirm} ${styles.confirmed}` : styles.confirm}
+                disabled={enviando || confirmado || !completa}
+                onClick={confirmar}
+              >
+                <Icon name="check" size={20} />
+                {confirmado ? 'Escalação e palpite confirmados' : enviando ? 'Enviando…' : 'Confirmar escalação e palpite'}
+              </button>
+            )}
+            {!travado && !completa && <p className={styles.semAutores}>Faltam jogadores no elenco para completar o time.</p>}
+          </section>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

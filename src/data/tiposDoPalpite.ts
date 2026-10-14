@@ -14,6 +14,13 @@ export type JogadorDoElenco = {
 
 export type Elencos = { mandante: JogadorDoElenco[]; visitante: JogadorDoElenco[] };
 
+/** Escalação mais votada pela torcida (RPC escalacao_mais_votada): formacao null quando não teve dados suficientes. */
+export type MaisVotada = {
+  votantes: number;
+  formacao: string | null;
+  jogadores: { vaga: string; id: number; nome: string; numero: number | null; votos: number }[];
+};
+
 export type Autor = { mandante: boolean; jogador: number };
 
 export type Palpite = {
