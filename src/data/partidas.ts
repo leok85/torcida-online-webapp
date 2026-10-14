@@ -60,6 +60,12 @@ const MES = new Intl.DateTimeFormat('pt-BR', { month: 'short', timeZone: FUSO })
 
 const semPonto = (texto: string) => texto.replace('.', '');
 
+/** "21:15" (Brasília). */
+export const horaDe = (data: Date) => HORA.format(data);
+
+/** "dom 15:45" (Brasília). */
+export const diaEHoraDe = (data: Date) => `${semPonto(DIA_DA_SEMANA.format(data))} ${HORA.format(data)}`;
+
 /** Dia e mês para a coluna de data das listas: { dia: '14', mes: 'OUT' }. */
 export const diaEMes = (inicio: string) => ({ dia: DIA.format(new Date(inicio)), mes: semPonto(MES.format(new Date(inicio))).toUpperCase() });
 

@@ -21,6 +21,9 @@ export type MaisVotada = {
   jogadores: { vaga: string; id: number; nome: string; numero: number | null; votos: number }[];
 };
 
+/** Um placar palpitado pela torcida (RPC palpites_da_torcida), com quantos votaram nele e o total de palpites. */
+export type PlacarDaTorcida = { gols_mandante: number; gols_visitante: number; votos: number; total: number };
+
 export type Autor = { mandante: boolean; jogador: number };
 
 export type Palpite = {

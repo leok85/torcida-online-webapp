@@ -24,7 +24,7 @@ import {
 } from '../../data/jogo';
 import { autoresDosGols, infoDoResultado, resultadoPara, type Partida } from '../../data/partidas';
 import ui from '../../styles/ui.module.css';
-import { slotsFor } from '../../data/lineup';
+import { linhasDaFormacao, slotsFor } from '../../data/lineup';
 import { buscarMaisVotada, situacaoDoPalpite, type MaisVotada } from '../../data/palpite';
 import { ChatDaTorcida } from './ChatDaTorcida';
 import styles from './Jogo.module.css';
@@ -317,8 +317,7 @@ function MaisVotadaDoJogo({ partida }: { partida: Partida }) {
     );
   }
   const porVaga = new Map(mais.jogadores.map((j) => [j.vaga, j]));
-  const slots = slotsFor(mais.formacao);
-  const linhas = [...new Set(slots.filter((s) => s.line !== 'gol').map((s) => s.line))].reverse().concat('gol').map((l) => slots.filter((s) => s.line === l));
+  const linhas = linhasDaFormacao(slotsFor(mais.formacao));
   return (
     <>
       <Pitch className={styles.campo}>

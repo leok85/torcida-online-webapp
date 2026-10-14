@@ -1,7 +1,15 @@
 // Supabase falso para o Playwright: intercepta /auth/v1 e /rest/v1 no navegador e guarda tudo em memória.
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
-import { elencosDaPartida, elencosDeTeste, enviarPalpiteDeTeste, maisVotadaDeTeste, meuPalpiteDeTeste, type PalpiteDeTeste } from '../src/test/palpitesDeTeste';
+import {
+  elencosDaPartida,
+  elencosDeTeste,
+  enviarPalpiteDeTeste,
+  maisVotadaDeTeste,
+  meuPalpiteDeTeste,
+  placaresDaTorcidaDeTeste,
+  type PalpiteDeTeste,
+} from '../src/test/palpitesDeTeste';
 import type { BrowserContext, Route } from '@playwright/test';
 import type { ClassificacaoRow, CompeticaoRow, FeedbackRow, Partida } from '../src/lib/database.types';
 import { inicioDaSemana } from '../src/data/semana';
@@ -97,6 +105,8 @@ export class BackendFalso {
   readonly notasJogadores: NotaDeTeste[] = [];
   /** Escalações e palpites (tabela palpites), de todos os torcedores. */
   readonly palpites: PalpiteDeTeste[] = [];
+  /** Pedidos de "Me avise" (tabela lembretes_palpite). */
+  readonly lembretes: { partida_id: number; usuario_id: string }[] = [];
   /** Elencos que a função elenco-da-partida devolve (padrão: Palmeiras e Corinthians). */
   readonly elencos = elencosDeTeste();
   readonly competicoes: CompeticaoRow[] = [];
@@ -531,13 +541,16 @@ export class BackendFalso {
       return json(200, Math.max(0, LIMITE_DE_CONVITES - convitesHoje(this.convitesEmail, usuario.id)));
     }
 
-    if (caminho === '/rpc/enviar_palpite' || caminho === '/rpc/meu_palpite' || caminho === '/rpc/escalacao_mais_votada') {
+    if (caminho === '/rpc/enviar_palpite' || caminho === '/rpc/meu_palpite' || caminho === '/rpc/escalacao_mais_votada' || caminho === '/rpc/palpites_da_torcida') {
       if (!usuario) return json(401, { code: '42501', message: 'permission denied' });
       const pedido = req.postDataJSON();
       if (caminho === '/rpc/meu_palpite') return json(200, meuPalpiteDeTeste(this.palpites, usuario.id, pedido.p_partida));
       const assinante = this.assinaturas.some(
         (a) => a.usuario_id === usuario.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
       );
+      if (caminho === '/rpc/palpites_da_torcida') {
+        return json(200, placaresDaTorcidaDeTeste(this.palpites, this.perfis.get(usuario.id), assinante, this.partidas, pedido.p_partida));
+      }
       if (caminho === '/rpc/escalacao_mais_votada') {
         return json(200, maisVotadaDeTeste(this.palpites, this.perfis.get(usuario.id), assinante, this.partidas, this.elencos, pedido.p_partida));
       }
@@ -563,6 +576,23 @@ export class BackendFalso {
         (a) => a.usuario_id === usuario?.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
       );
       return json(200, valida);
+    }
+
+    if (caminho === '/lembretes_palpite') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for table lembretes_palpite' });
+      const meus = (partida: number) => this.lembretes.filter((l) => l.usuario_id === usuario.id && l.partida_id === partida);
+      if (req.method() === 'POST') {
+        const { partida_id } = req.postDataJSON() as { partida_id: number };
+        if (meus(partida_id).length) return json(409, { code: '23505', message: 'duplicate key value', details: null, hint: null });
+        this.lembretes.push({ partida_id, usuario_id: usuario.id });
+        return rota.fulfill({ status: 201, body: '' });
+      }
+      const partida = Number(url.searchParams.get('partida_id')?.replace(/^eq\./, ''));
+      if (req.method() === 'DELETE') {
+        for (const l of meus(partida)) this.lembretes.splice(this.lembretes.indexOf(l), 1);
+        return rota.fulfill({ status: 204, body: '' });
+      }
+      return json(200, meus(partida).map((l) => ({ partida_id: l.partida_id })));
     }
 
     if (caminho === '/mensagens_chat') {

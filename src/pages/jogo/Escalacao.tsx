@@ -5,23 +5,30 @@ import { Crest } from '../../components/ui/Crest';
 import { Icon } from '../../components/ui/Icon';
 import { Pitch, PitchRow } from '../../components/ui/Pitch';
 import { Skeleton, TextoOculto } from '../../components/ui/Skeleton';
-import { ELIGIBLE, FORMACAO_PADRAO, FORMATIONS, GOALKEEPER_SLOT, escalar, resolveLineup, slotsFor, type Escalacao } from '../../data/lineup';
+import { ELIGIBLE, FORMACAO_PADRAO, FORMATIONS, GOALKEEPER_SLOT, escalar, linhasDaFormacao, resolveLineup, slotsFor, type Escalacao } from '../../data/lineup';
 import {
   MENSAGEM_DO_PALPITE,
+  FECHA_ANTES_MS,
   buscarElencos,
+  buscarMaisVotada,
   buscarMeuPalpite,
+  buscarPalpitesDaTorcida,
   descricaoDoJogador,
   enviarPalpite,
+  lembrarPalpite,
   lesionado,
+  temLembrete,
   situacaoDoPalpite,
   type Autor,
   type Elencos,
   type ErroDoPalpite,
   type JogadorDoElenco,
+  type MaisVotada,
   type Palpite,
+  type PlacarDaTorcida,
   type SituacaoDoPalpite,
 } from '../../data/palpite';
-import type { Partida } from '../../data/partidas';
+import { diaEHoraDe, horaDe, type Partida } from '../../data/partidas';
 import { useJogosDoClube } from '../../partidas/JogosDoClube';
 import ui from '../../styles/ui.module.css';
 import { FaixaDoJogo, useJogo } from './Jogo';
@@ -147,11 +154,7 @@ function Formulario({
   const lineup = useMemo(() => resolveLineup(slots, escolhas, meuElenco), [slots, escolhas, meuElenco]);
   const porId = useMemo(() => new Map(meuElenco.map((j) => [j.id, j])), [meuElenco]);
 
-  // Linhas de cima (ataque) para baixo (goleiro).
-  const linhas = useMemo(() => {
-    const ls = Array.from(new Set(slots.filter((s) => s.line !== 'gol').map((s) => s.line))).reverse();
-    return [...ls, 'gol'].map((l) => slots.filter((s) => s.line === l));
-  }, [slots]);
+  const linhas = useMemo(() => linhasDaFormacao(slots), [slots]);
 
   const selecionada = slots.find((s) => s.id === vaga) ?? slots[0];
   const emCampo = new Set(Object.values(lineup));
@@ -393,11 +396,181 @@ function Aviso({ icone, texto, children }: { icone: string; texto: string; child
   );
 }
 
-const SUBTITULO: Record<SituacaoDoPalpite, string> = {
+const SUBTITULO: Record<Exclude<SituacaoDoPalpite, 'fechado'>, string> = {
   aberto: 'fecha 15 min antes',
   nao_abriu: 'abre quando o jogo anterior terminar',
-  fechado: 'palpite fechado',
 };
+
+/** Quando o palpite do jogo fecha: 15 min antes do início. */
+const fechamentoDe = (p: Partida) => new Date(new Date(p.inicio).getTime() - FECHA_ANTES_MS);
+
+/** Campo azul da escalação mais votada (W03 · palpite encerrado). */
+function CampoMaisVotado({ mais }: { mais: MaisVotada & { formacao: string } }) {
+  const porVaga = new Map(mais.jogadores.map((j) => [j.vaga, j]));
+  return (
+    <div className={styles.campoAzul}>
+      {linhasDaFormacao(slotsFor(mais.formacao)).map((linha) => (
+        <div key={linha[0].line} className={styles.linhaAzul}>
+          {linha.map((s) => {
+            const j = porVaga.get(s.id);
+            return (
+              <div key={s.id} className={styles.slotAzul}>
+                <div className={styles.camisaAzul}>{j?.numero ?? ''}</div>
+                <div className={styles.nomeAzul}>{j?.nome ?? '—'}</div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** W03 · palpite encerrado sem envio: o prazo passou; a escalação e os placares da torcida, e o próximo palpite. */
+function PalpiteEncerrado({ partida, jogos }: { partida: Partida; jogos: Partida[] }) {
+  const [mais, setMais] = useState<MaisVotada | null | undefined>(undefined);
+  const [placares, setPlacares] = useState<PlacarDaTorcida[] | null | undefined>(undefined);
+  const proximo = jogos.find((p) => p.status === 'agendada' && p.id !== partida.id && p.inicio > partida.inicio) ?? null;
+  const [lembrete, setLembrete] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    let vivo = true;
+    buscarMaisVotada(partida.id).then((m) => vivo && setMais(m));
+    buscarPalpitesDaTorcida(partida.id).then((p) => vivo && setPlacares(p));
+    return () => void (vivo = false);
+  }, [partida.id]);
+
+  const proximoId = proximo?.id;
+  useEffect(() => {
+    if (!proximoId) return;
+    let vivo = true;
+    temLembrete(proximoId).then((t) => vivo && setLembrete(t));
+    return () => void (vivo = false);
+  }, [proximoId]);
+
+  async function alternarLembrete() {
+    if (!proximo || lembrete === undefined) return;
+    const novo = !lembrete;
+    setLembrete(novo);
+    if (!(await lembrarPalpite(proximo.id, novo))) setLembrete(!novo);
+  }
+
+  const hora = horaDe(new Date(partida.inicio));
+  const agendada = partida.status === 'agendada';
+  const semDados = (texto: string) => <p className={styles.semDados}>{texto}</p>;
+
+  return (
+    <div className={styles.encerradoPagina}>
+      <section className={styles.semEnvio} aria-label="Palpite encerrado">
+        <div className={styles.semEnvioIcone}>
+          <Icon name="timer_off" size={24} color="var(--muted)" />
+        </div>
+        <div className={styles.semEnvioTexto}>
+          <strong>Você não enviou escalação nem palpite para este jogo</strong>
+          <span>
+            {agendada
+              ? `O prazo fecha 15 min antes do apito. O ao vivo e o chat abrem às ${hora}, e as notas no fim do jogo.`
+              : 'O prazo fechou 15 min antes do apito.'}
+          </span>
+        </div>
+        {agendada ? (
+          <span className={styles.semEnvioAcao}>
+            <Icon name="schedule" size={19} />
+            Ao vivo abre às {hora}
+          </span>
+        ) : (
+          <Link to={partida.status === 'encerrada' ? `/jogo/${partida.id}/notas` : `/jogo/${partida.id}`} className={styles.semEnvioAcao}>
+            <Icon name={partida.status === 'encerrada' ? 'star_rate' : 'forum'} size={19} />
+            {partida.status === 'encerrada' ? 'Ver notas do jogo' : 'Entrar no ao vivo'}
+          </Link>
+        )}
+      </section>
+
+      <div className={styles.grid}>
+        <section className={styles.cardEncerrado} aria-labelledby="titulo-mais-votada">
+          <div className={styles.cabecalhoEncerrado}>
+            <h3 id="titulo-mais-votada" className={styles.tituloEncerrado}>
+              Escalação mais votada
+            </h3>
+            {mais?.formacao && (
+              <span className={styles.subEncerrado}>
+                {mais.formacao} · {mais.votantes.toLocaleString('pt-BR')} torcedores
+              </span>
+            )}
+          </div>
+          {mais === undefined ? (
+            <Skeleton h={380} r={14} />
+          ) : mais?.formacao ? (
+            <CampoMaisVotado mais={{ ...mais, formacao: mais.formacao }} />
+          ) : (
+            semDados(mais ? 'Não teve dados suficientes: a torcida não votou o bastante para montar a escalação.' : 'Não deu para carregar agora.')
+          )}
+        </section>
+
+        <div className={styles.stack}>
+          <section className={styles.cardEncerrado} aria-labelledby="titulo-placares">
+            <h3 id="titulo-placares" className={`${styles.tituloEncerrado} ${styles.tituloPlacares}`}>
+              Palpites da torcida
+            </h3>
+            {placares === undefined ? (
+              <Skeleton h={140} r={10} />
+            ) : placares?.length ? (
+              <ul className={styles.placares}>
+                {placares.map((p) => {
+                  const pct = `${Math.round((p.votos / p.total) * 100)}%`;
+                  return (
+                    <li key={`${p.gols_mandante}x${p.gols_visitante}`} className={styles.placar}>
+                      <span className={styles.placarGols}>
+                        {p.gols_mandante} x {p.gols_visitante}
+                      </span>
+                      <span className={styles.barra}>
+                        <span style={{ width: pct }} />
+                      </span>
+                      <span className={styles.pct}>{pct}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              semDados(placares ? 'Não teve dados suficientes: poucos palpites da torcida.' : 'Não deu para carregar agora.')
+            )}
+          </section>
+
+          {proximo && (
+            <section className={styles.proximo} aria-label="Próximo palpite">
+              <Icon name="notifications_active" size={24} color="var(--primary)" />
+              <div className={styles.proximoTexto}>
+                <strong>
+                  Próximo palpite: {proximo.mandante_nome} × {proximo.visitante_nome}
+                </strong>
+                <span>
+                  {partida.status === 'encerrada' ? 'aberto' : 'abre no apito final'} · fecha {diaEHoraDe(fechamentoDe(proximo))}
+                </span>
+              </div>
+              {partida.status === 'encerrada' ? (
+                <Link to={`/jogo/${proximo.id}/escalacao`} className={styles.lembrete}>
+                  <Icon name="how_to_reg" size={17} />
+                  Palpitar
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className={lembrete ? `${styles.lembrete} ${styles.lembreteLigado}` : styles.lembrete}
+                  aria-pressed={!!lembrete}
+                  disabled={lembrete === undefined}
+                  onClick={alternarLembrete}
+                >
+                  <Icon name={lembrete ? 'check' : 'notifications'} size={17} />
+                  {lembrete ? 'Vamos avisar' : 'Me avise'}
+                </button>
+              )}
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** W03 · escalação ideal e palpite de um jogo: só antes do jogo; depois fica para consulta. */
 export function EscalacaoEPalpite() {
@@ -466,10 +639,18 @@ export function EscalacaoEPalpite() {
         <div className={ui.pageHead}>
           <h2 className={ui.pageTitle}>Escalação ideal e palpite</h2>
           <span className={ui.pageSub}>
-            {partida.mandante_nome} × {partida.visitante_nome} · {SUBTITULO[situacao]}
+            {partida.mandante_nome} × {partida.visitante_nome} ·{' '}
+            {situacao === 'fechado' ? `fechou às ${horaDe(fechamentoDe(partida))}` : SUBTITULO[situacao]}
           </span>
           <div className={ui.spacer} />
-          <div className={ui.xpPill}>+80 XP</div>
+          {situacao === 'fechado' ? (
+            <div className={styles.encerrado}>
+              <Icon name="lock" size={15} />
+              Encerrado
+            </div>
+          ) : (
+            <div className={ui.xpPill}>+80 XP</div>
+          )}
         </div>
 
         {!doJogo ? (
@@ -488,11 +669,7 @@ export function EscalacaoEPalpite() {
             </Link>
           </Aviso>
         ) : situacao === 'fechado' && !salvo ? (
-          <Aviso icone="lock" texto="O palpite fechou 15 min antes do início e você não mandou escalação nem palpite para este jogo.">
-            <Link to={`/jogo/${partida.id}`} className={ui.btnBlue}>
-              Ver o jogo
-            </Link>
-          </Aviso>
+          <PalpiteEncerrado partida={partida} jogos={jogos ?? []} />
         ) : (
           <>
             {situacao === 'fechado' && (

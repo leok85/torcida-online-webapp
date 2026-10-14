@@ -1,7 +1,7 @@
 // Regras de escalação e palpite (W03) para os dois falsos do Supabase (Vitest e Playwright): as mesmas de
 // enviar_palpite() e meu_palpite() da migration e o elenco que a função elenco-da-partida devolveria.
 import { situacaoDoPalpite } from '../data/janelaDoPalpite';
-import type { Autor, Elencos, JogadorDoElenco, MaisVotada, Palpite } from '../data/tiposDoPalpite';
+import type { Autor, Elencos, JogadorDoElenco, MaisVotada, Palpite, PlacarDaTorcida } from '../data/tiposDoPalpite';
 import type { Partida } from '../lib/database.types';
 
 const j = (id: number, nome: string, numero: number, posicao: JogadorDoElenco['posicao'], disponibilidade = 'available', volta: string | null = null): JogadorDoElenco => ({
@@ -156,4 +156,30 @@ export function maisVotadaDeTeste(
       return { vaga, id: v.id, votos: v.votos, nome: j?.nome ?? '', numero: j?.numero ?? null };
     });
   return [{ votantes: daTorcida.length, formacao, jogadores }];
+}
+
+/** palpites_da_torcida(): os 4 placares mais palpitados pela minha torcida, nas mesmas condições da mais votada. */
+export function placaresDaTorcidaDeTeste(
+  palpites: PalpiteDeTeste[],
+  eu: AutorDoPalpite,
+  assinante: boolean,
+  partidas: Partida[],
+  partidaId: number,
+  agora = new Date(),
+): PlacarDaTorcida[] {
+  const partida = partidas.find((p) => p.id === partidaId);
+  if (!eu?.time_id || !assinante || !partida) return [];
+  const doClube = partidas.filter((p) => [p.mandante_id, p.visitante_id].includes(eu.time_id!));
+  if (situacaoDoPalpite(partida, doClube, agora) !== 'fechado') return [];
+  const daTorcida = palpites.filter((p) => p.partida_id === partidaId && p.clube_id === eu.time_id);
+  if (daTorcida.length < 3) return [];
+  const contagem = new Map<string, PlacarDaTorcida>();
+  for (const p of daTorcida) {
+    const k = `${p.gols_mandante}x${p.gols_visitante}`;
+    const atual = contagem.get(k) ?? { gols_mandante: p.gols_mandante, gols_visitante: p.gols_visitante, votos: 0, total: daTorcida.length };
+    contagem.set(k, { ...atual, votos: atual.votos + 1 });
+  }
+  return [...contagem.values()]
+    .sort((a, b) => b.votos - a.votos || b.gols_mandante - a.gols_mandante || a.gols_visitante - b.gols_visitante)
+    .slice(0, 4);
 }

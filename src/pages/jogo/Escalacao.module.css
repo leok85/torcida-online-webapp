@@ -468,3 +468,272 @@
   background: var(--red-soft);
   color: var(--red-dark);
 }
+
+/* palpite encerrado sem envio */
+.encerrado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.encerradoPagina {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.semEnvio {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.semEnvioIcone {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 999px;
+  background: #f7f7f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.semEnvioTexto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.semEnvioTexto strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.semEnvioTexto span {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.semEnvioAcao {
+  flex: none;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 11px;
+  background: var(--soft);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+a.semEnvioAcao:hover {
+  text-decoration: none;
+  background: var(--line);
+}
+
+.cardEncerrado {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.cabecalhoEncerrado {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tituloEncerrado {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.tituloPlacares {
+  margin-bottom: 12px;
+}
+
+.subEncerrado {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.campoAzul {
+  border-radius: 14px;
+  background: linear-gradient(175deg, #00419b, #002f71);
+  padding: 22px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.linhaAzul {
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.slotAzul {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 76px;
+}
+
+.camisaAzul {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.nomeAzul {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+}
+
+.semDados {
+  margin: 0;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.placares {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.placar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.placarGols {
+  width: 52px;
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.barra {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #eef2f6;
+  overflow: hidden;
+}
+
+.barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.pct {
+  width: 36px;
+  flex: none;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.proximo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.proximoTexto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.proximoTexto strong {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.proximoTexto span {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.lembrete {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+a.lembrete:hover {
+  text-decoration: none;
+}
+
+.lembreteLigado {
+  border-color: var(--primary);
+  background: var(--blue-soft);
+}
