@@ -268,13 +268,13 @@ function Formulario({
                 {opcoes.map((j) => {
                   const aqui = lineup[selecionada.id] === j.id;
                   const fora = lesionado(j);
-                  const estado = fora ? 'não pode ser escalado' : aqui ? 'escalado aqui' : emCampo.has(j.id) ? 'já está em campo' : 'no banco';
+                  const estado = fora ? null : aqui ? 'escalado aqui' : emCampo.has(j.id) ? 'já está em campo' : 'no banco';
                   return (
                     <button
                       key={j.id}
                       type="button"
                       disabled={fora}
-                      aria-label={`${j.nome}, ${descricaoDoJogador(j)} · ${estado}`}
+                      aria-label={[`${j.nome}, ${descricaoDoJogador(j)}`, estado].filter(Boolean).join(' · ')}
                       className={aqui ? `${styles.option} ${styles.here}` : fora ? `${styles.option} ${styles.lesionado}` : styles.option}
                       onClick={() => escolherJogador(j.id)}
                     >
@@ -282,7 +282,7 @@ function Formulario({
                       <div className={styles.optionTexto}>
                         <div className={styles.optionName}>{j.nome}</div>
                         <div className={styles.optionMeta}>
-                          {descricaoDoJogador(j)} · {estado}
+                          {[descricaoDoJogador(j), estado].filter(Boolean).join(' · ')}
                         </div>
                       </div>
                       {fora && (
