@@ -138,6 +138,8 @@ export type Campeonato = {
   /** Pontos corridos: a tabela inteira; grupos: a tabela do grupo do clube. */
   tabela: LinhaDaTabela[];
   rodada: number | null;
+  /** Pontos corridos: total de rodadas da temporada ("rodada 30 de 38"). */
+  rodadas: number | null;
   proximos: Partida[];
   /** Últimos resultados na competição, do mais antigo para o mais recente. */
   ultimos: ('V' | 'E' | 'D')[];
@@ -210,6 +212,7 @@ function montarCampeonato(
       campeao: encerrado && linha?.posicao === 1,
       tabela: tabelaDaLiga.filter((l) => l.grupo === (linha?.grupo ?? '')),
       rodada: linha?.jogos ?? null,
+      rodadas,
       proximos: jogos.filter((p) => p.status === 'agendada').slice(0, 3),
       ultimos,
       caminho: [],
@@ -300,6 +303,7 @@ function montarCampeonato(
     campeao: venceuAFinal,
     tabela: atual?.tabela ?? [],
     rodada: null,
+    rodadas: null,
     proximos: jogos.filter((p) => p.status === 'agendada').slice(0, 3),
     ultimos,
     caminho,
@@ -331,4 +335,31 @@ export function montarCampeonatos(
     .filter((c): c is Campeonato => !!c);
   const peso = (c: Campeonato) => (c.ligaId === ligaPrincipal ? 0 : c.encerrado ? 2 : 1);
   return campeonatos.sort((a, b) => peso(a) - peso(b) || (a.proximo?.inicio ?? '9').localeCompare(b.proximo?.inicio ?? '9'));
+}
+
+// ---------- tabela completa (W10) ----------
+
+/** Quantas linhas a tabela da liga mostra no card; o resto fica em "Ver tabela completa". */
+export const LINHAS_DO_RESUMO = 8;
+
+/** As primeiras posições da tabela; se o clube ficou de fora, as primeiras menos uma e a linha do clube. */
+export function resumoDaTabela(linhas: LinhaDaTabela[], clubeId: number, limite = LINHAS_DO_RESUMO): LinhaDaTabela[] {
+  const topo = linhas.slice(0, limite);
+  if (linhas.length <= limite || topo.some((l) => l.clube_id === clubeId)) return topo;
+  const minha = linhas.find((l) => l.clube_id === clubeId);
+  return minha ? [...linhas.slice(0, limite - 1), minha] : topo;
+}
+
+/** Últimos 5 da tabela: a forma da BSD (W, D, L) em V, E, D. */
+export const formaDaLinha = (forma: string | null): ('V' | 'E' | 'D')[] =>
+  [...(forma ?? '')].map((r) => ({ W: 'V', D: 'E', L: 'D' })[r.toUpperCase()] as 'V' | 'E' | 'D' | undefined).filter((r): r is 'V' | 'E' | 'D' => !!r);
+
+/** Aproveitamento: pontos sobre os pontos possíveis, em %. */
+export const aproveitamento = (l: Pick<LinhaDaTabela, 'pontos' | 'jogos'>) => (l.jogos ? Math.round((l.pontos / (l.jogos * 3)) * 100) : 0);
+
+/** "atualizada ter 13/10 às 06:40": quando a classificação foi gravada pela última vez. */
+export function atualizacaoDaTabela(linhas: LinhaDaTabela[]) {
+  const ultima = linhas.map((l) => l.atualizado_em).sort().at(-1);
+  if (!ultima) return null;
+  return `atualizada ${diaCurto(ultima)} às ${HORA.format(new Date(ultima))}`;
 }
