@@ -66,6 +66,15 @@ describe('menu', () => {
     expect(await within(menu).findByRole('link', { name: 'Jogos, jogo ao vivo' })).toBeInTheDocument();
   });
 
+  it('no topo, a logo horizontal da Torcida Online leva ao início', async () => {
+    supabaseFalso.logar(perfilDeTeste());
+    const { user, local } = renderApp('/jogos');
+    const logo = await screen.findByRole('img', { name: 'Torcida Online' });
+    expect(logo).toHaveAttribute('src', '/logo-horizontal-light.png');
+    await user.click(logo);
+    expect(local()).toBe('/');
+  });
+
   it('"Convidar amigos" no rodapé abre o convite', async () => {
     supabaseFalso.logar(perfilDeTeste());
     const { user } = renderApp('/');

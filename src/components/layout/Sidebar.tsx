@@ -44,12 +44,7 @@ export function Sidebar({ onInvite }: { onInvite: () => void }) {
   return (
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.brand}>
-        <img src="/icon-color.png" alt="" className={styles.brandIcon} />
-        <div className={styles.brandName}>
-          Torcida
-          <br />
-          Online
-        </div>
+        <img src="/logo-horizontal-light.png" alt="Torcida Online" width={170} height={47} className={styles.logo} />
       </Link>
       <nav className={styles.nav}>
         {NAV_MAIN.map((item) => (

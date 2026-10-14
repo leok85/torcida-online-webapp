@@ -20,3 +20,12 @@ describe('favicon', () => {
     expect(tamanhoPng(join(raiz, 'public/icon-color.png'))).toEqual({ largura: 256, altura: 256 });
   });
 });
+
+describe('logo da sidebar', () => {
+  // A sidebar usa a logo horizontal clara do design (logo-horizontal-light-v2) com 170 px; o arquivo tem o dobro para telas retina.
+  it('é a logo horizontal clara, com 340 px de largura e leve', () => {
+    const arquivo = join(raiz, 'public/logo-horizontal-light.png');
+    expect(tamanhoPng(arquivo)).toEqual({ largura: 340, altura: 93 });
+    expect(readFileSync(arquivo).length).toBeLessThan(60_000);
+  });
+});

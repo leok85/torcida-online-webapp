@@ -9,31 +9,14 @@
 
 .brand {
   flex: none;
-  padding: 0 20px 22px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  color: #fff;
+  align-self: flex-start;
+  padding: 4px 22px 24px;
 }
 
-.brand:hover {
-  text-decoration: none;
-  color: #fff;
-}
-
-.brandIcon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-}
-
-.brandName {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 17px;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
+.logo {
+  display: block;
+  width: 170px;
+  height: auto;
 }
 
 .nav {
