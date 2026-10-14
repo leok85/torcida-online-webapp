@@ -186,6 +186,24 @@ describe('página do jogo (W02 · ao vivo e chat)', () => {
     expect(screen.getByRole('link', { name: /Dê suas notas e vote no MVP/ })).toHaveAttribute('href', '/jogo/7290/notas');
   });
 
+  it('linha do tempo (0\' a 90\') só com a bola rolando', async () => {
+    abrir();
+    expect(await screen.findByText("90'", { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByText("0'")).toBeInTheDocument();
+  });
+
+  it('encerrado ou antes do jogo: sem a linha do tempo', async () => {
+    abrir({ partida: partidaDeTeste({ status: 'encerrada', periodo: null, minuto: null, gols_mandante: 4, gols_visitante: 1 }) });
+    await screen.findByLabelText('Placar: 4 a 1');
+    expect(screen.queryByText("0'")).not.toBeInTheDocument();
+  });
+
+  it('marcado: sem a linha do tempo', async () => {
+    abrir({ partida: partidaDeTeste({ id: 7301, status: 'agendada', periodo: null, minuto: null, gols_mandante: null, gols_visitante: null }) });
+    await screen.findByLabelText('Placar: 0 a 0');
+    expect(screen.queryByText("0'")).not.toBeInTheDocument();
+  });
+
   it('encerrado com derrota do meu time', async () => {
     abrir({ partida: encerrada(), perfil: perfilDeTeste({ time_id: 167 }) });
     expect(await screen.findByText('DERROTA')).toBeInTheDocument();

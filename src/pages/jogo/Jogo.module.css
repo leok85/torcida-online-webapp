@@ -16,6 +16,11 @@
   gap: 24px;
 }
 
+/* Sem a linha do tempo (fora do ao vivo), o espaço de baixo vem do próprio placar. */
+.barSemTempo {
+  padding-bottom: 22px;
+}
+
 /* "Brasileirão Série A · rodada 30 · dom 11/10 · 17:30", acima dos times. */
 .competicao {
   font-family: var(--font-mono);
