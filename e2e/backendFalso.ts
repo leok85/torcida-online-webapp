@@ -1,6 +1,7 @@
 // Supabase falso para o Playwright: intercepta /auth/v1 e /rest/v1 no navegador e guarda tudo em memória.
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
+import { curtirFotoDeTeste, denunciarFotoDeTeste, estadoDasFotos, fotosDoJogoDeTeste, registrarFotoDeTeste } from '../src/test/fotosDeTeste';
 import {
   elencosDaPartida,
   elencosDeTeste,
@@ -120,6 +121,9 @@ export class BackendFalso {
   /** Feedbacks enviados (tabela feedbacks) e os prints do bucket feedback. */
   readonly feedbacks: FeedbackRow[] = [];
   readonly prints = new Map<string, { corpo: Buffer; tipo: string }>();
+  /** Fotos da torcida (tabelas fotos_torcida, fotos_joinhas, fotos_denuncias) e os arquivos do bucket fotos-torcida. */
+  readonly fotosDaTorcida = estadoDasFotos();
+  readonly arquivosDasFotos = new Map<string, { corpo: Buffer; tipo: string }>();
   private sequencia = 0;
   /** Provedores sociais ligados (resposta de /auth/v1/settings). */
   provedores: Record<string, boolean> = { email: true, google: false };
@@ -132,6 +136,7 @@ export class BackendFalso {
     await contexto.route('**/storage/v1/object/**/avatares/**', (rota) => this.avatares(rota));
     await contexto.route('**/storage/v1/object/avatares', (rota) => this.avatares(rota));
     await contexto.route('**/storage/v1/object/feedback/**', (rota) => this.printDoFeedback(rota));
+    await contexto.route('**/storage/v1/object/**fotos-torcida**', (rota) => this.bucketDasFotos(rota));
     await contexto.route('**/functions/v1/**', (rota) => this.funcoes(rota));
     // Nenhum teste fala com o Stripe de verdade: o Stripe.js nem carrega.
     await contexto.route('https://js.stripe.com/**', (rota) => rota.abort());
@@ -475,6 +480,48 @@ export class BackendFalso {
     return rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: `avatares/${caminho}` }) });
   }
 
+  /** Bucket privado fotos-torcida: upload na própria pasta, URLs assinadas só para a torcida do clube (membros). */
+  private async bucketDasFotos(rota: Route) {
+    const req = rota.request();
+    const url = new URL(req.url());
+    const assinada = url.pathname.match(/\/object\/sign\/fotos-torcida\/(.+)$/);
+    if (assinada && req.method() === 'GET') {
+      const arquivo = this.arquivosDasFotos.get(decodeURIComponent(assinada[1]));
+      return arquivo ? rota.fulfill({ status: 200, contentType: arquivo.tipo, body: arquivo.corpo }) : rota.fulfill({ status: 404, body: '' });
+    }
+    const usuario = this.usuarioDoToken(rota);
+    if (!usuario) return rota.fulfill({ status: 401, contentType: 'application/json', body: '{"message":"Unauthorized"}' });
+    const perfil = this.perfis.get(usuario.id);
+    const membro = this.assinaturas.some(
+      (a) => a.usuario_id === usuario.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
+    );
+    if (url.pathname.endsWith('/object/sign/fotos-torcida')) {
+      const { paths = [] } = req.postDataJSON() as { paths: string[] };
+      const pode = (c: string) => membro && c.split('/')[1] === String(perfil?.time_id);
+      return rota.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(paths.map((c) => (pode(c) ? { path: c, signedURL: `/object/sign/fotos-torcida/${c}?token=e2e`, error: null } : { path: c, signedURL: null, error: 'Object not found' }))),
+      });
+    }
+    if (req.method() === 'DELETE') {
+      const { prefixes = [] } = req.postDataJSON() ?? {};
+      for (const c of prefixes as string[]) if (c.split('/')[2] === usuario.id) this.arquivosDasFotos.delete(c);
+      return rota.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    }
+    // upload(): POST /object/fotos-torcida/<partida>/<clube>/<usuario>/<arquivo>; política: própria pasta, clube e membro.
+    const caminho = decodeURIComponent(url.pathname.replace(/^.*\/object\/fotos-torcida\//, ''));
+    const [, clube, dono] = caminho.split('/');
+    if (!membro || dono !== usuario.id || clube !== String(perfil?.time_id)) {
+      return rota.fulfill({ status: 403, contentType: 'application/json', body: '{"message":"new row violates row-level security policy"}' });
+    }
+    const arquivo = arquivoDoMultipart(req.postDataBuffer() ?? Buffer.alloc(0), req.headers()['content-type'] ?? '');
+    if (!arquivo) return rota.fulfill({ status: 400, contentType: 'application/json', body: '{"message":"Arquivo não encontrado no corpo"}' });
+    if (!['image/webp', 'image/jpeg'].includes(arquivo.tipo)) return rota.fulfill({ status: 415, contentType: 'application/json', body: '{"message":"mime type not supported"}' });
+    this.arquivosDasFotos.set(caminho, arquivo);
+    return rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: `fotos-torcida/${caminho}` }) });
+  }
+
   private async printDoFeedback(rota: Route) {
     const req = rota.request();
     const usuario = this.usuarioDoToken(rota);
@@ -539,6 +586,23 @@ export class BackendFalso {
         return json(200, convidadosDe(this.perfis.values(), this.convitesEmail, (id) => this.usuarios.get(id)?.email, usuario.id));
       }
       return json(200, Math.max(0, LIMITE_DE_CONVITES - convitesHoje(this.convitesEmail, usuario.id)));
+    }
+
+    if (['/rpc/registrar_foto', '/rpc/fotos_do_jogo', '/rpc/curtir_foto', '/rpc/denunciar_foto'].includes(caminho)) {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied' });
+      const eu = this.perfis.get(usuario.id);
+      const assinante = this.assinaturas.some(
+        (a) => a.usuario_id === usuario.id && ['ativa', 'atrasada', 'cancelada'].includes(a.status) && !!a.expira_em && new Date(a.expira_em) > new Date(),
+      );
+      const pedido = req.postDataJSON();
+      if (caminho === '/rpc/fotos_do_jogo') return json(200, fotosDoJogoDeTeste(this.fotosDaTorcida, eu, assinante, pedido.p_partida));
+      const r =
+        caminho === '/rpc/registrar_foto'
+          ? registrarFotoDeTeste(this.fotosDaTorcida, eu, assinante, this.partidas, pedido)
+          : caminho === '/rpc/curtir_foto'
+            ? curtirFotoDeTeste(this.fotosDaTorcida, eu, assinante, this.partidas, pedido.p_foto)
+            : denunciarFotoDeTeste(this.fotosDaTorcida, eu, assinante, this.partidas, pedido.p_foto);
+      return r && typeof r === 'object' ? json(400, { code: r.code, message: r.hint, hint: r.hint, details: null }) : json(200, r);
     }
 
     if (caminho === '/rpc/enviar_palpite' || caminho === '/rpc/meu_palpite' || caminho === '/rpc/escalacao_mais_votada' || caminho === '/rpc/palpites_da_torcida') {

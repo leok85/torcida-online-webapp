@@ -229,7 +229,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
                 <Icon name="forum" size={20} />
                 Chat
               </button>
-              <button type="button" className={styles.outlineBtn} onClick={() => navigate('/fotos')}>
+              <button type="button" className={styles.outlineBtn} onClick={() => navigate(`/jogo/${jogo.id}/fotos`)}>
                 <Icon name="photo_library" size={20} />
                 Fotos
               </button>

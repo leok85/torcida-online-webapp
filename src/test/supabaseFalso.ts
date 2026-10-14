@@ -1,5 +1,6 @@
 // Supabase falso em memória para os testes do Vitest. O setup.ts troca src/lib/supabase por este módulo
 // em todos os testes, então nada aqui fala com a rede.
+import { curtirFotoDeTeste, denunciarFotoDeTeste, estadoDasFotos, fotosDoJogoDeTeste, registrarFotoDeTeste } from './fotosDeTeste';
 import {
   elencosDaPartida,
   elencosDeTeste,
@@ -150,6 +151,7 @@ function criar() {
   const notasJogadores: NotaDeTeste[] = [];
   const palpites: PalpiteDeTeste[] = [];
   const lembretes: { partida_id: number; usuario_id: string }[] = [];
+  let fotosDaTorcida = estadoDasFotos();
   let elencos = elencosDeTeste();
   const canais = new Set<CanalFalso>();
   let tempoRealFora = false;
@@ -562,6 +564,9 @@ function criar() {
       upload: vi.fn(async (caminho: string) => (fotos.add(caminho), ok({ path: caminho }))),
       remove: vi.fn(async (caminhos: string[]) => (caminhos.forEach((c) => fotos.delete(c)), ok([]))),
       getPublicUrl: (caminho: string) => ({ data: { publicUrl: `https://supabase.test/storage/v1/object/public/${bucket}/${caminho}` } }),
+      createSignedUrls: vi.fn(async (caminhos: string[]) =>
+        ok(caminhos.map((c) => ({ path: c, signedUrl: `https://supabase.test/storage/v1/object/sign/${bucket}/${c}?token=teste`, error: null }))),
+      ),
     })),
   };
 
@@ -589,6 +594,7 @@ function criar() {
     notasJogadores.length = 0;
     palpites.length = 0;
     lembretes.length = 0;
+    fotosDaTorcida = estadoDasFotos();
     elencos = elencosDeTeste();
     canais.clear();
     tempoRealFora = false;
@@ -605,6 +611,19 @@ function criar() {
         const partida = partidas.find((p) => p.id === a.p_partida);
         const r = enviarNotasDeTeste(notasJogadores, eu, assinante, partida, detalhesDasPartidas.get(a.p_partida), a.p_notas);
         return typeof r === 'number' ? ok(r) : { data: null, error: { code: r.code, message: r.hint, hint: r.hint } };
+      }
+      if (fn === 'registrar_foto' || fn === 'fotos_do_jogo' || fn === 'curtir_foto' || fn === 'denunciar_foto') {
+        const eu = sessao ? perfis.get(sessao.user.id) : undefined;
+        const assinante = minhas().some(daAcesso);
+        const a = args as unknown as { p_partida: number; p_caminho: string; p_etiqueta: string; p_legenda?: string; p_foto: string };
+        if (fn === 'fotos_do_jogo') return ok(fotosDoJogoDeTeste(fotosDaTorcida, eu, assinante, a.p_partida));
+        const r =
+          fn === 'registrar_foto'
+            ? registrarFotoDeTeste(fotosDaTorcida, eu, assinante, partidas, a)
+            : fn === 'curtir_foto'
+              ? curtirFotoDeTeste(fotosDaTorcida, eu, assinante, partidas, a.p_foto)
+              : denunciarFotoDeTeste(fotosDaTorcida, eu, assinante, partidas, a.p_foto);
+        return r && typeof r === 'object' ? { data: null, error: { code: r.code, message: r.hint, hint: r.hint } } : ok(r);
       }
       if (fn === 'palpites_da_torcida') {
         const eu = sessao ? perfis.get(sessao.user.id) : undefined;
@@ -692,6 +711,8 @@ function criar() {
     palpites: () => palpites,
     /** Pedidos de "Me avise" do próximo palpite (de todos os torcedores). */
     lembretes: () => lembretes,
+    /** Fotos da torcida gravadas, joinhas e denúncias (de todos os torcedores). */
+    fotosDaTorcida: () => fotosDaTorcida,
     /** Elenco de um clube, como a função elenco-da-partida devolveria (padrão: Palmeiras e Corinthians). */
     definirElenco: (clubeId: number, jogadores: JogadorDoElenco[]) => elencos.set(clubeId, jogadores),
     elenco: (clubeId: number) => elencos.get(clubeId) ?? [],

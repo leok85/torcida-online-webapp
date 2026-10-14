@@ -91,7 +91,7 @@ const ABAS: { id: Aba; rotulo: string; icone: string; para: (id: number) => stri
   { id: 'pre', rotulo: 'Escalação e palpite', icone: 'how_to_reg', para: (id) => `/jogo/${id}/escalacao` },
   { id: 'aovivo', rotulo: 'Ao vivo e chat', icone: 'forum', para: (id) => `/jogo/${id}` },
   { id: 'pos', rotulo: 'Pós-jogo e notas', icone: 'star_rate', para: (id) => `/jogo/${id}/notas` },
-  { id: 'fotos', rotulo: 'Fotos', icone: 'photo_library', para: () => '/fotos' },
+  { id: 'fotos', rotulo: 'Fotos', icone: 'photo_library', para: (id) => `/jogo/${id}/fotos` },
 ];
 
 /** Faixa "← Jogos" com o selo, o confronto e as abas do jogo; pós-jogo só abre depois do apito final. */
