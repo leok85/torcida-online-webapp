@@ -29,6 +29,7 @@ import { FaixaDoJogo, useJogo } from './Jogo';
 import jogo from './Jogo.module.css';
 import styles from './Fotos.module.css';
 import { useMeuXp } from '../../xp/MeuXp';
+import { motivoParaNaoPublicar, useMinhasRestricoes } from '../../data/restricoes';
 
 const numero = (n: number) => n.toLocaleString('pt-BR');
 const megas = (bytes: number) => `${(bytes / 1024 / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
@@ -312,6 +313,8 @@ export function FotosDoJogo() {
   const [enviando, setEnviando] = useState(false);
   const [denunciando, setDenunciando] = useState<FotoDaTorcida | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  // Silenciado ou suspenso não publica: o botão trava antes, e o banco barra de qualquer jeito.
+  const bloqueio = motivoParaNaoPublicar(useMinhasRestricoes(!!perfil));
 
   useEffect(() => {
     if (!aberto) return;
@@ -324,10 +327,12 @@ export function FotosDoJogo() {
   const janela = partida ? janelaDaFoto(partida, agora) : null;
   const minhas = (fotos ?? []).filter((f) => f.minha);
   const jaEnviouNaJanela = !!janela && minhas.some((f) => f.momento === janela);
-  const podeEnviar = doJogo && !!janela && !jaEnviouNaJanela && fotos !== undefined;
+  const podeEnviar = doJogo && !bloqueio && !!janela && !jaEnviouNaJanela && fotos !== undefined;
   const motivo = !doJogo
     ? 'As fotos são da torcida dos times em campo.'
-    : !janela
+    : bloqueio
+      ? bloqueio
+      : !janela
       ? 'O envio abre 1 h antes do apito e fecha 1 h depois.'
       : jaEnviouNaJanela
         ? `Você já enviou a foto do ${MOMENTO_DO_JOGO[janela] === 'ao vivo' ? 'jogo ao vivo' : MOMENTO_DO_JOGO[janela]}.`

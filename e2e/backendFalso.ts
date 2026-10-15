@@ -1,6 +1,7 @@
 // Supabase falso para o Playwright: intercepta /auth/v1 e /rest/v1 no navegador e guarda tudo em memória.
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
+import { barrarRestritoDeTeste, minhasRestricoesDeTeste, type RestricaoDeTeste } from '../src/test/restricoesDeTeste';
 import { estadoDoXp, extratoDeTeste, meuXpDeTeste, minhaPresencaDeTeste, missoesDeTeste, rankingDeTeste, registrarPresencaDeTeste } from '../src/test/xpDeTeste';
 import { curtirFotoDeTeste, denunciarFotoDeTeste, estadoDasFotos, fotosDoJogoDeTeste, registrarFotoDeTeste } from '../src/test/fotosDeTeste';
 import {
@@ -126,6 +127,15 @@ export class BackendFalso {
   readonly fotosDaTorcida = estadoDasFotos();
   /** XP: lançamentos (empurre com lancarXp), missões e regras. */
   readonly xp = estadoDoXp();
+  /** Silêncios e suspensões aplicados pela equipe. */
+  readonly restricoes: RestricaoDeTeste[] = [];
+
+  /** Restringe um torcedor como o back-office faria (suspensão também bane o login e a renovação). */
+  restringir(email: string, tipo: RestricaoDeTeste['tipo'], ate = new Date(Date.now() + 3 * 86_400_000).toISOString()) {
+    this.restricoes.push({ usuario_id: this.porEmail(email)!.id, tipo, ate });
+  }
+
+  private suspenso = (id: string) => minhasRestricoesDeTeste(this.restricoes, id).some((r) => r.tipo === 'suspensao');
   readonly arquivosDasFotos = new Map<string, { corpo: Buffer; tipo: string }>();
   private sequencia = 0;
   /** Provedores sociais ligados (resposta de /auth/v1/settings). */
@@ -287,6 +297,14 @@ export class BackendFalso {
       const usuario = this.porEmail(corpo.email);
       if (!usuario || usuario.senha !== corpo.password) return erro(400, 'invalid_credentials', 'Invalid login credentials');
       if (!usuario.confirmado) return erro(400, 'email_not_confirmed', 'Email not confirmed');
+      if (this.suspenso(usuario.id)) return erro(400, 'user_banned', 'User is banned');
+      return json(200, this.sessao(usuario));
+    }
+
+    if (caminho === '/token' && url.searchParams.get('grant_type') === 'refresh_token') {
+      const usuario = [...this.usuarios.values()].find((u) => `refresh-${u.id}` === corpo.refresh_token);
+      if (!usuario) return erro(400, 'refresh_token_not_found', 'Invalid Refresh Token: Refresh Token Not Found');
+      if (this.suspenso(usuario.id)) return erro(400, 'user_banned', 'User is banned');
       return json(200, this.sessao(usuario));
     }
 
@@ -545,6 +563,23 @@ export class BackendFalso {
     const caminho = url.pathname.replace(/^.*\/rest\/v1/, '');
     const usuario = this.usuarioDoToken(rota);
     const json = (status: number, dados: unknown) => rota.fulfill({ status, contentType: 'application/json', body: JSON.stringify(dados) });
+
+    // Trigger barrar_restrito: suspenso não age; silenciado não publica (chat e fotos). Joinha só barra ao dar.
+    if (usuario && req.method() === 'POST') {
+      const pedido = (caminho.startsWith('/rpc/') ? req.postDataJSON() : null) as { p_foto?: string } | null;
+      const publicar = caminho === '/mensagens_chat' || caminho === '/rpc/registrar_foto';
+      const barrar =
+        publicar ||
+        ['/feedbacks', '/rpc/enviar_palpite', '/rpc/enviar_notas', '/rpc/denunciar_foto'].includes(caminho) ||
+        (caminho === '/rpc/curtir_foto' && !this.fotosDaTorcida.joinhas.some((j) => j.usuario_id === usuario.id && j.foto_id === pedido?.p_foto));
+      const e = barrar && barrarRestritoDeTeste(this.restricoes, usuario.id, publicar);
+      if (e) return json(400, { ...e, details: null });
+    }
+
+    if (caminho === '/rpc/minhas_restricoes') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for function minhas_restricoes' });
+      return json(200, minhasRestricoesDeTeste(this.restricoes, usuario.id));
+    }
 
     if (caminho === '/rpc/apelido_disponivel') {
       const { apelido } = req.postDataJSON();

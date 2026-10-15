@@ -3,6 +3,7 @@
 import { chamarFuncao } from '../assinatura/funcoes';
 import { supabase } from '../lib/supabase';
 import type { Elencos, JogadorDoElenco, MaisVotada, Palpite, PlacarDaTorcida } from './tiposDoPalpite';
+import { MENSAGEM_SUSPENSO } from './restricoes';
 
 export type { Autor, Elencos, JogadorDoElenco, MaisVotada, Palpite, PlacarDaTorcida } from './tiposDoPalpite';
 export { FECHA_ANTES_MS, jogoDoPalpite, situacaoDoPalpite, type SituacaoDoPalpite } from './janelaDoPalpite';
@@ -27,6 +28,7 @@ export type ErroDoPalpite =
   | 'escalacao_invalida'
   | 'jogador_lesionado'
   | 'autor_invalido'
+  | 'suspenso'
   | 'falha';
 
 export const MENSAGEM_DO_PALPITE: Record<ErroDoPalpite, string> = {
@@ -37,6 +39,7 @@ export const MENSAGEM_DO_PALPITE: Record<ErroDoPalpite, string> = {
   escalacao_invalida: 'Algum jogador saiu do elenco. Recarregue a página e confira a escalação.',
   jogador_lesionado: 'Um jogador da sua escalação se lesionou. Troque ele e confirme de novo.',
   autor_invalido: 'Confira quem marca: um dos jogadores não está no elenco ou se lesionou.',
+  suspenso: MENSAGEM_SUSPENSO,
   falha: 'Não deu para enviar agora. Tente de novo.',
 };
 

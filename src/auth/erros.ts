@@ -1,4 +1,5 @@
 import { isAuthError, isAuthRetryableFetchError } from '@supabase/supabase-js';
+import { MENSAGEM_SUSPENSO } from './suspensao';
 
 // Códigos em https://supabase.com/docs/guides/auth/debugging/error-codes
 const MENSAGENS: Record<string, string> = {
@@ -14,7 +15,7 @@ const MENSAGENS: Record<string, string> = {
   email_address_invalid: 'Esse e-mail não é aceito. Confira o endereço digitado.',
   signup_disabled: 'Novos cadastros estão fechados no momento.',
   email_provider_disabled: 'O login por e-mail está desativado no momento.',
-  user_banned: 'Esta conta está suspensa. Fale com o suporte.',
+  user_banned: MENSAGEM_SUSPENSO,
   session_expired: 'Sua sessão expirou. Entre de novo.',
   validation_failed: 'Confira os dados informados.',
   // Dados da conta

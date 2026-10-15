@@ -8,6 +8,7 @@ import { urlDaFoto } from '../../data/conta';
 import { chatAberto } from '../../data/jogo';
 import type { Partida } from '../../data/partidas';
 import styles from './Jogo.module.css';
+import { motivoParaNaoPublicar, useMinhasRestricoes } from '../../data/restricoes';
 
 const NUMERO = new Intl.NumberFormat('pt-BR');
 
@@ -19,6 +20,8 @@ export function ChatDaTorcida({ partida }: { partida: Partida }) {
   const ativo = !!assinante && daTorcida;
   const { mensagens, erroAoCarregar, online, total, enviar } = useChat(partida.id, clubeId, perfil?.id ?? null, ativo);
   const aberto = chatAberto(partida);
+  // Silenciado ou suspenso lê, mas não escreve: o campo dá lugar ao aviso (o banco barra de qualquer jeito).
+  const bloqueio = motivoParaNaoPublicar(useMinhasRestricoes(ativo && aberto));
 
   const [rascunho, setRascunho] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -97,7 +100,12 @@ export function ChatDaTorcida({ partida }: { partida: Partida }) {
               ),
             )}
           </div>
-          {aberto ? (
+          {aberto && bloqueio ? (
+            <div className={styles.chatFechado} role="status">
+              <Icon name="block" size={20} color="var(--muted)" />
+              <span>{bloqueio}</span>
+            </div>
+          ) : aberto ? (
             <form className={styles.composer} onSubmit={mandar}>
               <div className={styles.composerCampo}>
                 <input

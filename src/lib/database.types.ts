@@ -459,6 +459,7 @@ export type Database = {
       registrar_foto: { Args: { p_partida: number; p_caminho: string; p_etiqueta: string; p_legenda?: string }; Returns: string };
       curtir_foto: { Args: { p_foto: string }; Returns: boolean };
       denunciar_foto: { Args: { p_foto: string }; Returns: undefined };
+      minhas_restricoes: { Args: Record<string, never>; Returns: { tipo: 'silencio' | 'suspensao'; ate: string }[] };
       registrar_presenca: { Args: Record<string, never>; Returns: number };
       meu_xp: {
         Args: Record<string, never>;

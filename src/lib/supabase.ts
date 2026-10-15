@@ -1,4 +1,5 @@
 import { createClient, type SupportedStorage } from '@supabase/supabase-js';
+import { criarFetchQueAvisaSuspensao } from '../auth/suspensao';
 import type { Database } from './database.types';
 
 const url = import.meta.env.VITE_SUPABASE_URL ?? '';
@@ -32,6 +33,7 @@ const armazenamento: SupportedStorage = {
 
 export const supabase = createClient<Database>(url, chave, {
   auth: { storage: armazenamento, flowType: 'pkce' },
+  global: { fetch: criarFetchQueAvisaSuspensao() },
 });
 
 /** Provedores sociais ligados no painel do Supabase; o botão só aparece quando o provedor está ativo. */

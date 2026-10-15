@@ -1,5 +1,6 @@
 // Supabase falso em memória para os testes do Vitest. O setup.ts troca src/lib/supabase por este módulo
 // em todos os testes, então nada aqui fala com a rede.
+import { barrarRestritoDeTeste, minhasRestricoesDeTeste, type RestricaoDeTeste } from './restricoesDeTeste';
 import { estadoDoXp, extratoDeTeste, meuXpDeTeste, minhaPresencaDeTeste, missoesDeTeste, rankingDeTeste, registrarPresencaDeTeste } from './xpDeTeste';
 import { curtirFotoDeTeste, denunciarFotoDeTeste, estadoDasFotos, fotosDoJogoDeTeste, registrarFotoDeTeste } from './fotosDeTeste';
 import {
@@ -154,6 +155,12 @@ function criar() {
   const lembretes: { partida_id: number; usuario_id: string }[] = [];
   let fotosDaTorcida = estadoDasFotos();
   let xp = estadoDoXp();
+  const restricoes: RestricaoDeTeste[] = [];
+  /** Trigger barrar_restrito: erro no formato do PostgREST, ou null. */
+  const barrado = (publicar: boolean) => {
+    const e = barrarRestritoDeTeste(restricoes, sessao?.user.id, publicar);
+    return e && { data: null, error: e };
+  };
   let elencos = elencosDeTeste();
   const canais = new Set<CanalFalso>();
   let tempoRealFora = false;
@@ -261,6 +268,8 @@ function criar() {
       order: async () => ok(meus()),
       single: async () => {
         if (!sessao || !novo) return { data: null, error: { code: '42501', message: 'permission denied' } };
+        const restrito = barrado(false);
+        if (restrito) return restrito;
         const agora = new Date();
         const doDia = meus().filter((f) => agora.getTime() - new Date(f.criado_em).getTime() < DIA_MS).length;
         if (doDia >= 10) return { data: null, error: { code: 'P0001', message: 'Muitos envios hoje', hint: 'limite_diario' } };
@@ -374,6 +383,8 @@ function criar() {
       order: (_coluna: string, opcoes?: { ascending?: boolean }) => ((decrescente = opcoes?.ascending === false), consulta),
       limit: (n: number) => ((limite = n), consulta),
       single: async () => {
+        const restrito = barrado(true);
+        if (restrito) return restrito;
         const eu = sessao ? perfis.get(sessao.user.id) : undefined;
         const r = inserirMensagemDeTeste(mensagensChat, eu, minhas().some(daAcesso), partidas.find((p) => p.id === novo?.partida_id), novo?.texto);
         if ('hint' in r) return { data: null, error: { code: r.code, message: r.hint || 'check', hint: r.hint } };
@@ -598,6 +609,7 @@ function criar() {
     lembretes.length = 0;
     fotosDaTorcida = estadoDasFotos();
     xp = estadoDoXp();
+    restricoes.length = 0;
     elencos = elencosDeTeste();
     canais.clear();
     tempoRealFora = false;
@@ -606,6 +618,13 @@ function criar() {
     removeChannel.mockReset().mockImplementation(async (canal: CanalFalso) => (canais.delete(canal), 'ok'));
     emailsDasContas.clear();
     rpc.mockReset().mockImplementation(async (fn: string, args?: { apelido?: string; termo?: string; pais?: string; limite?: number; clube?: number; sessao?: string; codigo?: string }) => {
+      if (fn === 'minhas_restricoes') return ok(minhasRestricoesDeTeste(restricoes, sessao?.user.id));
+      // barrar_restrito: palpite, notas, joinha (só ao dar), denúncia e foto (esta também com silêncio).
+      const daJoinha = fn === 'curtir_foto' && !fotosDaTorcida.joinhas.some((j) => j.usuario_id === sessao?.user.id && j.foto_id === (args as unknown as { p_foto: string }).p_foto);
+      if (['enviar_palpite', 'enviar_notas', 'denunciar_foto', 'registrar_foto'].includes(fn) || daJoinha) {
+        const restrito = barrado(fn === 'registrar_foto');
+        if (restrito) return restrito;
+      }
       if (fn === 'enviar_notas' || fn === 'notas_da_torcida') {
         const a = args as unknown as { p_partida: number; p_notas?: unknown };
         const eu = sessao ? perfis.get(sessao.user.id) : undefined;
@@ -726,6 +745,8 @@ function criar() {
     palpites: () => palpites,
     /** Pedidos de "Me avise" do próximo palpite (de todos os torcedores). */
     lembretes: () => lembretes,
+    /** Silêncios e suspensões aplicados pela equipe (de todos os torcedores). */
+    restricoes: () => restricoes,
     /** XP: lançamentos (empurre com lancarXp), missões e regras (de todos os torcedores). */
     xp: () => xp,
     /** Fotos da torcida gravadas, joinhas e denúncias (de todos os torcedores). */
