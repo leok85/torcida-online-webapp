@@ -2,6 +2,7 @@
 // cair, o hook busca as novas a cada poucos segundos. A RLS só entrega o chat da própria torcida e só para membros.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { MENSAGEM_SILENCIADO, MENSAGEM_SUSPENSO } from './restricoes';
 
 export type Mensagem = { id: number; autor_id: string; autor_apelido: string; autor_foto: string | null; texto: string; criado_em: string };
 
@@ -12,13 +13,15 @@ export const TAMANHO_MAXIMO = 280;
 /** Sem tempo real, de quanto em quanto tempo busca as novas. */
 export const BUSCAR_NOVAS_MS = 5_000;
 
-export type ErroDoChat = 'devagar' | 'chat_fechado' | 'so_membros' | 'outro_clube' | 'falha';
+export type ErroDoChat = 'devagar' | 'chat_fechado' | 'so_membros' | 'outro_clube' | 'silenciado' | 'suspenso' | 'falha';
 
 export const MENSAGEM_DO_ERRO: Record<ErroDoChat, string> = {
   devagar: 'Calma, uma mensagem de cada vez.',
   chat_fechado: 'O chat deste jogo já fechou.',
   so_membros: 'O chat da torcida é para membros.',
   outro_clube: 'O chat é da torcida dos times em campo.',
+  silenciado: MENSAGEM_SILENCIADO,
+  suspenso: MENSAGEM_SUSPENSO,
   falha: 'Não deu para enviar. Tente de novo.',
 };
 

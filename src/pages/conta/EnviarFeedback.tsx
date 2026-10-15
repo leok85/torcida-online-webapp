@@ -25,6 +25,7 @@ import {
 import type { FeedbackRow } from '../../lib/database.types';
 import styles from './EnviarFeedback.module.css';
 import { useMeuXp } from '../../xp/MeuXp';
+import { MENSAGEM_SUSPENSO } from '../../data/restricoes';
 
 /** De onde a pessoa abriu o feedback (o menu de conta manda a rota atual). */
 export type OrigemDoFeedback = { de?: string } | null;
@@ -117,7 +118,9 @@ export function EnviarFeedback() {
       setErro(
         (e as { hint?: string }).hint === 'limite_diario'
           ? 'Você já mandou muitos feedbacks hoje. Tente de novo amanhã.'
-          : navigator.onLine === false
+          : (e as { hint?: string }).hint === 'suspenso'
+            ? MENSAGEM_SUSPENSO
+            : navigator.onLine === false
             ? 'Parece que você está sem internet.'
             : 'Tivemos um problema no servidor.',
       );

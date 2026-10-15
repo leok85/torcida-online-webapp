@@ -3,6 +3,7 @@
 import { supabase } from '../lib/supabase';
 import type { Partida } from './partidas';
 import type { Escalacao, Jogador, Lance } from './tiposDoJogo';
+import { MENSAGEM_SUSPENSO } from './restricoes';
 
 export type NotaDaTorcida = { jogador_id: number; media: number; votos: number; minha: number | null; votantes: number };
 
@@ -28,13 +29,14 @@ export async function buscarNotas(partida: number): Promise<NotaDaTorcida[] | nu
   return error ? null : ((data ?? []) as NotaDaTorcida[]);
 }
 
-export type ErroDasNotas = 'notas_fechadas' | 'so_membros' | 'outro_clube' | 'jogador_invalido' | 'falha';
+export type ErroDasNotas = 'notas_fechadas' | 'so_membros' | 'outro_clube' | 'jogador_invalido' | 'suspenso' | 'falha';
 
 export const MENSAGEM_DAS_NOTAS: Record<ErroDasNotas, string> = {
   notas_fechadas: 'As notas deste jogo já fecharam.',
   so_membros: 'Notas são para membros.',
   outro_clube: 'As notas são da torcida dos times em campo.',
   jogador_invalido: 'Um dos jogadores não jogou por este time. Recarregue a página.',
+  suspenso: MENSAGEM_SUSPENSO,
   falha: 'Não deu para enviar agora. Tente de novo.',
 };
 

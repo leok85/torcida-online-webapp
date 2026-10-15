@@ -2,6 +2,7 @@
 // para o bucket, a leitura da galeria com URLs assinadas e o que a tela precisa para mostrar.
 import { supabase } from '../lib/supabase';
 import type { Momento } from './janelaDasFotos';
+import { MENSAGEM_SILENCIADO, MENSAGEM_SUSPENSO } from './restricoes';
 
 export { DENUNCIAS_PARA_OCULTAR, LIMITE_DE_JOINHAS, fimDasFotos, janelaDaFoto, joinhasAbertos, type Momento } from './janelaDasFotos';
 
@@ -75,6 +76,8 @@ export type ErroDaFoto =
   | 'joinhas_fechados'
   | 'limite_de_joinhas'
   | 'foto_invalida'
+  | 'silenciado'
+  | 'suspenso'
   | 'falha';
 
 export const MENSAGEM_DA_FOTO: Record<ErroDaFoto, string> = {
@@ -88,6 +91,8 @@ export const MENSAGEM_DA_FOTO: Record<ErroDaFoto, string> = {
   joinhas_fechados: 'Os joinhas deste jogo já fecharam.',
   limite_de_joinhas: 'Você já deu os 20 joinhas deste jogo.',
   foto_invalida: 'Essa foto não está mais na galeria.',
+  silenciado: MENSAGEM_SILENCIADO,
+  suspenso: MENSAGEM_SUSPENSO,
   falha: 'Não deu para concluir agora. Tente de novo.',
 };
 
