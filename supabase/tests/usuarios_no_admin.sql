@@ -1,4 +1,4 @@
--- Roteiro de teste da migration 20261027100000_usuarios_no_admin (banco local, tudo numa transação desfeita no fim):
+-- Roteiro de teste das migrations 20261027100000_usuarios_no_admin e 20261027110000_suspensao_sem_derrubar_sessao (banco local, tudo numa transação desfeita no fim):
 -- supabase start && psql "$DB_URL" -q -o /dev/null -f supabase/tests/usuarios_no_admin.sql
 -- Cada verificação imprime "ok ..."; a primeira que falhar interrompe com "FALHOU ...".
 \set ON_ERROR_STOP on
@@ -76,7 +76,7 @@ select pg_temp.igual((select status from public.admin_usuarios('todos', 'ana')),
 -- suspender
 select public.suspender_usuario('00000000-0000-0000-0000-00000000000b', 7, 'spam');
 select pg_temp.igual((select banned_until > now() + interval '6 days' from auth.users where id = '00000000-0000-0000-0000-00000000000b'), true, 'login bloqueado');
-select pg_temp.igual((select count(*) from auth.sessions where user_id = '00000000-0000-0000-0000-00000000000b'), 0::bigint, 'sessões derrubadas');
+select pg_temp.igual((select count(*) from auth.sessions where user_id = '00000000-0000-0000-0000-00000000000b'), 1::bigint, 'sessão mantida (renovação responde user_banned)');
 select pg_temp.igual((select status from public.admin_usuarios('todos', 'bia')), 'suspenso', 'status suspenso');
 select pg_temp.igual((select (public.admin_usuario('00000000-0000-0000-0000-00000000000b') -> 'restricoes' -> 0 ->> 'aplicada_por')), 'Moderadora', 'quem aplicou');
 select pg_temp.como('00000000-0000-0000-0000-00000000000b');
