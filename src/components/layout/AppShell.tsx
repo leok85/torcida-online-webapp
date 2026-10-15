@@ -54,7 +54,7 @@ export function AppShell() {
 
   useEffect(() => setPanel(null), [pathname]);
 
-  // Suspensão aplicada com o app aberto: a equipe apaga as sessões, mas o token de acesso ainda vale até 1 h.
+  // Suspensão aplicada com o app aberto: o token de acesso ainda vale até 1 h (só a renovação responde user_banned).
   // A cada troca de tela o app confere e, suspenso, sai com o recado na tela de entrar.
   const { sair } = useAuth();
   useEffect(() => {

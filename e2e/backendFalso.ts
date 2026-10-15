@@ -303,8 +303,9 @@ export class BackendFalso {
 
     if (caminho === '/token' && url.searchParams.get('grant_type') === 'refresh_token') {
       const usuario = [...this.usuarios.values()].find((u) => `refresh-${u.id}` === corpo.refresh_token);
-      // suspender_usuario apaga as sessões (e os refresh tokens em cascata): a renovação nem chega ao banimento.
-      if (!usuario || this.suspenso(usuario.id)) return erro(400, 'refresh_token_not_found', 'Invalid Refresh Token: Refresh Token Not Found');
+      if (!usuario) return erro(400, 'refresh_token_not_found', 'Invalid Refresh Token: Refresh Token Not Found');
+      // suspender_usuario mantém a sessão: com banned_until preenchido, a renovação responde user_banned.
+      if (this.suspenso(usuario.id)) return erro(400, 'user_banned', 'Invalid Refresh Token: User Banned');
       return json(200, this.sessao(usuario));
     }
 
