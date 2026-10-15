@@ -26,9 +26,9 @@ export function Inicio() {
   const clube = perfil?.time_id ?? null;
   // Missões e ranking são relidos junto com o XP (cada crédito pode mudar os dois).
   const versao = xp === undefined ? null : String(xp?.xp_total);
-  const missoes = useCarga(versao, buscarMissoes).dados;
+  const missoes = useCarga(versao, buscarMissoes, { manter: true }).dados;
   // Top 3 da torcida e a minha linha, se eu estiver fora.
-  const ranking = useCarga(clube && versao ? `${clube}:${versao}` : null, (c) => buscarRanking('temporada', Number(c.split(':')[0]), 3)).dados;
+  const ranking = useCarga(clube && versao ? `${clube}:${versao}` : null, (c) => buscarRanking('temporada', Number(c.split(':')[0]), 3), { manter: true }).dados;
   const falta = xp ? xp.xp_do_nivel - xp.xp_no_nivel : 0;
 
   return (

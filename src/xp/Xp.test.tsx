@@ -50,6 +50,26 @@ describe('XP no app', () => {
     expect(xp().lancamentos[0]).toMatchObject({ usuario_id: 'usuario-1', xp: 20 });
   });
 
+  it('aba aberta de um dia para o outro: o login do dia novo conta na primeira troca de tela', async () => {
+    const { user } = abrir('/');
+    await waitFor(() => expect(xp().lancamentos.filter((l) => l.acao === 'login_diario')).toHaveLength(1));
+    vi.setSystemTime(new Date('2026-10-15T11:00:00Z')); // quinta 08:00 em Brasília
+    await user.click(screen.getByRole('link', { name: /Jogos/ }));
+    await waitFor(() => expect(xp().lancamentos.filter((l) => l.acao === 'login_diario')).toHaveLength(2));
+    expect(await within(screen.getByRole('banner')).findByText('1º · 40 XP')).toBeInTheDocument();
+  });
+
+  it('feedback com a regra sem limite não fala em limite semanal', async () => {
+    const regra = xp().regras.find((r) => r.acao === 'feedback')!;
+    regra.limite = null;
+    regra.limite_por = null;
+    regra.xp = 70;
+    abrir('/conta/feedback');
+    expect(await screen.findByText('+70 XP')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/por semana/)).not.toBeInTheDocument());
+    expect(screen.queryByText(/envios com XP usados/)).not.toBeInTheDocument();
+  });
+
   it('cabeçalho e início: nível, barra, posição na temporada e o ranking da torcida', async () => {
     lancar('usuario-1', 'palpite_exato', { xp: 1000 });
     lancar('bia', 'foto_campea', { xp: 2000 });
@@ -60,7 +80,8 @@ describe('XP no app', () => {
     // 1000 + 20 do login de hoje = nível 4 (750 a 1.100).
     const topo = await screen.findByRole('banner');
     expect(await within(topo).findByText('NÍVEL 4')).toBeInTheDocument();
-    expect(within(topo).getByText('3º · 1.020 XP')).toBeInTheDocument();
+    // Posição na torcida do Palmeiras, a mesma do Ranking: o flamenguista com mais XP não conta.
+    expect(await within(topo).findByText('2º · 1.020 XP')).toBeInTheDocument();
     expect(screen.getByText('270 / 350 XP')).toBeInTheDocument();
     expect(screen.getByText('80 XP para o nível 5')).toBeInTheDocument();
 

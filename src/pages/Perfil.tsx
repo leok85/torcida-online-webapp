@@ -39,11 +39,11 @@ function textoDo(l: LancamentoDeXp) {
 
 export function Perfil() {
   const { perfil } = useAuth();
-  const { xp } = useMeuXp();
+  const { xp, posicao } = useMeuXp();
   // Relê junto com o XP: cada crédito novo (inclusive o login do dia) entra no extrato.
-  const extrato = useCarga(xp === undefined ? null : `extrato:${xp?.xp_total}`, () => buscarExtrato(30)).dados;
+  const extrato = useCarga(xp === undefined ? null : `extrato:${xp?.xp_total}`, () => buscarExtrato(30), { manter: true }).dados;
   const stats = [
-    { value: xp ? `${xp.posicao_temporada}º` : '–', label: 'TEMPORADA' },
+    { value: posicao ? `${posicao}º` : '–', label: 'TEMPORADA' },
     { value: '440', label: 'MOEDAS' },
     { value: '7', label: 'CONQUISTAS' },
   ];

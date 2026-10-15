@@ -48,7 +48,7 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
   const clube = perfil?.clube;
   const pais = perfil?.pais_dados;
   const resumo = useResumoDoClube(clube?.id);
-  const { xp } = useMeuXp();
+  const { xp, posicao } = useMeuXp();
   const meta = resumo
     ? [textoTorcedores(resumo.torcedores), textoPosicao(resumo)].filter(Boolean).join(' · ') : '';
   return (
@@ -101,7 +101,8 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
           <span className={styles.nick}>{perfil?.apelido}</span>
           {xp && (
             <span className={styles.rank}>
-              {xp.posicao_temporada}º · {xpEmTexto(xp.xp_temporada)} XP
+              {posicao ? `${posicao}º · ` : ''}
+              {xpEmTexto(xp.xp_temporada)} XP
             </span>
           )}
         </span>

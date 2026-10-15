@@ -9,7 +9,6 @@ import {
   areaDaRota,
   dadosDoNavegador,
   diaEMes,
-  ENVIOS_COM_XP_POR_SEMANA,
   enviarFeedback,
   enviosComXpNaSemana,
   ESTADOS,
@@ -58,7 +57,8 @@ function useHistorico() {
 export function EnviarFeedback() {
   const { regras } = useMeuXp();
   const xpPorEnvio = regras.feedback;
-  const enviosComXp = regras.limites.feedback ?? ENVIOS_COM_XP_POR_SEMANA;
+  // Regra sem limite (null no banco): todo envio rende XP.
+  const enviosComXp = regras.limites.feedback ?? null;
   const { perfil, sessao } = useAuth();
   const origem = (useLocation().state as OrigemDoFeedback)?.de;
   const historico = useHistorico();
@@ -78,7 +78,7 @@ export function EnviarFeedback() {
   const tamanho = texto.trim().length;
   const pode = !!tipo && tamanho >= TEXTO_MIN;
   const usadosNaSemana = historico.lista ? enviosComXpNaSemana(historico.lista) : 0;
-  const semXp = usadosNaSemana >= enviosComXp;
+  const semXp = enviosComXp != null && usadosNaSemana >= enviosComXp;
   const tipoAtual = TIPOS.find((t) => t.id === tipo);
   const dica = !tipo
     ? `Escolha o tipo e escreva pelo menos ${TEXTO_MIN} caracteres.`
@@ -314,9 +314,9 @@ export function EnviarFeedback() {
           <div className={styles.xp}>
             <Icon name="bolt" size={21} />
             <div>
-              Cada envio rende <strong>+{xpPorEnvio} XP</strong> (até {enviosComXp} por semana). Sugestão que virar funcionalidade rende{' '}
+              Cada envio rende <strong>+{xpPorEnvio} XP</strong> {enviosComXp != null && `(até ${enviosComXp} por semana)`}. Sugestão que virar funcionalidade rende{' '}
               <strong>+1.000 XP</strong> e a badge Voz da Torcida.
-              {historico.lista && (
+              {historico.lista && enviosComXp != null && (
                 <div className={styles.xpSemana}>
                   {Math.min(usadosNaSemana, enviosComXp)} de {enviosComXp} envios com XP usados nesta semana
                 </div>

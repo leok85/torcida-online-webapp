@@ -35,8 +35,8 @@ export function Missoes() {
   const { xp } = useMeuXp();
   // Relidas junto com o XP: cada crédito (inclusive o login do dia) muda o progresso.
   const versao = xp === undefined ? null : String(xp?.xp_total);
-  const missoes = useCarga(versao, buscarMissoes).dados;
-  const presenca = useCarga(versao, buscarPresenca).dados;
+  const missoes = useCarga(versao, buscarMissoes, { manter: true }).dados;
+  const presenca = useCarga(versao, buscarPresenca, { manter: true }).dados;
   const semana = xp?.xp_semana ?? 0;
   const fim = new Date(inicioDaSemana().getTime() + 7 * DIA_MS);
 

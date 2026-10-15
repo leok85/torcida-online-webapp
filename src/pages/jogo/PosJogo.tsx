@@ -80,14 +80,14 @@ function useMinhasMensagens(partidaId: number | undefined, usuarioId: string | u
 
 function XpDoJogo({ mensagens, enviou, abertas, minutos }: { mensagens: number | null; enviou: boolean; abertas: boolean; minutos: number }) {
   const { regras } = useMeuXp();
-  // Cada mensagem rende o XP da regra, até o limite por jogo; sem mensagens, mostra o máximo possível.
-  const limiteDoChat = regras.limites.mensagem_chat ?? 30;
+  // Cada mensagem rende o XP da regra, até o limite por jogo; sem mensagens, mostra o máximo possível (ou o de uma, sem limite).
+  const limiteDoChat = regras.limites.mensagem_chat;
   const itens = [
     {
       icone: 'forum',
       titulo: 'Presença no chat',
       sub: mensagens ? `${mensagens} ${mensagens === 1 ? 'mensagem' : 'mensagens'}` : 'nenhuma mensagem',
-      xp: regras.mensagem_chat * (mensagens ? Math.min(mensagens, limiteDoChat) : limiteDoChat),
+      xp: regras.mensagem_chat * (mensagens ? Math.min(mensagens, limiteDoChat ?? mensagens) : (limiteDoChat ?? 1)),
       ok: !!mensagens,
     },
     {
