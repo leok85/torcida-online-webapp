@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent as TeclaReact } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import {
-  BONUS_DO_CONVITE,
   buscarConvidados,
   convitesRestantes,
   emailDeConviteValido,
@@ -15,8 +14,10 @@ import {
 import { Icon } from '../ui/Icon';
 import ui from '../../styles/ui.module.css';
 import styles from './InviteModal.module.css';
+import { useMeuXp } from '../../xp/MeuXp';
+import { xpEmTexto } from '../../data/xp';
 
-// A fatia e o total de XP ainda não existem no banco: ficam fixos como o resto do XP do app.
+// A fatia de XP ainda não existe no banco: fica fixa. O total vem dos convites ativos × XP do convite.
 const LADDER = [
   { id: 'e1', friends: '3 amigos', pct: '10%', flex: 3, done: true },
   { id: 'e2', friends: '5', pct: '12%', flex: 2 },
@@ -25,7 +26,7 @@ const LADDER = [
 ];
 
 const VISUAL: Record<Convidado['estado'], { estado: string; xp: string; color: string; bg: string; icon: string }> = {
-  ativo: { estado: 'Escolheu o clube · ativo', xp: `+${BONUS_DO_CONVITE}`, color: '#2A6E0D', bg: '#E1F4D8', icon: 'check' },
+  ativo: { estado: 'Escolheu o clube · ativo', xp: '', color: '#2A6E0D', bg: '#E1F4D8', icon: 'check' },
   sem_time: { estado: 'Cadastrou, ainda não escolheu time', xp: '—', color: '#8A5E06', bg: '#FFF4D6', icon: 'hourglass_top' },
   pendente: { estado: 'Convite por e-mail · aguardando cadastro', xp: '—', color: '#6E7C93', bg: '#EBF0F6', icon: 'schedule' },
 };
@@ -34,6 +35,7 @@ type Etapa = 'fechado' | 'form' | 'enviado';
 
 export function InviteModal({ onClose }: { onClose: () => void }) {
   const { perfil } = useAuth();
+  const { regras } = useMeuXp();
   const apelido = perfil?.apelido ?? '';
   const clube = perfil?.clube?.nome_curto ?? perfil?.clube?.nome ?? null;
   const [copiado, setCopiado] = useState<'codigo' | 'link' | null>(null);
@@ -298,7 +300,7 @@ export function InviteModal({ onClose }: { onClose: () => void }) {
             <div className={styles.total}>
               <Icon name="bolt" size={26} color="var(--green-neon)" />
               <div>
-                <div className={styles.totalValue}>1.840 XP</div>
+                <div className={styles.totalValue}>{xpEmTexto(ativos * regras.convite_aceito)} XP</div>
                 <div className={styles.totalText}>total já rendido pelos seus convites</div>
               </div>
             </div>
@@ -340,7 +342,7 @@ export function InviteModal({ onClose }: { onClose: () => void }) {
                           </button>
                         ))}
                       <div className={styles.guestXp} style={{ color: v.color }}>
-                        {v.xp}
+                        {c.estado === 'ativo' ? `+${regras.convite_aceito}` : v.xp}
                       </div>
                     </li>
                   );

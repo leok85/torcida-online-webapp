@@ -28,6 +28,7 @@ import { linhasDaFormacao, slotsFor } from '../../data/lineup';
 import { buscarMaisVotada, situacaoDoPalpite, type MaisVotada } from '../../data/palpite';
 import { ChatDaTorcida } from './ChatDaTorcida';
 import styles from './Jogo.module.css';
+import { useMeuXp } from '../../xp/MeuXp';
 
 /** Ao vivo, o placar é relido a cada 30 s e os detalhes a cada 60 s (a função guarda por 90 s). */
 export const ATUALIZAR_PARTIDA_MS = 30_000;
@@ -505,6 +506,7 @@ function Lances({ partida, detalhes, clubeId }: { partida: Partida; detalhes: De
 
 /** W02 · Jogo · ao vivo e chat: placar, escalação, números, lances e o chat da torcida, ao vivo ou depois do jogo. */
 export function Jogo() {
+  const { regras } = useMeuXp();
   const { id: param } = useParams();
   const id = Number(param);
   const { perfil } = useAuth();
@@ -566,7 +568,7 @@ export function Jogo() {
               <Icon name="star_rate" size={26} color="var(--primary)" />
               <div className={styles.notasTexto}>
                 <strong>Dê suas notas e vote no MVP</strong>
-                <span>até +120 XP</span>
+                <span>+{regras.notas} XP</span>
               </div>
               <Icon name="chevron_right" size={22} color="var(--primary)" />
             </Link>

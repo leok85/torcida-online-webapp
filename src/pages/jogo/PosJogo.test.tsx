@@ -150,7 +150,8 @@ describe('pós-jogo e notas (W04)', () => {
     abrir();
     const xp = await screen.findByRole('region', { name: 'Seu XP neste jogo' });
     await waitFor(() => expect(within(xp).getByText('Presença no chat').nextSibling).toHaveTextContent('2 mensagens'));
-    expect(xp).toHaveTextContent('+60 XP');
+    // 2 XP por mensagem (regra mensagem_chat), até 30 mensagens por jogo.
+    expect(xp).toHaveTextContent('+4 XP');
     expect(within(xp).getByText('Notas dos jogadores').nextSibling).toHaveTextContent('pendente · fecha em 47 min');
   });
 

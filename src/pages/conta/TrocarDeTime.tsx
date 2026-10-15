@@ -8,6 +8,8 @@ import { listarClubes, listarPaises, type Clube } from '../../data/clubes';
 import { FLAG, SITE } from '../../data/common';
 import { useCarga } from '../../data/useCarga';
 import styles from './TrocarDeTime.module.css';
+import { useMeuXp } from '../../xp/MeuXp';
+import { xpEmTexto } from '../../data/xp';
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
@@ -20,6 +22,7 @@ export function dataPorExtenso(iso: string) {
 /** W22 · trocar de time: uma única troca por conta, que marca o perfil como vira-casaca. */
 export function TrocarDeTime() {
   const { perfil, atualizarPerfil } = useAuth();
+  const { xp } = useMeuXp();
   const navigate = useNavigate();
   // Depois da troca o app inteiro remonta com o clube novo; a tela de sucesso vem pelo state da navegação.
   // Guardado no estado e tirado do histórico em seguida, para recarregar a página não repetir o sucesso.
@@ -143,7 +146,8 @@ export function TrocarDeTime() {
             <div className={styles.timeTextos}>
               <div className={styles.rotulo}>TIME ATUAL</div>
               <div className={styles.timeNome}>{atual}</div>
-              <div className={styles.timeMeta}>desde {dataPorExtenso(desde)} · 5.910 XP</div>
+              <div className={styles.timeMeta}>desde {dataPorExtenso(desde)}
+                {xp && ` · ${xpEmTexto(xp.xp_total)} XP`}</div>
             </div>
           </div>
           <Icon name="arrow_downward" size={22} className={styles.seta} />
@@ -219,6 +223,7 @@ export function TrocarDeTime() {
 }
 
 function Concluida({ novoNome, apelido, novoId }: { novoNome: string; apelido: string; novoId: number | null }) {
+  const { xp } = useMeuXp();
   const navigate = useNavigate();
   return (
     <div className={styles.page}>
@@ -240,7 +245,7 @@ function Concluida({ novoNome, apelido, novoId }: { novoNome: string; apelido: s
         <dl className={styles.mantidos}>
           <div>
             <dt>NÍVEL E XP</dt>
-            <dd>Nível 24 · mantidos</dd>
+            <dd>{xp ? `Nível ${xp.nivel} · mantidos` : 'mantidos'}</dd>
           </div>
           <div>
             <dt>MOEDAS</dt>

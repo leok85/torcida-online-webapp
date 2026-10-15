@@ -7,6 +7,8 @@ import { Crest } from '../ui/Crest';
 import { Carregando, Skeleton } from '../ui/Skeleton';
 import { Icon } from '../ui/Icon';
 import { FLAG } from '../../data/common';
+import { xpEmTexto } from '../../data/xp';
+import { useMeuXp } from '../../xp/MeuXp';
 import styles from './Header.module.css';
 
 type HeaderProps = {
@@ -46,6 +48,7 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
   const clube = perfil?.clube;
   const pais = perfil?.pais_dados;
   const resumo = useResumoDoClube(clube?.id);
+  const { xp } = useMeuXp();
   const meta = resumo
     ? [textoTorcedores(resumo.torcedores), textoPosicao(resumo)].filter(Boolean).join(' · ') : '';
   return (
@@ -75,7 +78,7 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
       </div>
       <div className={styles.level}>
         <Icon name="bolt" size={17} color="var(--green-light)" />
-        NÍVEL 24
+        NÍVEL {xp?.nivel ?? '–'}
       </div>
       <button
         type="button"
@@ -93,10 +96,14 @@ export function Header({ notifOpen, accountOpen, onToggleNotif, onToggleAccount 
         className={accountOpen ? `${styles.account} ${styles.open}` : styles.account}
         onClick={onToggleAccount}
       >
-        <Avatar size={32} iconSize={19} level={24} foto={urlDaFoto(perfil?.foto)} />
+        <Avatar size={32} iconSize={19} level={xp?.nivel} foto={urlDaFoto(perfil?.foto)} />
         <span className={styles.who}>
           <span className={styles.nick}>{perfil?.apelido}</span>
-          <span className={styles.rank}>12º · 5.910 XP</span>
+          {xp && (
+            <span className={styles.rank}>
+              {xp.posicao_temporada}º · {xpEmTexto(xp.xp_temporada)} XP
+            </span>
+          )}
         </span>
         <Icon name={accountOpen ? 'expand_less' : 'expand_more'} size={19} color="var(--muted)" />
       </button>

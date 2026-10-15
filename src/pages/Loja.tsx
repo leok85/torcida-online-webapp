@@ -5,6 +5,8 @@ import { Segmented } from '../components/ui/Segmented';
 import { Striped } from '../components/ui/Striped';
 import ui from '../styles/ui.module.css';
 import styles from './Loja.module.css';
+import { useMeuXp } from '../xp/MeuXp';
+import { xpEmTexto } from '../data/xp';
 
 type Tab = 'produtos' | 'dinheiro';
 
@@ -19,6 +21,7 @@ const BALANCE = 440;
 const MIN_WITHDRAW = 500;
 
 export function Loja() {
+  const { xp } = useMeuXp();
   const [tab, setTab] = useState<Tab>('produtos');
   const brl = (BALANCE / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -114,7 +117,7 @@ export function Loja() {
               <Icon name="inventory_2" size={56} color="#F7F9FB" />
             </div>
             <div className={styles.packName}>Pacote prata</div>
-            <p className={styles.packText}>1.480 XP na semana. Dentro vem XP, moedas ou os dois.</p>
+            <p className={styles.packText}>{xpEmTexto(xp?.xp_semana ?? 0)} XP na semana. Dentro vem XP, moedas ou os dois.</p>
             <button type="button" className={styles.packBtn}>
               Abrir pacote
             </button>

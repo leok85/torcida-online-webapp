@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import { ApenasAssinante } from '../../assinatura/Bloqueio';
 import { useAuth } from '../../auth/AuthContext';
 import { JogosDoClubeProvider } from '../../partidas/JogosDoClube';
+import { XpProvider } from '../../xp/MeuXp';
 import { AccountMenu } from './AccountMenu';
 import { Header } from './Header';
 import { InviteModal } from './InviteModal';
@@ -60,6 +61,7 @@ export function AppShell() {
 
   return (
     <JogosDoClubeProvider clubeId={perfil?.time_id ?? null}>
+    <XpProvider presenca>
     <div className={styles.app}>
       <Sidebar onInvite={openInvite} />
       <div className={styles.main}>
@@ -110,6 +112,7 @@ export function AppShell() {
       {panel === 'notif' && <NotificationsPanel onClose={() => setPanel(null)} />}
       {inviteOpen && <InviteModal onClose={closeInvite} />}
     </div>
+    </XpProvider>
     </JogosDoClubeProvider>
   );
 }

@@ -4,16 +4,15 @@ import { Avatar } from '../components/ui/Avatar';
 import { Icon } from '../components/ui/Icon';
 import { Progress } from '../components/ui/Progress';
 import { Striped } from '../components/ui/Striped';
-import { ME, RANK_BASE } from '../data/ranking';
+import { useCarga } from '../data/useCarga';
+import { buscarMissoes, buscarRanking, xpEmTexto } from '../data/xp';
+import { useMeuXp } from '../xp/MeuXp';
 import ui from '../styles/ui.module.css';
 import { CardPartida } from './CardPartida';
 import styles from './Inicio.module.css';
 
-const MISSIONS = [
-  { title: 'Logar 5 dias seguidos', icon: 'task_alt', color: '#3FA414', width: '60%', frac: '3/5' },
-  { title: 'Comentar em 2 jogos', icon: 'forum', color: '#00419B', width: '50%', frac: '1/2' },
-  { title: 'Postar 1 foto de jogo', icon: 'photo_camera', color: '#00419B', width: '0%', frac: '0/1' },
-];
+const VERDE = '#3FA414';
+const AZUL = '#00419B';
 
 const NEWS = [
   { title: 'Meia titular volta de suspensão e deve começar jogando', when: 'há 2 h' },
@@ -21,10 +20,16 @@ const NEWS = [
   { title: 'Sub-20 vence e garante vaga na semifinal estadual', when: 'há 1 d' },
 ];
 
-const RANK = [...RANK_BASE.slice(0, 3), ME];
-
 export function Inicio() {
   const { perfil } = useAuth();
+  const { xp } = useMeuXp();
+  const clube = perfil?.time_id ?? null;
+  // Missões e ranking são relidos junto com o XP (cada crédito pode mudar os dois).
+  const versao = xp === undefined ? null : String(xp?.xp_total);
+  const missoes = useCarga(versao, buscarMissoes).dados;
+  // Top 3 da torcida e a minha linha, se eu estiver fora.
+  const ranking = useCarga(clube && versao ? `${clube}:${versao}` : null, (c) => buscarRanking('temporada', Number(c.split(':')[0]), 3)).dados;
+  const falta = xp ? xp.xp_do_nivel - xp.xp_no_nivel : 0;
 
   return (
     <div className={styles.page}>
@@ -36,14 +41,14 @@ export function Inicio() {
             <div className={styles.level}>
               <div className={styles.ring}>
                 <div className={styles.ringInner}>
-                  <div className={styles.ringValue}>24</div>
+                  <div className={styles.ringValue}>{xp?.nivel ?? '–'}</div>
                   <div className={styles.ringLabel}>NÍVEL</div>
                 </div>
               </div>
               <div className={styles.levelInfo}>
-                <div className={styles.levelXp}>1.480 / 2.400 XP</div>
-                <Progress value="62%" />
-                <div className={styles.levelNext}>920 XP para o nível 25</div>
+                <div className={styles.levelXp}>{xp ? `${xpEmTexto(xp.xp_no_nivel)} / ${xpEmTexto(xp.xp_do_nivel)} XP` : '– XP'}</div>
+                <Progress value={xp ? `${(xp.xp_no_nivel / xp.xp_do_nivel) * 100}%` : '0%'} />
+                <div className={styles.levelNext}>{xp ? `${xpEmTexto(falta)} XP para o nível ${xp.nivel + 1}` : ''}</div>
               </div>
             </div>
           </section>
@@ -53,16 +58,23 @@ export function Inicio() {
               <Link to="/missoes">ver todas</Link>
             </div>
             <div className={styles.missions}>
-              {MISSIONS.map((m) => (
-                <div key={m.title} className={styles.mission}>
-                  <Icon name={m.icon} size={19} color={m.color} />
-                  <div className={styles.missionBody}>
-                    {m.title}
-                    <Progress value={m.width} height={5} fill={m.color} square className={styles.missionBar} />
+              {missoes?.length === 0 && <p className={styles.vazio}>Nenhuma missão nesta semana.</p>}
+              {missoes?.slice(0, 3).map((m) => {
+                const feita = !!m.concluida_em;
+                const cor = feita ? VERDE : AZUL;
+                return (
+                  <div key={m.id} className={styles.mission}>
+                    <Icon name={feita ? 'task_alt' : m.icone} size={19} color={cor} />
+                    <div className={styles.missionBody}>
+                      {m.titulo}
+                      <Progress value={`${(m.progresso / m.meta) * 100}%`} height={5} fill={cor} square className={styles.missionBar} />
+                    </div>
+                    <span className={styles.frac}>
+                      {m.progresso}/{m.meta}
+                    </span>
                   </div>
-                  <span className={styles.frac}>{m.frac}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </div>
@@ -83,12 +95,13 @@ export function Inicio() {
         </section>
         <section className={ui.card}>
           <h3 className={styles.cardTitle}>Ranking da torcida</h3>
-          {RANK.map((r) => (
-            <div key={r.pos} className={r.me ? `${styles.rankRow} ${styles.me}` : styles.rankRow}>
-              <span className={styles.rankPos}>{r.pos}</span>
+          {ranking?.length === 0 && <p className={styles.vazio}>Ninguém da torcida pontuou ainda nesta temporada.</p>}
+          {ranking?.map((r) => (
+            <div key={r.usuario_id} className={r.eu ? `${styles.rankRow} ${styles.me}` : styles.rankRow}>
+              <span className={styles.rankPos}>{r.posicao}º</span>
               <Avatar size={28} iconSize={17} />
-              <span className={styles.rankName}>{r.name}</span>
-              <span className={styles.rankXp}>{r.xp}</span>
+              <span className={styles.rankName}>{r.eu ? `Você · ${r.apelido}` : r.apelido}</span>
+              <span className={styles.rankXp}>{xpEmTexto(r.xp)}</span>
             </div>
           ))}
         </section>
