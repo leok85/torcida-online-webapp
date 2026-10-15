@@ -1,4 +1,4 @@
--- Roteiro de teste da migration 20261028100000_noticias (banco local, tudo numa transação desfeita no fim):
+-- Roteiro de teste das migrations 20261028100000_noticias e 20261028110000_paginacao_das_noticias (banco local, tudo numa transação desfeita no fim):
 -- supabase start && psql "$DB_URL" -q -o /dev/null -f supabase/tests/noticias.sql
 -- Cada verificação imprime "ok ..."; a primeira que falhar interrompe com "FALHOU ...".
 \set ON_ERROR_STOP on
@@ -109,6 +109,27 @@ select pg_temp.igual((select count(*) from public.noticias_do_clube()), 2::bigin
 select pg_temp.como('00000000-0000-0000-0000-00000000000b');
 select pg_temp.igual((select count(*) from public.noticias_do_clube()), 1::bigint, 'Fora vê uma');
 select pg_temp.igual((select count(*) from public.noticia(pg_temp.noticia('Treino aberto no sábado'))), 0::bigint, 'Fora não abre a da Casa');
+
+-- paginação: três publicadas no mesmo instante, de uma em uma, sem perder nenhuma
+select pg_temp.como('00000000-0000-0000-0000-00000000000c');
+select public.registrar_noticias_da_fonte((select id from public.noticias_fontes where nome = 'Diário da Casa'), '[
+  {"titulo": "Lote um", "link": "https://diariodacasa.com/l1"}, {"titulo": "Lote dois", "link": "https://diariodacasa.com/l2"},
+  {"titulo": "Lote três", "link": "https://diariodacasa.com/l3"}]');
+select pg_temp.como('00000000-0000-0000-0000-00000000000a');
+do $$
+declare v_vistas uuid[] := '{}'; v_antes timestamptz; v_id uuid; v_linha record;
+begin
+  loop
+    select n.id, n.publicada_em into v_linha from public.noticias_do_clube(1, v_antes, v_id) n;
+    exit when not found;
+    v_vistas := v_vistas || v_linha.id; v_antes := v_linha.publicada_em; v_id := v_linha.id;
+  end loop;
+  if cardinality(v_vistas) <> (select count(*) from public.noticias_do_clube(50)) or cardinality(v_vistas) <> 5 then
+    raise exception 'FALHOU paginação: % de 5', cardinality(v_vistas);
+  end if;
+  raise notice 'ok  paginação não perde empates';
+end $$;
+delete from public.noticias where link like 'https://diariodacasa.com/l%';
 
 -- leitura, clique, curtida, comentário
 select pg_temp.como('00000000-0000-0000-0000-00000000000a');
