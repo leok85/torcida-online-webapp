@@ -106,7 +106,8 @@ export function AppShell() {
               <Route path="/jogo/:id/fotos" element={<FotosDoJogo />} />
               <Route path="/loja" element={<Loja />} />
             </Route>
-            <Route path="/noticias" element={<Noticias />} />
+            {/* Uma rota só (id opcional): abrir outra notícia não remonta a lista. */}
+            <Route path="/noticias/:id?" element={<Noticias />} />
             <Route path="/campeonatos" element={<Campeonatos />} />
             <Route path="/clube" element={<Clube onInvite={openInvite} />} />
             <Route path="/perfil" element={<Perfil />} />

@@ -1,5 +1,6 @@
 // XP, nível, extrato, missões e ranking. O webapp não credita nada: o banco credita por trigger (palpite, notas, chat,
-// fotos, convite, feedback, apito) e o login diário entra por registrar_presenca() ao abrir o app.
+// fotos, convite, feedback, apito) e o login diário entra por registrar_presenca() ao abrir o app. A leitura de notícia
+// é creditada por ler_noticia() (src/data/noticias.ts).
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 
@@ -24,11 +25,12 @@ export const XP_PADRAO = {
   foto_campea: 500,
   convite_aceito: 100,
   feedback: 50,
+  leitura_noticia: 10,
 } as const;
 export type AcaoDeXp = keyof typeof XP_PADRAO;
 
 /** Limites iniciais (mesmo período da regra). */
-export const LIMITE_PADRAO: Partial<Record<AcaoDeXp, number>> = { login_diario: 1, palpite_enviado: 1, notas: 1, mensagem_chat: 30, foto_enviada: 3, feedback: 2 };
+export const LIMITE_PADRAO: Partial<Record<AcaoDeXp, number>> = { login_diario: 1, palpite_enviado: 1, notas: 1, mensagem_chat: 30, foto_enviada: 3, feedback: 2, leitura_noticia: 3 };
 
 /** Login diário: credita uma vez por dia (Brasília). Devolve o XP creditado agora. */
 export async function registrarPresenca() {

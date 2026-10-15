@@ -3,6 +3,7 @@
 import { barrarRestritoDeTeste, minhasRestricoesDeTeste, type RestricaoDeTeste } from './restricoesDeTeste';
 import { estadoDoXp, extratoDeTeste, meuXpDeTeste, minhaPresencaDeTeste, missoesDeTeste, rankingDeTeste, registrarPresencaDeTeste } from './xpDeTeste';
 import { curtirFotoDeTeste, denunciarFotoDeTeste, estadoDasFotos, fotosDoJogoDeTeste, registrarFotoDeTeste } from './fotosDeTeste';
+import { estadoDasNoticias, rpcDeNoticias } from './noticiasDeTeste';
 import {
   elencosDaPartida,
   elencosDeTeste,
@@ -155,6 +156,7 @@ function criar() {
   const lembretes: { partida_id: number; usuario_id: string }[] = [];
   let fotosDaTorcida = estadoDasFotos();
   let xp = estadoDoXp();
+  let noticias = estadoDasNoticias();
   const restricoes: RestricaoDeTeste[] = [];
   /** Trigger barrar_restrito: erro no formato do PostgREST, ou null. */
   const barrado = (publicar: boolean) => {
@@ -609,6 +611,7 @@ function criar() {
     lembretes.length = 0;
     fotosDaTorcida = estadoDasFotos();
     xp = estadoDoXp();
+    noticias = estadoDasNoticias();
     restricoes.length = 0;
     elencos = elencosDeTeste();
     canais.clear();
@@ -625,6 +628,14 @@ function criar() {
         const restrito = barrado(fn === 'registrar_foto');
         if (restrito) return restrito;
       }
+      const daNoticia = rpcDeNoticias(fn, (args ?? {}) as object, {
+        estado: noticias,
+        xp,
+        perfis: perfis.values(),
+        eu: sessao ? perfis.get(sessao.user.id) : undefined,
+        restrito: (publicar) => barrarRestritoDeTeste(restricoes, sessao?.user.id, publicar),
+      });
+      if (daNoticia) return 'erro' in daNoticia ? { data: null, error: daNoticia.erro } : ok(daNoticia.dados);
       if (fn === 'enviar_notas' || fn === 'notas_da_torcida') {
         const a = args as unknown as { p_partida: number; p_notas?: unknown };
         const eu = sessao ? perfis.get(sessao.user.id) : undefined;
@@ -749,6 +760,8 @@ function criar() {
     restricoes: () => restricoes,
     /** XP: lançamentos (empurre com lancarXp), missões e regras (de todos os torcedores). */
     xp: () => xp,
+    /** Notícias, leituras, curtidas e comentários (de todos os torcedores); empurre com noticiaDeTeste(). */
+    noticias: () => noticias,
     /** Fotos da torcida gravadas, joinhas e denúncias (de todos os torcedores). */
     fotosDaTorcida: () => fotosDaTorcida,
     /** Elenco de um clube, como a função elenco-da-partida devolveria (padrão: Palmeiras e Corinthians). */

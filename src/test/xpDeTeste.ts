@@ -60,6 +60,8 @@ export const regrasDeTeste = (): RegraDeTeste[] => [
   r('foto_campea', 'Foto campeã', 500, null, null, 'mais curtida do clube', 'workspace_premium', 9),
   r('convite_aceito', 'Convite aceito', 100, null, null, 'para os dois torcedores', 'group_add', 10),
   r('feedback', 'Feedback enviado', 50, 2, 'semana', null, 'rate_review', 11),
+  // Migration 20261028100000_noticias.
+  r('leitura_noticia', 'Notícia lida', 10, 3, 'dia', null, 'newspaper', 12),
 ];
 
 export type EstadoDoXp = { lancamentos: LancamentoDeTeste[]; missoes: MissaoDeTeste[]; regras: RegraDeTeste[] };

@@ -560,6 +560,61 @@ export type Database = {
         Returns: { id: number; nome: string; regiao: string }[];
       };
       sou_assinante: { Args: never; Returns: boolean };
+      noticias_do_clube: {
+        Args: { p_limite?: number; p_antes?: string | null; p_antes_id?: string | null };
+        Returns: {
+          id: string;
+          titulo: string;
+          resumo: string;
+          imagem_url: string | null;
+          link: string;
+          fonte: string;
+          publicada_em: string;
+          leituras: number;
+          curtidas: number;
+          comentarios: number;
+          curti: boolean;
+          li: boolean;
+        }[];
+      };
+      noticia: {
+        Args: { p_id: string };
+        Returns: {
+          id: string;
+          titulo: string;
+          resumo: string;
+          imagem_url: string | null;
+          link: string;
+          fonte: string;
+          publicada_em: string;
+          leituras: number;
+          curtidas: number;
+          comentarios: number;
+          curti: boolean;
+          li: boolean;
+        }[];
+      };
+      ler_noticia: { Args: { p_id: string }; Returns: number };
+      abrir_original: { Args: { p_id: string }; Returns: string };
+      curtir_noticia: { Args: { p_id: string }; Returns: { curti: boolean; curtidas: number }[] };
+      comentarios_da_noticia: {
+        Args: { p_id: string; p_ordem?: 'relevantes' | 'recentes'; p_limite?: number };
+        Returns: {
+          id: number;
+          autor_id: string;
+          apelido: string | null;
+          nivel: number;
+          texto: string;
+          curtidas: number;
+          curti: boolean;
+          meu: boolean;
+          oculto: boolean;
+          criado_em: string;
+        }[];
+      };
+      comentar_noticia: { Args: { p_id: string; p_texto: string }; Returns: number };
+      apagar_comentario_da_noticia: { Args: { p_comentario: number }; Returns: undefined };
+      curtir_comentario_da_noticia: { Args: { p_comentario: number }; Returns: { curti: boolean; curtidas: number }[] };
     };
     Enums: {
       [_ in never]: never;
