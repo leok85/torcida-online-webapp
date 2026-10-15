@@ -4,6 +4,7 @@
 import { barrarRestritoDeTeste, minhasRestricoesDeTeste, type RestricaoDeTeste } from '../src/test/restricoesDeTeste';
 import { estadoDoXp, extratoDeTeste, meuXpDeTeste, minhaPresencaDeTeste, missoesDeTeste, rankingDeTeste, registrarPresencaDeTeste } from '../src/test/xpDeTeste';
 import { curtirFotoDeTeste, denunciarFotoDeTeste, estadoDasFotos, fotosDoJogoDeTeste, registrarFotoDeTeste } from '../src/test/fotosDeTeste';
+import { estadoDasNoticias, rpcDeNoticias } from '../src/test/noticiasDeTeste';
 import {
   elencosDaPartida,
   elencosDeTeste,
@@ -129,6 +130,8 @@ export class BackendFalso {
   readonly xp = estadoDoXp();
   /** Silêncios e suspensões aplicados pela equipe. */
   readonly restricoes: RestricaoDeTeste[] = [];
+  /** Notícias (tabelas noticias, noticias_leituras, noticias_curtidas e os comentários); empurre com noticiaDeTeste(). */
+  readonly noticias = estadoDasNoticias();
 
   /** Restringe um torcedor como o back-office faria (suspensão também bane o login e a renovação). */
   restringir(email: string, tipo: RestricaoDeTeste['tipo'], ate = new Date(Date.now() + 3 * 86_400_000).toISOString()) {
@@ -146,6 +149,11 @@ export class BackendFalso {
     await contexto.route('**/rest/v1/**', (rota) => this.rest(rota));
     // Escudos do bucket público: o teste não tem as imagens, então o app mostra o escudo listrado.
     await contexto.route('**/storage/v1/object/public/escudos/**', (rota) => rota.fulfill({ status: 404, body: '' }));
+    // Imagens das notícias vêm de sites externos (URL do feed): nenhuma carrega de verdade no teste.
+    await contexto.route(
+      (url) => url.hostname !== 'localhost' && url.hostname !== 'supabase.e2e',
+      (rota) => (rota.request().resourceType() === 'image' ? rota.abort() : rota.fallback()),
+    );
     await contexto.route('**/storage/v1/object/**/avatares/**', (rota) => this.avatares(rota));
     await contexto.route('**/storage/v1/object/avatares', (rota) => this.avatares(rota));
     await contexto.route('**/storage/v1/object/feedback/**', (rota) => this.printDoFeedback(rota));
@@ -683,6 +691,20 @@ export class BackendFalso {
       if (caminho === '/rpc/meu_extrato') return json(200, extratoDeTeste(this.xp, eu, a.p_limite));
       if (caminho === '/rpc/minhas_missoes') return json(200, missoesDeTeste(this.xp, eu));
       return json(200, rankingDeTeste(this.xp, this.perfis.values(), eu, a));
+    }
+
+    // Notícias: o trigger barrar_restrito roda dentro das regras, depois das checagens da função (como no banco).
+    if (caminho.startsWith('/rpc/') && (caminho.includes('noticia') || caminho === '/rpc/abrir_original')) {
+      if (!usuario) return json(401, { code: '42501', message: `permission denied for function ${caminho.slice(5)}` });
+      const r = rpcDeNoticias(caminho.slice(5), req.postDataJSON() ?? {}, {
+        estado: this.noticias,
+        xp: this.xp,
+        perfis: this.perfis.values(),
+        eu: this.perfis.get(usuario.id),
+        restrito: (publicar) => barrarRestritoDeTeste(this.restricoes, usuario.id, publicar),
+      });
+      if (!r) return json(404, { message: `Rota falsa não implementada: ${req.method()} ${caminho}` });
+      return 'erro' in r ? json(400, { ...r.erro, details: null }) : json(200, r.dados);
     }
 
     if (caminho === '/xp_regras') {
