@@ -675,6 +675,38 @@ $$;
 revoke execute on function public.meu_xp() from public, anon;
 grant execute on function public.meu_xp() to authenticated;
 
+/**
+ * Presença do torcedor logado: a sequência de dias seguidos com login (terminando hoje, ou ontem se hoje ainda não
+ * contou) e os dias desta semana (segunda a domingo, Brasília) em que ele entrou.
+ */
+create function public.minha_presenca()
+returns table (sequencia integer, dias date[])
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with dias as (
+    select distinct (l.criado_em at time zone 'America/Sao_Paulo')::date as dia
+    from public.xp_lancamentos l
+    where l.usuario_id = (select auth.uid()) and l.acao = 'login_diario'
+  ),
+  ilhas as (
+    select d.dia, d.dia - (row_number() over (order by d.dia))::integer as grupo from dias d
+  ),
+  hoje as (select (now() at time zone 'America/Sao_Paulo')::date as dia),
+  ancora as (
+    select i.grupo from ilhas i, hoje h where i.dia in (h.dia, h.dia - 1) order by i.dia desc limit 1
+  )
+  select
+    coalesce((select count(*) from ilhas i, ancora a where i.grupo = a.grupo), 0)::integer,
+    coalesce((select array_agg(d.dia order by d.dia) from dias d
+      where d.dia >= (public.inicio_da_semana() at time zone 'America/Sao_Paulo')::date), '{}');
+$$;
+
+revoke execute on function public.minha_presenca() from public, anon;
+grant execute on function public.minha_presenca() to authenticated;
+
 /** Extrato de XP do torcedor logado, do mais recente para o mais antigo. */
 create function public.meu_extrato(p_limite integer default 30)
 returns table (id bigint, acao text, rotulo text, icone text, xp integer, fator numeric, detalhe text, partida_id integer, criado_em timestamptz)

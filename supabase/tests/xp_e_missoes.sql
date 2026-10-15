@@ -118,6 +118,18 @@ select pg_temp.igual((select count(*) from public.meu_extrato(100)), (select cou
 select pg_temp.igual((select rotulo from public.meu_extrato(100) where acao = 'missao'), 'Missão concluída', 'rótulo da missão');
 select pg_temp.igual((select eu from public.ranking_xp('semana', 10, 10)), true, 'ranking do clube com o torcedor');
 
+-- presença: hoje + 2 dias seguidos antes (datas ajustadas no próprio extrato)
+insert into public.xp_lancamentos (usuario_id, acao, referencia, xp, xp_base, criado_em) values
+  ('00000000-0000-0000-0000-00000000000a', 'login_diario', 'ontem', 20, 20, now() - interval '1 day'),
+  ('00000000-0000-0000-0000-00000000000a', 'login_diario', 'anteontem', 20, 20, now() - interval '2 days'),
+  ('00000000-0000-0000-0000-00000000000a', 'login_diario', 'antigo', 20, 20, now() - interval '5 days');
+select pg_temp.como('00000000-0000-0000-0000-00000000000a');
+select pg_temp.igual((select sequencia from public.minha_presenca()), 3, 'sequência de 3 dias');
+select pg_temp.igual((select (now() at time zone 'America/Sao_Paulo')::date = any(dias) from public.minha_presenca()), true, 'hoje na semana');
+select pg_temp.igual((select coalesce(bool_and(d >= (public.inicio_da_semana() at time zone 'America/Sao_Paulo')::date), true) from public.minha_presenca(), unnest(dias) d), true, 'só dias desta semana');
+select pg_temp.como('00000000-0000-0000-0000-00000000000b');
+select pg_temp.igual((select sequencia from public.minha_presenca()), 0, 'sem login, sequência 0');
+
 -- convite
 update public.perfis set pais = 'BR', time_id = 20, termos_aceitos_em = now(), convidado_por = '00000000-0000-0000-0000-00000000000a'
 where id = '00000000-0000-0000-0000-00000000000b';
