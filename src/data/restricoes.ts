@@ -1,7 +1,7 @@
 // Silêncio e suspensão aplicados pela equipe no back-office (tabela restricoes). O banco barra as ações por trigger
 // (hint 'suspenso' ou 'silenciado'); aqui o app avisa antes e traduz o erro. Suspenso também não entra nem renova a
 // sessão (o Supabase Auth responde user_banned).
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { MENSAGEM_SUSPENSO } from '../auth/suspensao';
 import { supabase } from '../lib/supabase';
 
@@ -23,18 +23,31 @@ export async function buscarRestricoes(): Promise<Restricoes> {
   return { silencioAte: ate('silencio'), suspensaoAte: ate('suspensao') };
 }
 
-/** undefined enquanto carrega. */
+/**
+ * undefined enquanto carrega. Relê sozinho quando a restrição vence (o chat destrava sem recarregar a página) e com
+ * `recarregar` (ex.: o banco recusou o envio porque o silêncio foi aplicado com a tela aberta).
+ */
 export function useMinhasRestricoes(ativo = true) {
   const [restricoes, setRestricoes] = useState<Restricoes | undefined>(undefined);
+  const [leitura, setLeitura] = useState(0);
   useEffect(() => {
     if (!ativo) return;
     let vivo = true;
-    buscarRestricoes().then((r) => vivo && setRestricoes(r));
+    let timer: number | undefined;
+    buscarRestricoes().then((r) => {
+      if (!vivo) return;
+      setRestricoes(r);
+      const fins = [r.silencioAte, r.suspensaoAte].filter((d): d is Date => !!d).map((d) => d.getTime() - Date.now());
+      // setTimeout aceita até ~24,8 dias; restrição mais longa é relida na próxima abertura da tela.
+      const espera = Math.min(...fins);
+      if (fins.length && espera < 2 ** 31 - 1) timer = window.setTimeout(() => setLeitura((n) => n + 1), Math.max(espera, 0) + 1000);
+    });
     return () => {
       vivo = false;
+      window.clearTimeout(timer);
     };
-  }, [ativo]);
-  return restricoes;
+  }, [ativo, leitura]);
+  return { restricoes, recarregar: useCallback(() => setLeitura((n) => n + 1), []) };
 }
 
 const DATA_E_HORA = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });

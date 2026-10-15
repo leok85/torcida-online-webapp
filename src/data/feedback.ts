@@ -143,6 +143,10 @@ export async function enviarFeedback(novo: NovoFeedback): Promise<FeedbackRow> {
     })
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    // Recusado (limite, conta suspensa...): o print não fica sobrando no bucket.
+    if (anexo) await supabase.storage.from('feedback').remove([anexo]);
+    throw error;
+  }
   return data;
 }

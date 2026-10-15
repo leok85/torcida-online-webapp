@@ -20,18 +20,15 @@ test('conta suspensa não entra: o login mostra a suspensão', async ({ page, ba
   await expect(page).toHaveURL(/\/entrar$/);
 });
 
-test('suspensa com a sessão aberta: a renovação é recusada, a sessão cai e a tela de entrar explica', async ({ page, backend }) => {
+test('suspensa com o app aberto: na próxima troca de tela a sessão cai e a tela de entrar explica', async ({ page, backend }) => {
   await entrar(page);
-  await page.waitForURL((u) => !u.pathname.startsWith('/entrar'));
+  await expect(page.getByRole('banner')).toBeVisible();
+  // A equipe suspende: as sessões são apagadas, mas o token de acesso ainda vale (até 1 h).
   backend.restringir('rafa@example.com', 'suspensao');
-
-  // O token de acesso venceu: ao reabrir, o cliente tenta renovar e o Auth responde user_banned.
-  await page.evaluate(() => {
-    const chave = Object.keys(localStorage).find((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))!;
-    const sessao = JSON.parse(localStorage.getItem(chave)!);
-    localStorage.setItem(chave, JSON.stringify({ ...sessao, expires_at: Math.floor(Date.now() / 1000) - 60 }));
-  });
-  await page.reload();
+  await page.goto('/jogos');
   await expect(page).toHaveURL(/\/entrar$/);
   await expect(page.getByText(SUSPENSA)).toBeVisible();
+  // E não volta a entrar.
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/entrar$/);
 });

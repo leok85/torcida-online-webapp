@@ -4,6 +4,8 @@ import { ApenasAssinante } from '../../assinatura/Bloqueio';
 import { useAuth } from '../../auth/AuthContext';
 import { JogosDoClubeProvider } from '../../partidas/JogosDoClube';
 import { XpProvider } from '../../xp/MeuXp';
+import { guardarAvisoDeEntrada } from '../../auth/avisoDeEntrada';
+import { buscarRestricoes, MENSAGEM_SUSPENSO } from '../../data/restricoes';
 import { AccountMenu } from './AccountMenu';
 import { Header } from './Header';
 import { InviteModal } from './InviteModal';
@@ -51,6 +53,21 @@ export function AppShell() {
   const { perfil } = useAuth();
 
   useEffect(() => setPanel(null), [pathname]);
+
+  // Suspensão aplicada com o app aberto: a equipe apaga as sessões, mas o token de acesso ainda vale até 1 h.
+  // A cada troca de tela o app confere e, suspenso, sai com o recado na tela de entrar.
+  const { sair } = useAuth();
+  useEffect(() => {
+    let vivo = true;
+    buscarRestricoes().then((r) => {
+      if (!vivo || !r.suspensaoAte) return;
+      guardarAvisoDeEntrada(MENSAGEM_SUSPENSO);
+      void sair();
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [pathname, sair]);
 
   const togglePanel = (p: Exclude<Panel, null>) => setPanel((cur) => (cur === p ? null : p));
   const openInvite = () => {

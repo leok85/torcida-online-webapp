@@ -314,7 +314,7 @@ export function FotosDoJogo() {
   const [denunciando, setDenunciando] = useState<FotoDaTorcida | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   // Silenciado ou suspenso não publica: o botão trava antes, e o banco barra de qualquer jeito.
-  const bloqueio = motivoParaNaoPublicar(useMinhasRestricoes(!!perfil));
+  const bloqueio = motivoParaNaoPublicar(useMinhasRestricoes(!!perfil).restricoes);
 
   useEffect(() => {
     if (!aberto) return;
