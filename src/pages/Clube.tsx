@@ -3,6 +3,7 @@ import { Icon } from '../components/ui/Icon';
 import { Progress } from '../components/ui/Progress';
 import ui from '../styles/ui.module.css';
 import styles from './Clube.module.css';
+import { useMeuXp } from '../xp/MeuXp';
 
 type Milestone = { name: string; sub: string; state: 'done' | 'next' | 'locked'; icon?: string };
 
@@ -21,6 +22,7 @@ const MILESTONE_STYLE = {
 };
 
 export function Clube({ onInvite }: { onInvite?: () => void }) {
+  const { regras } = useMeuXp();
   return (
     <div className={styles.page}>
       <div className={ui.pageHead}>
@@ -60,7 +62,7 @@ export function Clube({ onInvite }: { onInvite?: () => void }) {
           </section>
           <button type="button" className={styles.invite} onClick={onInvite}>
             <Icon name="group_add" size={21} />
-            Convidar torcedores · +100 XP
+            Convidar torcedores · +{regras.convite_aceito} XP
           </button>
           <div className={styles.note}>
             <Icon name="info" size={20} color="var(--gold)" />

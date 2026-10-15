@@ -55,6 +55,14 @@ describe('guards de rota', () => {
     await waitFor(() => expect(local()).toBe('/entrar'));
   });
 
+  it('conta corporativa não abre o app: pede a conta pessoal', async () => {
+    supabaseFalso.logar(perfilDeTeste(), 'ana@torcidaonline.com.br');
+    const { user, local } = renderApp('/');
+    expect(await screen.findByRole('heading', { name: 'Essa é uma conta corporativa' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Sair e usar outra conta' }));
+    await waitFor(() => expect(local()).toBe('/entrar'));
+  });
+
   it('o botão Sair do menu da conta encerra a sessão', async () => {
     supabaseFalso.logar(perfilDeTeste());
     const { user, local } = renderApp('/');

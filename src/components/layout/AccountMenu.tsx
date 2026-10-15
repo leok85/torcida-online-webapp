@@ -5,6 +5,7 @@ import { Avatar } from '../ui/Avatar';
 import { Icon } from '../ui/Icon';
 import { Progress } from '../ui/Progress';
 import styles from './AccountMenu.module.css';
+import { useMeuXp } from '../../xp/MeuXp';
 
 type AccountMenuProps = {
   onClose: () => void;
@@ -16,6 +17,7 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { perfil, assinante, sair } = useAuth();
+  const { regras } = useMeuXp();
   const items = [
     { id: 'perfil', label: 'Meu perfil', sub: 'nível, conquistas e histórico', icon: 'person', action: () => { navigate('/perfil'); onClose(); } },
     {
@@ -25,7 +27,7 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
       icon: 'workspace_premium',
       action: () => { navigate('/conta/assinatura'); onClose(); },
     },
-    { id: 'convite', label: 'Convidar amigos', sub: '+100 XP por amigo', icon: 'group_add', action: onOpenInvite },
+    { id: 'convite', label: 'Convidar amigos', sub: `+${regras.convite_aceito} XP por amigo`, icon: 'group_add', action: onOpenInvite },
     { id: 'conta', label: 'Dados da conta', sub: 'nome, e-mail e senha', icon: 'badge', action: () => { navigate('/conta/dados'); onClose(); } },
     { id: 'notif', label: 'Preferências de notificação', sub: 'o que você recebe', icon: 'notifications_active', action: onOpenNotif },
     {
@@ -39,7 +41,7 @@ export function AccountMenu({ onClose, onOpenInvite, onOpenNotif }: AccountMenuP
     {
       id: 'feedback',
       label: 'Enviar feedback',
-      sub: '+50 XP por envio',
+      sub: `+${regras.feedback} XP por envio`,
       icon: 'lightbulb',
       // A tela de origem já marca a área do feedback.
       action: () => { navigate('/conta/feedback', { state: { de: pathname } }); onClose(); },

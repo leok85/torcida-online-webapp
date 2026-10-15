@@ -17,6 +17,7 @@ import {
 import { useJogosDoClube } from '../partidas/JogosDoClube';
 import ui from '../styles/ui.module.css';
 import styles from './Inicio.module.css';
+import { useMeuXp } from '../xp/MeuXp';
 
 /** Relógio da contagem regressiva e do "há quanto tempo": atualiza a cada minuto. */
 function useAgora() {
@@ -87,6 +88,7 @@ const placar = (p: Partida) => `${p.mandante_nome} ${p.gols_mandante ?? 0} x ${p
 
 /** W01 · card do clube em três momentos: ao vivo, encerrado (até a véspera do próximo) e véspera do próximo jogo. */
 export function CardPartida({ clubeNome }: { clubeNome: string }) {
+  const { regras } = useMeuXp();
   const navigate = useNavigate();
   const agora = useAgora();
   const { jogos, erro, tentarDeNovo } = useJogosDoClube();
@@ -179,7 +181,7 @@ export function CardPartida({ clubeNome }: { clubeNome: string }) {
             <div className={styles.nota}>
               <Icon name="how_to_reg" size={19} color="var(--green-light)" />
               <span className={styles.notaTexto}>Palpite e escalação abertos até 15 min antes</span>
-              <span className={styles.notaXp}>+80 XP</span>
+              <span className={styles.notaXp}>+{regras.palpite_enviado} XP</span>
             </div>
             <button type="button" className={styles.chatBtn} onClick={() => navigate(`/jogo/${jogo.id}/escalacao`)}>
               <Icon name="sports_soccer" size={20} />

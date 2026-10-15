@@ -28,6 +28,7 @@ import ui from '../../styles/ui.module.css';
 import { FaixaDoJogo, useJogo } from './Jogo';
 import jogo from './Jogo.module.css';
 import styles from './Fotos.module.css';
+import { useMeuXp } from '../../xp/MeuXp';
 
 const numero = (n: number) => n.toLocaleString('pt-BR');
 const megas = (bytes: number) => `${(bytes / 1024 / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
@@ -72,6 +73,7 @@ function EnviarFoto({
   onFechar: () => void;
   onEnviada: () => void;
 }) {
+  const { regras } = useMeuXp();
   const [etapa, setEtapa] = useState<Etapa>({ tipo: 'escolher' });
   const [etiqueta, setEtiqueta] = useState<Etiqueta | null>(null);
   const [legenda, setLegenda] = useState('');
@@ -247,7 +249,7 @@ function EnviarFoto({
           <p>Ela já está no mural deste jogo. As mais curtidas entram nas melhores fotos.</p>
           <span className={styles.xp}>
             <Icon name="bolt" size={16} />
-            +40 XP
+            +{regras.foto_enviada} XP
           </span>
           <div className={styles.enviadoBotoes}>
             <button type="button" className={styles.verMural} onClick={onFechar}>
@@ -299,6 +301,7 @@ function Imagem({ foto, altura }: { foto: FotoDaTorcida; altura: number }) {
 
 /** W07 · fotos da torcida de um jogo: a foto campeã, como ganhar XP e o mural. */
 export function FotosDoJogo() {
+  const { regras } = useMeuXp();
   const { id: param } = useParams();
   const id = Number(param);
   const { perfil } = useAuth();
@@ -390,7 +393,7 @@ export function FotosDoJogo() {
           <div className={ui.spacer} />
           <button type="button" className={styles.enviarFoto} disabled={!podeEnviar} title={motivo ?? undefined} onClick={() => setEnviando(true)}>
             <Icon name="add_a_photo" size={20} />
-            Enviar foto · +40 XP
+            Enviar foto · +{regras.foto_enviada} XP
           </button>
         </div>
         {motivo && doJogo && <p className={styles.motivo}>{motivo}</p>}
@@ -417,7 +420,7 @@ export function FotosDoJogo() {
                     <span className={styles.campeaRotulo}>{aberto ? 'Mais curtida até agora' : 'Foto campeã do jogo'}</span>
                     <span className={styles.campeaXp}>
                       <Icon name="bolt" size={15} />
-                      +500 XP
+                      +{regras.foto_campea} XP
                     </span>
                   </div>
                   <Imagem foto={campea} altura={300} />
@@ -449,19 +452,12 @@ export function FotosDoJogo() {
                     <li>
                       <Icon name="add_a_photo" size={19} color="var(--primary)" />
                       <span className={styles.regraXp}>Enviar foto</span>
-                      <strong>+40 XP</strong>
-                    </li>
-                    <li>
-                      <Icon name="thumb_up" size={19} color="var(--primary)" />
-                      <span className={styles.regraXp}>
-                        Dar joinha <span className={styles.opcional}>(até 20 por jogo)</span>
-                      </span>
-                      <strong>+5 XP</strong>
+                      <strong>+{regras.foto_enviada} XP</strong>
                     </li>
                     <li>
                       <Icon name="emoji_events" size={19} color="var(--gold)" />
                       <span className={styles.regraXp}>Foto mais votada</span>
-                      <strong>+500 XP</strong>
+                      <strong>+{regras.foto_campea} XP</strong>
                     </li>
                   </ul>
                 </section>

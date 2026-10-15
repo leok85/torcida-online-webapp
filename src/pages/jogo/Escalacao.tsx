@@ -34,6 +34,7 @@ import ui from '../../styles/ui.module.css';
 import { FaixaDoJogo, useJogo } from './Jogo';
 import jogo from './Jogo.module.css';
 import styles from './Escalacao.module.css';
+import { useMeuXp } from '../../xp/MeuXp';
 
 const MAX_GOLS = 9;
 /** De quanto em quanto tempo a tela confere se o palpite fechou (15 min antes do início). */
@@ -127,6 +128,7 @@ function Formulario({
   aoSalvar: (p: Palpite) => void;
 }) {
   const { perfil } = useAuth();
+  const { regras } = useMeuXp();
   const mandante = perfil?.time_id === partida.mandante_id;
   const meuElenco = mandante ? elencos.mandante : elencos.visitante;
   const travado = situacao !== 'aberto';
@@ -317,11 +319,11 @@ function Formulario({
             </div>
             <div className={styles.rewardFirst}>
               <span>Placar exato</span>
-              <strong>+240 XP</strong>
+              <strong>+{regras.palpite_exato} XP</strong>
             </div>
             <div className={styles.reward}>
               <span>Só o vencedor</span>
-              <strong>+60 XP</strong>
+              <strong>+{regras.palpite_vencedor} XP</strong>
             </div>
 
             <div className={styles.quemMarca}>
@@ -330,7 +332,7 @@ function Formulario({
                   <span className={styles.quemMarcaTitulo}>
                     Quem marca? <span className={styles.opcional}>(opcional)</span>
                   </span>
-                  <span className={styles.quemMarcaSub}>+40 XP por autor de gol certo</span>
+                  <span className={styles.quemMarcaSub}>+{regras.palpite_autor} XP por autor de gol certo</span>
                 </span>
                 <Icon name={quemMarcaAberto ? 'expand_less' : 'expand_more'} size={22} color="var(--primary)" />
               </button>
@@ -574,6 +576,7 @@ function PalpiteEncerrado({ partida, jogos }: { partida: Partida; jogos: Partida
 
 /** W03 · escalação ideal e palpite de um jogo: só antes do jogo; depois fica para consulta. */
 export function EscalacaoEPalpite() {
+  const { regras } = useMeuXp();
   const { id: param } = useParams();
   const id = Number(param);
   const { perfil } = useAuth();
@@ -649,7 +652,7 @@ export function EscalacaoEPalpite() {
               Encerrado
             </div>
           ) : (
-            <div className={ui.xpPill}>+80 XP</div>
+            <div className={ui.xpPill}>+{regras.palpite_enviado} XP</div>
           )}
         </div>
 

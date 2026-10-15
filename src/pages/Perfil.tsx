@@ -2,6 +2,9 @@ import { useAuth } from '../auth/AuthContext';
 import { Crest } from '../components/ui/Crest';
 import { Icon } from '../components/ui/Icon';
 import { Progress } from '../components/ui/Progress';
+import { useCarga } from '../data/useCarga';
+import { buscarExtrato, quandoFoi, xpEmTexto, type LancamentoDeXp } from '../data/xp';
+import { useMeuXp } from '../xp/MeuXp';
 import ui from '../styles/ui.module.css';
 import styles from './Perfil.module.css';
 
@@ -18,25 +21,32 @@ const GOLD = { color: '#C8901A', bg: '#FFF4D6' };
 const GREEN = { color: '#2A6E0D', bg: '#E1F4D8' };
 const BLUE = { color: '#00419B', bg: '#DCE8F9' };
 
-const HISTORY = [
-  { when: 'hoje 23:12', icon: 'military_tech', text: 'Votou no MVP da partida', xp: '+60', ...GOLD },
-  { when: 'hoje 23:04', icon: 'how_to_reg', text: 'Palpite exato: Clube B 2 x 1 Clube E', xp: '+240', ...GREEN },
-  { when: 'hoje 21:38', icon: 'photo_camera', text: 'Enviou foto na janela pré-jogo', xp: '+40', ...BLUE },
-  { when: 'hoje 19:02', icon: 'forum', text: '18 mensagens no chat da partida', xp: '+90', ...BLUE },
-  { when: 'hoje 08:11', icon: 'local_fire_department', text: 'Login diário · 3 dias seguidos', xp: '+20', ...GOLD },
-  { when: 'ontem 22:40', icon: 'bolt', text: 'Subiu para o nível 24', xp: '—', ...GREEN },
-  { when: 'ontem 20:15', icon: 'groups', text: 'Léo.Mansur entrou pelo seu convite', xp: '+100', ...BLUE },
-  { when: '2 d atrás', icon: 'inventory_2', text: 'Abriu pacote prata', xp: '+640', color: '#8E9BAB', bg: '#EBF0F6' },
-];
+const VISUAL: Record<string, { color: string; bg: string }> = {
+  login_diario: GOLD,
+  palpite_exato: GREEN,
+  palpite_vencedor: GREEN,
+  palpite_autor: GREEN,
+  foto_campea: GOLD,
+  missao: GREEN,
+};
 
-const STATS = [
-  { value: '12º', label: 'TEMPORADA' },
-  { value: '440', label: 'MOEDAS' },
-  { value: '7', label: 'CONQUISTAS' },
-];
+/** Texto do lançamento: o detalhe pronto do banco ou, sem ele, o rótulo da ação. */
+function textoDo(l: LancamentoDeXp) {
+  if (l.acao === 'missao') return `Missão concluída: ${l.detalhe ?? ''}`.trim();
+  if (l.acao === 'palpite_exato' || l.acao === 'palpite_autor' || l.acao === 'convite_aceito') return l.detalhe ?? l.rotulo;
+  return l.detalhe ? `${l.rotulo} · ${l.detalhe}` : l.rotulo;
+}
 
 export function Perfil() {
   const { perfil } = useAuth();
+  const { xp, posicao } = useMeuXp();
+  // Relê junto com o XP: cada crédito novo (inclusive o login do dia) entra no extrato.
+  const extrato = useCarga(xp === undefined ? null : `extrato:${xp?.xp_total}`, () => buscarExtrato(30), { manter: true }).dados;
+  const stats = [
+    { value: posicao ? `${posicao}º` : '–', label: 'TEMPORADA' },
+    { value: '440', label: 'MOEDAS' },
+    { value: '7', label: 'CONQUISTAS' },
+  ];
   return (
     <div className={styles.page}>
       <div className={styles.grid}>
@@ -45,7 +55,7 @@ export function Perfil() {
             <div className={styles.identity}>
               <div className={styles.ring}>
                 <div className={styles.ringInner}>
-                  <div className={styles.ringValue}>24</div>
+                  <div className={styles.ringValue}>{xp?.nivel ?? '–'}</div>
                   <div className={styles.ringLabel}>NÍVEL</div>
                 </div>
               </div>
@@ -55,15 +65,24 @@ export function Perfil() {
                   <Crest width={24} height={27} tone="dark" clubeId={perfil?.clube?.id} />
                   {perfil?.clube?.nome} · desde {perfil && new Date(perfil.criado_em).getFullYear()}
                 </div>
-                <Progress value="62%" height={9} track="rgba(255,255,255,.14)" fill="var(--xp-gradient-green)" />
-                <div className={styles.xpScale}>
-                  <span>1.480 XP</span>
-                  <span>920 para o 25</span>
-                </div>
+                <Progress
+                  value={xp ? `${(xp.xp_no_nivel / xp.xp_do_nivel) * 100}%` : '0%'}
+                  height={9}
+                  track="rgba(255,255,255,.14)"
+                  fill="var(--xp-gradient-green)"
+                />
+                {xp && (
+                  <div className={styles.xpScale}>
+                    <span>{xpEmTexto(xp.xp_no_nivel)} XP</span>
+                    <span>
+                      {xpEmTexto(xp.xp_do_nivel - xp.xp_no_nivel)} para o {xp.nivel + 1}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <div className={styles.stats}>
-              {STATS.map((s) => (
+              {stats.map((s) => (
                 <div key={s.label} className={styles.stat}>
                   <div className={styles.statValue}>{s.value}</div>
                   <div className={styles.statLabel}>{s.label}</div>
@@ -98,20 +117,27 @@ export function Perfil() {
         <section className={styles.history}>
           <div className={styles.historyHead}>
             <h3 className={ui.titleLg}>Histórico de XP</h3>
-            <div className={styles.period}>últimos 90 dias</div>
+            <div className={styles.period}>últimos lançamentos</div>
           </div>
-          {HISTORY.map((h) => (
-            <div key={h.when} className={styles.entry}>
-              <div className={styles.entryIcon} style={{ background: h.bg }}>
-                <Icon name={h.icon} size={20} color={h.color} />
+          {extrato?.length === 0 && <p className={styles.vazio}>Seu XP aparece aqui: dê um palpite, fale no chat ou avalie os jogadores.</p>}
+          {extrato?.map((l) => {
+            const v = VISUAL[l.acao] ?? BLUE;
+            return (
+              <div key={l.id} className={styles.entry}>
+                <div className={styles.entryIcon} style={{ background: v.bg }}>
+                  <Icon name={l.icone} size={20} color={v.color} />
+                </div>
+                <div className={styles.entryBody}>
+                  <div className={styles.entryText}>{textoDo(l)}</div>
+                  <div className={styles.entryWhen}>
+                    {quandoFoi(l.criado_em)}
+                    {l.fator > 1 && ` · ${String(l.fator).replace('.', ',').replace(/,?0+$/, '')}× XP`}
+                  </div>
+                </div>
+                <div className={styles.entryXp}>+{xpEmTexto(l.xp)}</div>
               </div>
-              <div className={styles.entryBody}>
-                <div className={styles.entryText}>{h.text}</div>
-                <div className={styles.entryWhen}>{h.when}</div>
-              </div>
-              <div className={styles.entryXp}>{h.xp}</div>
-            </div>
-          ))}
+            );
+          })}
         </section>
       </div>
     </div>

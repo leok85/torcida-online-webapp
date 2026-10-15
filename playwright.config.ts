@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORTA = 5174;
+// PORTA_E2E troca a porta quando a 5174 está ocupada (ex.: o Vite do back-office rodando junto).
+const PORTA = Number(process.env.PORTA_E2E ?? 5174);
 const CI = !!process.env.CI;
 
 export default defineConfig({

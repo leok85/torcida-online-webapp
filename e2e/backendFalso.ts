@@ -1,6 +1,7 @@
 // Supabase falso para o Playwright: intercepta /auth/v1 e /rest/v1 no navegador e guarda tudo em memória.
 // Reproduz as regras do servidor que o app depende (supabase/migrations): perfil criado no cadastro, apelido único,
 // datas de aceite e onboarding definidas pelo servidor. Os "e-mails" ficam em `emails` para o teste ler o código.
+import { estadoDoXp, extratoDeTeste, meuXpDeTeste, minhaPresencaDeTeste, missoesDeTeste, rankingDeTeste, registrarPresencaDeTeste } from '../src/test/xpDeTeste';
 import { curtirFotoDeTeste, denunciarFotoDeTeste, estadoDasFotos, fotosDoJogoDeTeste, registrarFotoDeTeste } from '../src/test/fotosDeTeste';
 import {
   elencosDaPartida,
@@ -123,6 +124,8 @@ export class BackendFalso {
   readonly prints = new Map<string, { corpo: Buffer; tipo: string }>();
   /** Fotos da torcida (tabelas fotos_torcida, fotos_joinhas, fotos_denuncias) e os arquivos do bucket fotos-torcida. */
   readonly fotosDaTorcida = estadoDasFotos();
+  /** XP: lançamentos (empurre com lancarXp), missões e regras. */
+  readonly xp = estadoDoXp();
   readonly arquivosDasFotos = new Map<string, { corpo: Buffer; tipo: string }>();
   private sequencia = 0;
   /** Provedores sociais ligados (resposta de /auth/v1/settings). */
@@ -632,6 +635,23 @@ export class BackendFalso {
       if (caminho === '/rpc/notas_da_torcida') return json(200, notasDaTorcidaDeTeste(this.notasJogadores, perfil, assinante, p_partida));
       const r = enviarNotasDeTeste(this.notasJogadores, perfil, assinante, this.partidas.find((p) => p.id === p_partida), this.detalhes.get(p_partida), p_notas);
       return typeof r === 'number' ? json(200, r) : json(400, { code: r.code, message: r.hint, hint: r.hint, details: null });
+    }
+
+    if (['/rpc/registrar_presenca', '/rpc/meu_xp', '/rpc/minha_presenca', '/rpc/meu_extrato', '/rpc/minhas_missoes', '/rpc/ranking_xp'].includes(caminho)) {
+      if (!usuario) return json(401, { code: '42501', message: `permission denied for function ${caminho.slice(5)}` });
+      const eu = this.perfis.get(usuario.id);
+      const a = (req.postDataJSON() ?? {}) as { p_limite?: number; p_periodo?: string; p_clube?: number | null };
+      if (caminho === '/rpc/registrar_presenca') return json(200, registrarPresencaDeTeste(this.xp, eu));
+      if (caminho === '/rpc/meu_xp') return json(200, meuXpDeTeste(this.xp, eu));
+      if (caminho === '/rpc/minha_presenca') return json(200, minhaPresencaDeTeste(this.xp, eu));
+      if (caminho === '/rpc/meu_extrato') return json(200, extratoDeTeste(this.xp, eu, a.p_limite));
+      if (caminho === '/rpc/minhas_missoes') return json(200, missoesDeTeste(this.xp, eu));
+      return json(200, rankingDeTeste(this.xp, this.perfis.values(), eu, a));
+    }
+
+    if (caminho === '/xp_regras') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for table xp_regras' });
+      return json(200, this.xp.regras);
     }
 
     if (caminho === '/rpc/sou_assinante') {

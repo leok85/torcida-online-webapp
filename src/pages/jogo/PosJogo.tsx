@@ -22,12 +22,10 @@ import ui from '../../styles/ui.module.css';
 import { FaixaDoJogo, Placar, useJogo } from './Jogo';
 import jogo from './Jogo.module.css';
 import styles from './PosJogo.module.css';
+import { useMeuXp } from '../../xp/MeuXp';
 
 /** Com a janela aberta, as médias e o relógio são relidos a cada 30 s. */
 export const ATUALIZAR_NOTAS_MS = 30_000;
-/** XP de cada item (valores do design; o sistema de XP ainda não credita). */
-const XP_DO_CHAT = 60;
-const XP_DAS_NOTAS = 50;
 
 /** Relógio da janela: atualiza a cada 30 s enquanto as notas estão abertas. */
 function useAgora(ativo: boolean) {
@@ -81,19 +79,22 @@ function useMinhasMensagens(partidaId: number | undefined, usuarioId: string | u
 // ---------- Seu XP neste jogo ----------
 
 function XpDoJogo({ mensagens, enviou, abertas, minutos }: { mensagens: number | null; enviou: boolean; abertas: boolean; minutos: number }) {
+  const { regras } = useMeuXp();
+  // Cada mensagem rende o XP da regra, até o limite por jogo; sem mensagens, mostra o máximo possível (ou o de uma, sem limite).
+  const limiteDoChat = regras.limites.mensagem_chat;
   const itens = [
     {
       icone: 'forum',
       titulo: 'Presença no chat',
       sub: mensagens ? `${mensagens} ${mensagens === 1 ? 'mensagem' : 'mensagens'}` : 'nenhuma mensagem',
-      xp: XP_DO_CHAT,
+      xp: regras.mensagem_chat * (mensagens ? Math.min(mensagens, limiteDoChat ?? mensagens) : (limiteDoChat ?? 1)),
       ok: !!mensagens,
     },
     {
       icone: 'star_rate',
       titulo: 'Notas dos jogadores',
       sub: enviou ? 'enviadas' : abertas ? `pendente · fecha em ${minutos} min` : 'não enviadas',
-      xp: XP_DAS_NOTAS,
+      xp: regras.notas,
       ok: enviou,
     },
   ];
@@ -190,6 +191,7 @@ function SuasNotas({
   minutos: number;
   aoEnviar: () => Promise<void>;
 }) {
+  const { regras } = useMeuXp();
   const salvas = useMemo(() => new Map((notas ?? []).filter((n) => n.minha).map((n) => [n.jogador_id, n.minha!])), [notas]);
   const [rascunho, setRascunho] = useState<Map<number, number>>(new Map());
   const [aberto, setAberto] = useState<number | null>(null);
@@ -326,7 +328,7 @@ function SuasNotas({
       )}
       {abertas && jogadores.length > 0 && (
         <button type="button" className={styles.enviar} disabled={!pendentes.length || enviando} onClick={enviar}>
-          {enviando ? 'Enviando…' : enviado && !pendentes.length ? 'Avaliações enviadas' : `Enviar avaliações · +${XP_DAS_NOTAS} XP`}
+          {enviando ? 'Enviando…' : enviado && !pendentes.length ? 'Avaliações enviadas' : `Enviar avaliações · +${regras.notas} XP`}
         </button>
       )}
     </section>

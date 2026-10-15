@@ -44,6 +44,22 @@ export type Database = {
         };
         Relationships: [];
       };
+      xp_regras: {
+        Row: {
+          acao: string;
+          rotulo: string;
+          xp: number;
+          limite: number | null;
+          limite_por: 'dia' | 'semana' | 'partida' | null;
+          observacao: string | null;
+          icone: string;
+          ordem: number;
+          atualizado_em: string;
+        };
+        Insert: { acao?: never };
+        Update: { acao?: never };
+        Relationships: [];
+      };
       lembretes_palpite: {
         Row: { partida_id: number; usuario_id: string; criado_em: string };
         Insert: { partida_id: number; usuario_id?: string; criado_em?: string };
@@ -443,6 +459,54 @@ export type Database = {
       registrar_foto: { Args: { p_partida: number; p_caminho: string; p_etiqueta: string; p_legenda?: string }; Returns: string };
       curtir_foto: { Args: { p_foto: string }; Returns: boolean };
       denunciar_foto: { Args: { p_foto: string }; Returns: undefined };
+      registrar_presenca: { Args: Record<string, never>; Returns: number };
+      meu_xp: {
+        Args: Record<string, never>;
+        Returns: {
+          xp_total: number;
+          nivel: number;
+          xp_no_nivel: number;
+          xp_do_nivel: number;
+          xp_semana: number;
+          xp_temporada: number;
+          posicao_temporada: number;
+        }[];
+      };
+      minha_presenca: { Args: Record<string, never>; Returns: { sequencia: number; dias: string[] }[] };
+      meu_extrato: {
+        Args: { p_limite?: number };
+        Returns: {
+          id: number;
+          acao: string;
+          rotulo: string;
+          icone: string;
+          xp: number;
+          fator: number;
+          detalhe: string | null;
+          partida_id: number | null;
+          criado_em: string;
+        }[];
+      };
+      minhas_missoes: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          titulo: string;
+          regra: string;
+          icone: string;
+          tipo: 'semanal' | 'por_jogo' | 'continua';
+          acao: string;
+          meta: number;
+          progresso: number;
+          xp: number;
+          concluida_em: string | null;
+          termina_em: string | null;
+        }[];
+      };
+      ranking_xp: {
+        Args: { p_periodo?: 'temporada' | 'mes' | 'semana'; p_clube?: number | null; p_limite?: number };
+        Returns: { posicao: number; usuario_id: string; apelido: string; clube_id: number; xp: number; nivel: number; eu: boolean }[];
+      };
       fotos_do_jogo: {
         Args: { p_partida: number };
         Returns: {

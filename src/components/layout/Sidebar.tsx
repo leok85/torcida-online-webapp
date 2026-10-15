@@ -5,6 +5,7 @@ import { NAV_CLUB, NAV_MAIN, type NavItem } from '../../routes';
 import { Icon } from '../ui/Icon';
 import ui from '../../styles/ui.module.css';
 import styles from './Sidebar.module.css';
+import { useMeuXp } from '../../xp/MeuXp';
 
 function NavEntry({ item }: { item: NavItem }) {
   const { assinante } = useAuth();
@@ -41,6 +42,7 @@ function NavEntry({ item }: { item: NavItem }) {
 }
 
 export function Sidebar({ onInvite }: { onInvite: () => void }) {
+  const { regras } = useMeuXp();
   return (
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.brand}>
@@ -61,7 +63,7 @@ export function Sidebar({ onInvite }: { onInvite: () => void }) {
           <Icon name="group_add" size={20} color="var(--green-neon)" />
           <span className={styles.inviteText}>
             <strong>Convidar amigos</strong>
-            <span>+100 XP por amigo</span>
+            <span>+{regras.convite_aceito} XP por amigo</span>
           </span>
           <Icon name="chevron_right" size={18} color="rgba(255, 255, 255, 0.6)" />
         </button>

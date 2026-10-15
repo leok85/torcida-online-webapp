@@ -1,5 +1,6 @@
 // Supabase falso em memória para os testes do Vitest. O setup.ts troca src/lib/supabase por este módulo
 // em todos os testes, então nada aqui fala com a rede.
+import { estadoDoXp, extratoDeTeste, meuXpDeTeste, minhaPresencaDeTeste, missoesDeTeste, rankingDeTeste, registrarPresencaDeTeste } from './xpDeTeste';
 import { curtirFotoDeTeste, denunciarFotoDeTeste, estadoDasFotos, fotosDoJogoDeTeste, registrarFotoDeTeste } from './fotosDeTeste';
 import {
   elencosDaPartida,
@@ -152,6 +153,7 @@ function criar() {
   const palpites: PalpiteDeTeste[] = [];
   const lembretes: { partida_id: number; usuario_id: string }[] = [];
   let fotosDaTorcida = estadoDasFotos();
+  let xp = estadoDoXp();
   let elencos = elencosDeTeste();
   const canais = new Set<CanalFalso>();
   let tempoRealFora = false;
@@ -595,6 +597,7 @@ function criar() {
     palpites.length = 0;
     lembretes.length = 0;
     fotosDaTorcida = estadoDasFotos();
+    xp = estadoDoXp();
     elencos = elencosDeTeste();
     canais.clear();
     tempoRealFora = false;
@@ -640,6 +643,16 @@ function criar() {
         const r = enviarPalpiteDeTeste(palpites, eu, minhas().some(daAcesso), partidas, elencos, args as object);
         return r ? { data: null, error: { code: r.code, message: r.hint, hint: r.hint } } : ok(null);
       }
+      if (['registrar_presenca', 'meu_xp', 'minha_presenca', 'meu_extrato', 'minhas_missoes', 'ranking_xp'].includes(fn)) {
+        const eu = sessao ? perfis.get(sessao.user.id) : undefined;
+        const a = (args ?? {}) as { p_limite?: number; p_periodo?: string; p_clube?: number | null };
+        if (fn === 'registrar_presenca') return ok(registrarPresencaDeTeste(xp, eu));
+        if (fn === 'meu_xp') return ok(meuXpDeTeste(xp, eu));
+        if (fn === 'minha_presenca') return ok(minhaPresencaDeTeste(xp, eu));
+        if (fn === 'meu_extrato') return ok(extratoDeTeste(xp, eu, a.p_limite));
+        if (fn === 'minhas_missoes') return ok(missoesDeTeste(xp, eu));
+        return ok(rankingDeTeste(xp, perfis.values(), eu, a));
+      }
       if (fn === 'convite_de') {
         const dono = donoDoConvite(perfis.values(), args!.codigo);
         return ok(dono ? [{ apelido: dono.apelido, clube: CLUBES_DE_TESTE.find((c) => c.id === dono.time_id)?.nome ?? null }] : []);
@@ -671,7 +684,9 @@ function criar() {
       return ok(!apelidoEmUso(args!.apelido!, sessao?.user.id) && !apelidoReservado(args!.apelido!, sessao?.user.id));
     });
     from.mockReset().mockImplementation((tabela: string) =>
-      tabela === 'mensagens_chat'
+      tabela === 'xp_regras'
+        ? { select: async () => ok(xp.regras) }
+        : tabela === 'mensagens_chat'
         ? consultaChat()
         : tabela === 'feedbacks'
         ? consultaFeedbacks()
@@ -711,6 +726,8 @@ function criar() {
     palpites: () => palpites,
     /** Pedidos de "Me avise" do próximo palpite (de todos os torcedores). */
     lembretes: () => lembretes,
+    /** XP: lançamentos (empurre com lancarXp), missões e regras (de todos os torcedores). */
+    xp: () => xp,
     /** Fotos da torcida gravadas, joinhas e denúncias (de todos os torcedores). */
     fotosDaTorcida: () => fotosDaTorcida,
     /** Elenco de um clube, como a função elenco-da-partida devolveria (padrão: Palmeiras e Corinthians). */

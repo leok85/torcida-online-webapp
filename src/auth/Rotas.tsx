@@ -6,6 +6,7 @@ import { Icon } from '../components/ui/Icon';
 import { dataCurta } from '../data/conta';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { contaCorporativa } from './contaCorporativa';
 import styles from './Rotas.module.css';
 
 export type DestinoState = { de?: string } | null;
@@ -42,6 +43,25 @@ function TelaErroPerfil() {
           <Button variant="neutral" onClick={sair}>
             Sair
           </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Conta com e-mail do domínio corporativo: serve só para o back-office, sem perfil de torcedor. */
+function TelaContaCorporativa({ email }: { email: string }) {
+  const { sair } = useAuth();
+  return (
+    <div className={styles.tela}>
+      <div className={styles.erro}>
+        <Icon name="badge" size={30} color="var(--muted)" />
+        <h1 className={styles.titulo}>Essa é uma conta corporativa</h1>
+        <p className={styles.texto}>
+          {email} é só para o back-office. Para torcer, saia e entre com sua conta pessoal.
+        </p>
+        <div className={styles.acoes}>
+          <Button onClick={sair}>Sair e usar outra conta</Button>
         </div>
       </div>
     </div>
@@ -103,6 +123,7 @@ export function ApenasLogado({ torcedor = false }: { torcedor?: boolean }) {
   const { pathname, search } = useLocation();
   if (carregando) return <TelaCarregando />;
   if (!sessao) return <Navigate to="/entrar" replace state={{ de: pathname + search } satisfies DestinoState} />;
+  if (contaCorporativa(sessao.user.email)) return <TelaContaCorporativa email={sessao.user.email ?? ''} />;
   if (erroPerfil || !perfil) return <TelaErroPerfil />;
   if (perfil.exclusao_agendada_para) return <TelaContaEmExclusao data={perfil.exclusao_agendada_para} />;
   if (torcedor && !perfil.onboarding_concluido_em) return <Navigate to="/onboarding" replace />;
