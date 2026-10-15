@@ -33,6 +33,14 @@ describe('Criar conta', () => {
     expect(continuar).toBeEnabled();
   });
 
+  it('recusa e-mail corporativo: ele é só do back-office', async () => {
+    const { user } = renderApp('/criar-conta');
+    await preencherValido(user, 'ana@torcidaonline.com.br');
+    expect(screen.getByText('E-mail corporativo é só para o back-office. Use seu e-mail pessoal.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Criar conta' })).toBeDisabled();
+    expect(auth.signUp).not.toHaveBeenCalled();
+  });
+
   it('bloqueia senha curta e apelido já usado', async () => {
     supabaseFalso.adicionarPerfil(perfilDeTeste({ id: 'outro', apelido: 'Rafa_9' }));
     const { user } = renderApp('/criar-conta');

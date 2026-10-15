@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { guardarEmailPendente } from '../../auth/emailPendente';
 import { mensagemDeErro } from '../../auth/erros';
 import { GoogleLogin } from '../../auth/GoogleLogin';
+import { contaCorporativa } from '../../auth/contaCorporativa';
 import { emailValido, SENHA_MINIMA, useApelido } from '../../auth/validacao';
 import { Alert } from '../../components/form/Alert';
 import { Button } from '../../components/form/Button';
@@ -59,10 +60,17 @@ export function CriarConta() {
   const emailLimpo = email.trim().toLowerCase();
   const emailInvalido = !!emailLimpo && !emailValido(emailLimpo);
   const jaTemConta = !!emailLimpo && emailEmUso === emailLimpo;
-  const emailErro = jaTemConta ? 'Já existe uma conta com esse e-mail.' : emailTocado && emailInvalido ? 'Confira o e-mail digitado.' : null;
+  const corporativo = contaCorporativa(emailLimpo);
+  const emailErro = jaTemConta
+    ? 'Já existe uma conta com esse e-mail.'
+    : corporativo
+      ? 'E-mail corporativo é só para o back-office. Use seu e-mail pessoal.'
+      : emailTocado && emailInvalido
+        ? 'Confira o e-mail digitado.'
+        : null;
 
   const valido =
-    !!nome.trim() && apelido.ok && !!emailLimpo && !emailInvalido && !jaTemConta && senha.length >= SENHA_MINIMA && maiorDeIdade && aceitouTermos;
+    !!nome.trim() && apelido.ok && !!emailLimpo && !emailInvalido && !corporativo && !jaTemConta && senha.length >= SENHA_MINIMA && maiorDeIdade && aceitouTermos;
 
   async function continuar(e: FormEvent) {
     e.preventDefault();
