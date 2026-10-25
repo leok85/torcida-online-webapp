@@ -504,6 +504,21 @@ export type Database = {
           termina_em: string | null;
         }[];
       };
+      maiores_torcidas: {
+        Args: { p_limite?: number };
+        Returns: {
+          escopo: 'mundo' | 'pais';
+          posicao: number;
+          clube_id: number;
+          nome: string;
+          pais: string;
+          pais_nome: string;
+          bandeira: string;
+          torcedores: number;
+          novos_na_semana: number;
+          meu: boolean;
+        }[];
+      };
       ranking_xp: {
         Args: { p_periodo?: 'temporada' | 'mes' | 'semana'; p_clube?: number | null; p_limite?: number };
         Returns: { posicao: number; usuario_id: string; apelido: string; clube_id: number; xp: number; nivel: number; eu: boolean }[];

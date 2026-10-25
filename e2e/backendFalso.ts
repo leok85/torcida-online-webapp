@@ -20,7 +20,7 @@ import { inicioDaSemana } from '../src/data/semana';
 import { aplicarConviteDeTeste, convidadosDe, convidarAmigosDeTeste, convitesHoje, donoDoConvite, LIMITE_DE_CONVITES, type ConviteEmailDeTeste } from '../src/test/convitesDeTeste';
 import { enviarNotasDeTeste, inserirMensagemDeTeste, notasDaTorcidaDeTeste, SEM_DETALHES, type MensagemDeTeste, type NotaDeTeste } from '../src/test/jogoDeTeste';
 import type { Detalhes } from '../src/data/tiposDoJogo';
-import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from '../src/test/catalogoDeTeste';
+import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, maioresTorcidasDeTeste, resumoDoClubeDeTeste } from '../src/test/catalogoDeTeste';
 
 type Perfil = {
   id: string;
@@ -603,6 +603,11 @@ export class BackendFalso {
     if (caminho === '/rpc/resumo_do_clube') {
       if (!usuario) return json(401, { code: '42501', message: 'permission denied for function resumo_do_clube' });
       return json(200, resumoDoClubeDeTeste([...this.perfis.values()], req.postDataJSON().clube));
+    }
+
+    if (caminho === '/rpc/maiores_torcidas') {
+      if (!usuario) return json(401, { code: '42501', message: 'permission denied for function maiores_torcidas' });
+      return json(200, maioresTorcidasDeTeste([...this.perfis.values()], usuario.id, req.postDataJSON()?.p_limite));
     }
 
     if (caminho === '/rpc/meus_aparelhos') {

@@ -23,7 +23,7 @@ import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.t
 import { aplicarConviteDeTeste, convidadosDe, convidarAmigosDeTeste, convitesHoje, donoDoConvite, LIMITE_DE_CONVITES, type ConviteEmailDeTeste } from './convitesDeTeste';
 import { enviarNotasDeTeste, inserirMensagemDeTeste, notasDaTorcidaDeTeste, SEM_DETALHES, type MensagemDeTeste, type NotaDeTeste } from './jogoDeTeste';
 import type { Detalhes } from '../data/tiposDoJogo';
-import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
+import { buscarCidadesDeTeste, clubesDoPais, CLUBES_DE_TESTE, comCatalogo, PAISES_DE_TESTE, jogosDoClubeDeTeste, maioresTorcidasDeTeste, resumoDoClubeDeTeste } from './catalogoDeTeste';
 
 type Evento = 'INITIAL_SESSION' | 'SIGNED_IN' | 'SIGNED_OUT' | 'USER_UPDATED';
 type Ouvinte = (evento: Evento, sessao: Session | null) => void;
@@ -700,6 +700,7 @@ function criar() {
       if (fn === 'sou_assinante') return ok(minhas().some(daAcesso));
       if (fn === 'buscar_cidades') return ok(buscarCidadesDeTeste(args!.termo!, args!.pais, args!.limite));
       if (fn === 'resumo_do_clube') return ok(resumoDoClubeDeTeste([...perfis.values()], args!.clube!));
+      if (fn === 'maiores_torcidas') return ok(maioresTorcidasDeTeste([...perfis.values()], sessao?.user.id, (args as { p_limite?: number })?.p_limite));
       if (fn === 'meus_aparelhos') return ok(aparelhos);
       if (fn === 'encerrar_aparelho') {
         const antes = aparelhos.length;

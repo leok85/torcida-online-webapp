@@ -6,35 +6,12 @@ import { Segmented } from '../components/ui/Segmented';
 import { FLAG } from '../data/common';
 import { useCarga } from '../data/useCarga';
 import { useMeuXp } from '../xp/MeuXp';
+import { buscarMaioresTorcidas, torcidaEmTexto, type EscopoDaTorcida } from '../data/torcidas';
 import { buscarRanking, xpEmTexto, type LinhaDoRanking, type PeriodoDoRanking } from '../data/xp';
 import ui from '../styles/ui.module.css';
 import styles from './Ranking.module.css';
 
-type Scope = 'mundo' | 'pais';
-
 const PODIUM: Record<number, string> = { 1: '#C8901A', 2: '#8E9BAB', 3: '#CE9264' };
-
-const COUNTRY_CODES: Record<string, string> = { Brasil: 'br', Argentina: 'ar', Espanha: 'es', Inglaterra: 'gb-eng', Itália: 'it', Chile: 'cl', Portugal: 'pt' };
-
-type Club = { pos: string; name: string; country: string; fans: string; delta: string; mine?: boolean };
-
-const WORLD: Club[] = [
-  { pos: '1º', name: 'Clube Aurora', country: 'Argentina', fans: '48,2 M', delta: '+120 mil' },
-  { pos: '2º', name: 'Clube Meridiano', country: 'Espanha', fans: '41,7 M', delta: '+96 mil' },
-  { pos: '3º', name: 'Clube Boreal', country: 'Inglaterra', fans: '39,4 M', delta: '+88 mil' },
-  { pos: '4º', name: 'Clube Litoral', country: 'Brasil', fans: '34,1 M', delta: '+141 mil' },
-  { pos: '5º', name: 'Clube Vertente', country: 'Itália', fans: '30,8 M', delta: '+52 mil' },
-  { pos: '6º', name: 'Clube B', country: 'Brasil', fans: '28,6 M', delta: '+204 mil', mine: true },
-];
-
-const BRAZIL: Club[] = [
-  { pos: '1º', name: 'Clube Litoral', country: 'Brasil', fans: '34,1 M', delta: '+141 mil' },
-  { pos: '2º', name: 'Clube B', country: 'Brasil', fans: '28,6 M', delta: '+204 mil', mine: true },
-  { pos: '3º', name: 'Clube Sertão', country: 'Brasil', fans: '21,3 M', delta: '+77 mil' },
-  { pos: '4º', name: 'Clube Serra', country: 'Brasil', fans: '18,7 M', delta: '+45 mil' },
-  { pos: '5º', name: 'Clube Cerrado', country: 'Brasil', fans: '15,2 M', delta: '+38 mil' },
-  { pos: '6º', name: 'Clube Baía', country: 'Brasil', fans: '12,9 M', delta: '+29 mil' },
-];
 
 const PERIODS: { id: PeriodoDoRanking; label: string }[] = [
   { id: 'temporada', label: 'temporada' },
@@ -55,8 +32,7 @@ function minhaMeta(eu: LinhaDoRanking, linhas: LinhaDoRanking[]) {
 export function Ranking() {
   const { perfil } = useAuth();
   const [period, setPeriod] = useState<PeriodoDoRanking>('temporada');
-  const [scope, setScope] = useState<Scope>('pais');
-  const clubs = scope === 'mundo' ? WORLD : BRAZIL;
+  const [scope, setScope] = useState<EscopoDaTorcida>('pais');
   const { xp } = useMeuXp();
   const clube = perfil?.time_id ?? null;
   // Relido junto com o XP, para a minha linha não ficar para trás.
@@ -65,6 +41,9 @@ export function Ranking() {
     buscarRanking(chave.split(':')[0] as PeriodoDoRanking, Number(chave.split(':')[1])),
   ).dados;
   const eu = linhas?.find((l) => l.eu);
+  const torcidas = useCarga(clube ? `torcidas:${clube}` : null, () => buscarMaioresTorcidas());
+  const clubs = torcidas.dados?.filter((c) => c.escopo === scope);
+  const meuPais = torcidas.dados?.find((c) => c.escopo === 'pais' && c.meu)?.pais_nome ?? 'País';
   const ano = new Date().getFullYear();
 
   return (
@@ -117,26 +96,27 @@ export function Ranking() {
                 size="xs"
                 options={[
                   { id: 'mundo', label: 'Mundo' },
-                  { id: 'pais', label: 'Brasil' },
+                  { id: 'pais', label: meuPais },
                 ]}
                 value={scope}
                 onChange={setScope}
               />
             </div>
-            {clubs.map((c) => (
-              <div key={c.pos} className={c.mine ? `${styles.club} ${styles.me}` : styles.club}>
-                <span className={styles.clubPos}>{c.pos}</span>
-                <Crest width={30} height={34} />
+            {torcidas.erro && <p className={styles.vazio}>Não deu para carregar as torcidas agora.</p>}
+            {clubs?.map((c) => (
+              <div key={c.clube_id} className={c.meu ? `${styles.club} ${styles.me}` : styles.club} aria-current={c.meu ? 'true' : undefined}>
+                <span className={styles.clubPos}>{c.posicao}º</span>
+                <Crest width={30} height={34} clubeId={c.clube_id} />
                 <div className={styles.clubInfo}>
-                  <div className={styles.clubName}>{c.name}</div>
+                  <div className={styles.clubName}>{c.nome}</div>
                   <div className={styles.country}>
-                    <img src={FLAG(COUNTRY_CODES[c.country] ?? 'br')} alt="" className={styles.flag} />
-                    {c.country}
+                    <img src={FLAG(c.bandeira)} alt="" className={styles.flag} />
+                    {c.pais_nome}
                   </div>
                 </div>
                 <div className={styles.fans}>
-                  {c.fans}
-                  <div className={styles.delta}>{c.delta}</div>
+                  {torcidaEmTexto(c.torcedores)}
+                  <div className={styles.delta}>{c.novos_na_semana > 0 ? `+${torcidaEmTexto(c.novos_na_semana)} na semana` : ''}</div>
                 </div>
               </div>
             ))}

@@ -138,6 +138,27 @@ export function resumoDoClubeDeTeste(perfis: { time_id: number | null; onboardin
   ];
 }
 
+type PerfilDaTorcida = { id: string; time_id: number | null; onboarding_concluido_em: string | null; time_trocado_em: string | null };
+
+/** Mesma regra de maiores_torcidas: top `p_limite` no mundo e no país do meu clube, com o meu clube sempre junto. */
+export function maioresTorcidasDeTeste(perfis: PerfilDaTorcida[], euId: string | undefined, p_limite = 10, agora = new Date()) {
+  const meu = perfis.find((p) => p.id === euId)?.time_id ?? null;
+  const meuPais = CLUBES_DE_TESTE.find((c) => c.id === meu)?.pais ?? null;
+  const semana = agora.getTime() - 7 * 24 * 3600 * 1000;
+  const clubes = CLUBES_DE_TESTE.flatMap((c) => {
+    const torcida = perfis.filter((p) => p.time_id === c.id && p.onboarding_concluido_em);
+    const pais = PAISES_DE_TESTE.find((x) => x.codigo === c.pais);
+    if (!torcida.length || !pais) return [];
+    const novos = torcida.filter((p) => new Date(p.time_trocado_em ?? p.onboarding_concluido_em!).getTime() > semana).length;
+    return [{ clube_id: c.id, nome: c.nome, pais: c.pais, pais_nome: pais.nome, bandeira: pais.bandeira, torcedores: torcida.length, novos_na_semana: novos, meu: c.id === meu }];
+  });
+  clubes.sort((a, b) => b.torcedores - a.torcedores || b.novos_na_semana - a.novos_na_semana || a.nome.localeCompare(b.nome));
+  const limite = Math.min(Math.max(p_limite, 1), 50);
+  const escopo = (nome: 'mundo' | 'pais', lista: typeof clubes) =>
+    lista.map((c, i) => ({ escopo: nome, posicao: i + 1, ...c })).filter((c) => c.posicao <= limite || c.meu);
+  return [...escopo('mundo', clubes), ...escopo('pais', meuPais ? clubes.filter((c) => c.pais === meuPais) : [])];
+}
+
 // ---------- Temporada do Palmeiras para a tela de Campeonatos ----------
 
 export const linhaDaTabela = (liga_id: number, grupo: string, posicao: number, clube_id: number, clube_nome: string, pontos: number, zona: string | null = null, zona_tipo: string | null = null): ClassificacaoRow => ({
