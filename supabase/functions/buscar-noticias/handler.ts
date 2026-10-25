@@ -5,7 +5,8 @@
 //   POST {modo:'verificar', url}      equipe: confere o endereço antes de cadastrar. Aceita o site (acha o feed no HTML)
 //                                     ou o próprio feed, e devolve o nome, o feed e quantas notícias por dia.
 //   POST {modo:'descobrir'}           cron semanal ou equipe: procura no Google News as notícias dos clubes com torcida,
-//                                     confere o feed dos sites novos e registra as sugestões (o editor aceita ou ignora).
+//                                     acha o feed de futebol dos sites novos (editoria de esportes ou feed geral que
+//                                     seja de futebol) e registra as sugestões (o editor aceita ou ignora).
 // O banco (registrar_noticias_da_fonte) decide o clube de cada notícia e se ela vai para a fila ou direto para o app.
 import { json, jwtDe, lerCorpo } from '../_compartilhado/http.ts';
 
@@ -204,6 +205,30 @@ async function buscarFonte(fonte: Fonte, deps: Dependencias) {
 }
 
 // ---------- descoberta de fontes ----------
+// Portais gerais anunciam na página inicial o feed de todas as editorias; o de esportes costuma estar num destes.
+export const CAMINHOS_DE_ESPORTE = ['/esportes/rss.xml', '/esportes/feed', '/esportes/rss', '/futebol/feed', '/futebol/rss', '/esporte/feed', '/esporte/rss', '/rss/esportes'];
+
+const VOCABULARIO_DE_FUTEBOL =
+  /\b(futebol|gol(s|eada|eiro|eiros)?|campeonato|brasileir[ãa]o|libertadores|sul-americana|copa do brasil|copa do mundo|s[ée]rie [ab]|rodada|cl[áa]ssico|t[ée]cnico|treinador|zagueiro|atacante|lateral|volante|meio-campo|meia|elenco|escala[çc][ãa]o|placar|torcida|torcedor(es)?|est[áa]dio|partida|empate|empata|vence|venceu|derrota|goleia|premier league|la liga|champions|serie a|bundesliga|transfer[êe]ncia|refor[çc]o|contrata[çc][ãa]o|cbf|fifa|var|p[êe]nalti|escanteio|artilheiro)\b/i;
+
+/** Feed de futebol: ao menos 5 notícias e metade delas com vocabulário de futebol no título ou no resumo. */
+export function ehDeFutebol(itens: Item[]) {
+  if (itens.length < 5) return false;
+  return itens.filter((i) => VOCABULARIO_DE_FUTEBOL.test(`${i.titulo} ${i.resumo}`)).length >= itens.length / 2;
+}
+
+/** O feed de futebol do site: primeiro a editoria de esportes, depois o feed da página inicial, se for de futebol. */
+export async function abrirFeedDeFutebol(site: string, baixar: Dependencias['baixar'], limite?: number): Promise<{ feed: Feed; url: string }> {
+  const tentativas = await Promise.all(CAMINHOS_DE_ESPORTE.map((c) => baixar(new URL(c, site).toString(), limite).catch(() => null)));
+  for (const tentativa of tentativas) {
+    const feed = tentativa && tentativa.status < 400 ? lerFeed(tentativa.texto, tentativa.url) : null;
+    if (feed && ehDeFutebol(feed.itens)) return { feed, url: tentativa!.url };
+  }
+  const geral = await abrirFeed(site, baixar, limite);
+  if (!ehDeFutebol(geral.feed.itens)) throw new SemFeed(geral.feed.itens.length ? 'O feed do site não é de futebol' : 'O feed não tem notícias');
+  return geral;
+}
+
 export const MAX_CLUBES = 20;
 export const MAX_CONFERIR = 12;
 const EM_PARALELO = 5;
@@ -284,8 +309,7 @@ async function descobrir(deps: Dependencias) {
   const agora = deps.agora?.() ?? new Date();
   const conferidos = await emLotes(candidatos, EM_PARALELO, async ([dominio, { site, achada_para, aparicoes }]): Promise<Sugestao | null> => {
     try {
-      const { feed, url } = await abrirFeed(site, deps.baixar, LIMITE_POR_DOWNLOAD);
-      if (!feed.itens.length) return { dominio, achada_para, aparicoes, ok: false, nome: dominio, erro: 'O feed não tem notícias' };
+      const { feed, url } = await abrirFeedDeFutebol(site, deps.baixar, LIMITE_POR_DOWNLOAD);
       return {
         dominio,
         achada_para,
