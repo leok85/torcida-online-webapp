@@ -21,6 +21,7 @@ import {
 } from '../data/campeonatos';
 import { resultadoPara, type Partida } from '../data/partidas';
 import { useJogosDoClube } from '../partidas/JogosDoClube';
+import { ListaDeResultados } from '../partidas/ListaDeResultados';
 import ui from '../styles/ui.module.css';
 import styles from './Campeonatos.module.css';
 
@@ -206,18 +207,6 @@ function TabelaCompleta({ c, clubeId, onFechar }: { c: Campeonato; clubeId: numb
   );
 }
 
-function Ultimos({ resultados }: { resultados: ('V' | 'E' | 'D')[] }) {
-  return (
-    <div className={styles.form} aria-label="Últimos resultados">
-      {resultados.map((r, i) => (
-        <span key={i} className={`${styles.result} ${styles[`r${r}`]}`} title={ROTULO_RESULTADO[r]}>
-          {r}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function ListaDeJogos({ jogos, clubeId }: { jogos: Partida[]; clubeId: number }) {
   if (!jogos.length) return <p className={styles.vazio}>Sem jogos do clube nesta fase.</p>;
   return (
@@ -338,9 +327,17 @@ function DetalhePontosCorridos({ c, clubeId }: { c: Campeonato; clubeId: number 
             <p className={styles.vazio}>Nenhum jogo marcado.</p>
           )}
         </section>
-        <section className={ui.card} aria-label="Últimos 5">
-          <h3 className={ui.titleLg}>Últimos 5</h3>
-          {c.ultimos.length ? <Ultimos resultados={c.ultimos} /> : <p className={styles.vazio}>Ainda sem jogos.</p>}
+        <section className={ui.cardFlush} aria-labelledby="titulo-ultimos-jogos">
+          <div className={ui.cardHeader}>
+            <h3 id="titulo-ultimos-jogos" className={ui.titleLg}>
+              Últimos jogos
+            </h3>
+          </div>
+          {c.resultados.length ? (
+            <ListaDeResultados partidas={c.resultados} clubeId={clubeId} />
+          ) : (
+            <p className={styles.semResultados}>Ainda sem jogos.</p>
+          )}
         </section>
       </div>
     </div>

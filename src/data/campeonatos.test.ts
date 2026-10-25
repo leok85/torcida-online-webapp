@@ -22,8 +22,9 @@ describe('montarCampeonatos', () => {
       destaque: '2º',
       complemento: '61 pts · rodada 30',
       rodape: 'São Paulo x Palmeiras · dom 16:00',
-      ultimos: ['V', 'V'],
     });
+    // Últimos jogos do mais recente para o mais antigo; o de 2025 é de outra temporada.
+    expect(br.resultados.map((p) => p.id)).toEqual([3, 2]);
     expect(br.tabela.map((l) => l.clube_nome)).toEqual(['Flamengo', 'Palmeiras', 'Corinthians', 'São Paulo']);
     expect(br.proximos.map((p) => p.id)).toEqual([4, 5]);
   });

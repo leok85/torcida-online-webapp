@@ -16,23 +16,12 @@ import {
   type Partida,
 } from '../data/partidas';
 import { useJogosDoClube } from '../partidas/JogosDoClube';
+import { Data, ListaDeResultados, placarDe, ROTULO_RESULTADO } from '../partidas/ListaDeResultados';
 import ui from '../styles/ui.module.css';
 import styles from './Jogos.module.css';
 
 /** Quantos jogos cada lista mostra. */
 export const LIMITE_DA_LISTA = 5;
-
-const ROTULO_RESULTADO = { V: 'Vitória', E: 'Empate', D: 'Derrota' };
-
-function Data({ inicio }: { inicio: string }) {
-  const { dia, mes } = diaEMes(inicio);
-  return (
-    <div className={styles.data}>
-      <span className={styles.dia}>{dia}</span>
-      <span className={styles.mes}>{mes}</span>
-    </div>
-  );
-}
 
 function FaixaAoVivo({ partida }: { partida: Partida }) {
   const minuto = partida.periodo === 'INT' ? 'INTERVALO' : partida.minuto != null ? `${partida.minuto}'` : null;
@@ -53,8 +42,6 @@ function FaixaAoVivo({ partida }: { partida: Partida }) {
     </section>
   );
 }
-
-const placarDe = (p: Partida) => `${p.mandante_nome} ${p.gols_mandante ?? 0} x ${p.gols_visitante ?? 0} ${p.visitante_nome}`;
 
 /** Sem jogo em campo, o último resultado em destaque, com o caminho para as notas. */
 function UltimoJogo({ partida, clubeId }: { partida: Partida; clubeId: number }) {
@@ -305,27 +292,7 @@ export function Jogos() {
             {lista.resultados.length === 0 ? (
               <p className={styles.vazio}>{filtro ? vazioDoFiltro : 'Nenhum resultado ainda.'}</p>
             ) : (
-              <ul className={styles.lista}>
-                {lista.resultados.slice(0, LIMITE_DA_LISTA).map((p) => {
-                  const r = resultadoPara(p, clubeId);
-                  const { dia, mes } = diaEMes(p.inicio);
-                  return (
-                    <li key={p.id}>
-                      <Link to={`/jogo/${p.id}/notas`} className={styles.linha} aria-label={`${ROTULO_RESULTADO[r]}: ${placarDe(p)}, ${dia} ${mes} · ${infoDoResultado(p)}`}>
-                        <Data inicio={p.inicio} />
-                        <span className={`${styles.resultado} ${styles[`r${r}`]}`} title={ROTULO_RESULTADO[r]}>
-                          {r}
-                        </span>
-                        <div className={styles.corpo}>
-                          <span className={styles.confronto}>{placarDe(p)}</span>
-                          <span className={styles.info}>{infoDoResultado(p)}</span>
-                        </div>
-                        <Icon name="chevron_right" size={20} color="var(--muted-2)" />
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              <ListaDeResultados partidas={lista.resultados.slice(0, LIMITE_DA_LISTA)} clubeId={clubeId} />
             )}
           </section>
         </div>
