@@ -51,7 +51,13 @@ describe('Campeonatos (W10)', () => {
       'R31São Paulo x Palmeirasdom 18/10',
       'R32Palmeiras x Flamengodom 25/10',
     ]);
-    expect(within(screen.getByRole('region', { name: 'Últimos 5' })).getAllByTitle(/Vitória|Empate|Derrota/).map((e) => e.textContent)).toEqual(['V', 'V']);
+    // O mesmo card de resultados do /jogos: do mais recente para o mais antigo, com o caminho para as notas.
+    const ultimos = within(screen.getByRole('region', { name: 'Últimos jogos' })).getAllByRole('link');
+    expect(ultimos.map((l) => l.getAttribute('aria-label'))).toEqual([
+      'Vitória: Palmeiras 4 x 1 Corinthians, 11 OUT · Brasileirão Série A · rodada 30',
+      'Vitória: Palmeiras 1 x 0 Bahia, 08 OUT · Brasileirão Série A · rodada 29',
+    ]);
+    expect(ultimos[0]).toHaveAttribute('href', '/jogo/3/notas');
   });
 
   it('a tabela da liga mostra as 8 primeiras; "Ver tabela completa" abre a classificação inteira', async () => {

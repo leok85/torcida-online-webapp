@@ -2,7 +2,6 @@
 // Os jogos vêm do JogosDoClubeProvider; formato, fases e tabelas das tabelas competicoes e classificacao.
 import type { ClassificacaoRow, CompeticaoRow, Partida } from '../lib/database.types';
 import { supabase } from '../lib/supabase';
-import { resultadoPara } from './partidas';
 
 export type FaseDaCompeticao = { fase: string; nome: string; rodadas: number | null; inicio: string | null; fim: string | null };
 export type Competicao = Omit<CompeticaoRow, 'fases'> & { fases: FaseDaCompeticao[] };
@@ -141,8 +140,8 @@ export type Campeonato = {
   /** Pontos corridos: total de rodadas da temporada ("rodada 30 de 38"). */
   rodadas: number | null;
   proximos: Partida[];
-  /** Últimos resultados na competição, do mais antigo para o mais recente. */
-  ultimos: ('V' | 'E' | 'D')[];
+  /** Últimos 5 jogos encerrados na competição, do mais recente para o mais antigo. */
+  resultados: Partida[];
   caminho: EtapaDoCaminho[];
   /** Fase em disputa (mata-mata e grupos); o próximo jogo dela abre o palpite. */
   faseAtual: EtapaDoCaminho | null;
@@ -187,7 +186,7 @@ function montarCampeonato(
   const jogos = [...jogosDaTemporada].sort((a, b) => a.inicio.localeCompare(b.inicio));
   const proximo = jogos.find((p) => p.status === 'agendada' || p.status === 'ao_vivo') ?? null;
   const encerradas = jogos.filter((p) => p.status === 'encerrada');
-  const ultimos = encerradas.slice(-5).map((p) => resultadoPara(p, clubeId));
+  const resultados = encerradas.slice(-5).reverse();
   const tabelaDaLiga = tabelas.filter((l) => l.liga_id === competicao.liga_id);
   const minhaLinha = (grupo?: string | null) =>
     tabelaDaLiga.find((l) => l.clube_id === clubeId && (grupo === undefined || l.grupo === (grupo ?? '')));
@@ -214,7 +213,7 @@ function montarCampeonato(
       rodada: linha?.jogos ?? null,
       rodadas,
       proximos: jogos.filter((p) => p.status === 'agendada').slice(0, 3),
-      ultimos,
+      resultados,
       caminho: [],
       faseAtual: null,
       proximo,
@@ -305,7 +304,7 @@ function montarCampeonato(
     rodada: null,
     rodadas: null,
     proximos: jogos.filter((p) => p.status === 'agendada').slice(0, 3),
-    ultimos,
+    resultados,
     caminho,
     faseAtual: encerrado ? null : atual,
     proximo,

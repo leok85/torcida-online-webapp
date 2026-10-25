@@ -508,6 +508,11 @@
   color: var(--muted);
 }
 
+.semResultados {
+  composes: vazio;
+  padding: 18px 22px;
+}
+
 .aviso {
   display: flex;
   align-items: center;
