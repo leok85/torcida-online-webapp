@@ -129,9 +129,11 @@ describe('ordemDaFase', () => {
 describe('tabela completa', () => {
   const tabela = Array.from({ length: 12 }, (_, i) => linhaDaTabela(9, '', i + 1, 100 + i, `Time ${i + 1}`, 40 - i));
 
-  it('resumo: as 8 primeiras; com o clube mais abaixo, as 7 primeiras e ele; tabela curta inteira', () => {
-    expect(resumoDaTabela(tabela, 103).map((l) => l.posicao)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-    expect(resumoDaTabela(tabela, 110).map((l) => l.posicao)).toEqual([1, 2, 3, 4, 5, 6, 7, 11]);
+  it('resumo: 8 linhas em volta do clube, encostando no topo e no fim; sem o clube, as 8 primeiras; tabela curta inteira', () => {
+    const posicoes = (clubeId: number) => resumoDaTabela(tabela, clubeId).map((l) => l.posicao);
+    expect(posicoes(102)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(posicoes(105)).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(posicoes(110)).toEqual([5, 6, 7, 8, 9, 10, 11, 12]);
     expect(resumoDaTabela(tabela, 999)).toHaveLength(8);
     expect(resumoDaTabela(tabela.slice(0, 5), 110)).toHaveLength(5);
   });
