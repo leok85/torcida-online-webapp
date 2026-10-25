@@ -81,7 +81,7 @@ describe('Campeonatos (W10)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('com o clube abaixo do 8º, o resumo mostra as 7 primeiras e a linha do clube', async () => {
+  it('com o clube na parte de baixo, o resumo mostra os vizinhos dele até o fim da tabela', async () => {
     for (const p of temporadaDoPalmeiras()) supabaseFalso.adicionarPartida(p);
     const tabela = Array.from({ length: 12 }, (_, i) => (i === 10 ? linhaDaTabela(9, '', 11, 162, 'Palmeiras', 20) : linhaDaTabela(9, '', i + 1, 1000 + i, `Time ${i + 1}`, 40 - i)));
     supabaseFalso.adicionarCompeticoes(COMPETICOES_DE_TESTE, tabela);
@@ -90,8 +90,8 @@ describe('Campeonatos (W10)', () => {
     renderApp('/campeonatos');
     const regiao = await screen.findByRole('region', { name: 'Brasileirão Série A · rodada 30' });
     const linhas = within(regiao).getAllByRole('listitem');
-    expect(linhas.map((l) => l.textContent?.match(/^\d+/)?.[0])).toEqual(['1', '2', '3', '4', '5', '6', '7', '11']);
-    expect(linhas[7]).toHaveAttribute('aria-current', 'true');
+    expect(linhas.map((l) => l.textContent?.match(/^\d+/)?.[0])).toEqual(['5', '6', '7', '8', '9', '10', '11', '12']);
+    expect(linhas[6]).toHaveAttribute('aria-current', 'true');
   });
 
   it('mata-mata: fase atual com ida e volta, palpite na ida e o caminho com as fases para abrir', async () => {
