@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buscaDoGoogleNews, buscarNoticias, dominioDe, feedNoHtml, lerFeed, origensDoGoogleNews, porDia, textoPuro, type Baixado, type Dependencias, type Sugestao } from './handler';
+import { buscaDoGoogleNews, buscarNoticias, dominioDe, ehDeFutebol, feedNoHtml, lerFeed, origensDoGoogleNews, porDia, textoPuro, type Baixado, type Dependencias, type Sugestao } from './handler';
 
 const RSS = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
@@ -172,6 +172,11 @@ describe('buscarNoticias', () => {
   });
 });
 
+const rss = (titulo: string, itens: string[]) =>
+  `<rss version="2.0"><channel><title>${titulo}</title>${itens.map((t, i) => `<item><title>${t}</title><link>https://x.com/${i}</link></item>`).join('')}</channel></rss>`;
+const FUTEBOL = rss('Raça Esportes', ['Clube A vence o clássico', 'Técnico escala o time', 'Atacante marca dois gols', 'Previsão do tempo para sábado', 'Zagueiro renova contrato']);
+const GERAL = rss('Geralzão', ['Senado vota reforma', 'Dólar fecha em alta', 'Chuva forte no Sul', 'Clube A vence o clássico', 'Novo app de bancos']);
+
 // Busca do Google News: cada item traz o site de origem em <source url>.
 const noticiaDoGoogle = (site: string, titulo = 'Notícia') =>
   `<item><title>${titulo}</title><link>https://news.google.com/rss/articles/x</link><source url="${site}">Site</source></item>`;
@@ -197,12 +202,20 @@ describe('descoberta de fontes', () => {
     ]);
   });
 
-  it('confere o feed só dos sites novos e registra o que tem e o que não tem feed', async () => {
+  it('ehDeFutebol pede 5 notícias e metade com vocabulário de futebol', () => {
+    expect(ehDeFutebol(lerFeed(FUTEBOL, 'https://raca.blog')!.itens)).toBe(true);
+    expect(ehDeFutebol(lerFeed(GERAL, 'https://geralzao.com')!.itens)).toBe(false);
+    expect(ehDeFutebol(lerFeed(FUTEBOL, 'https://raca.blog')!.itens.slice(0, 4))).toBe(false);
+  });
+
+  it('acha o feed de futebol dos sites novos: editoria de esportes antes do feed geral, e recusa portal sem futebol', async () => {
     const paginas: Record<string, string> = {
-      [buscaDoGoogleNews({ id: 10, nome: 'Clube A', pais: 'BR' })]: GOOGLE('https://raca.blog', 'https://gazeta.com.br', 'https://youtube.com', 'https://semfeed.com'),
+      [buscaDoGoogleNews({ id: 10, nome: 'Clube A', pais: 'BR' })]: GOOGLE('https://raca.blog', 'https://gazeta.com.br', 'https://youtube.com', 'https://semfeed.com', 'https://geralzao.com'),
       [buscaDoGoogleNews({ id: 20, nome: 'Clube B', pais: 'BR' })]: GOOGLE('https://raca.blog', 'https://raca.blog'),
-      'https://raca.blog/': '<link rel="alternate" type="application/atom+xml" href="/feed">',
-      'https://raca.blog/feed': ATOM,
+      'https://raca.blog/': '<link rel="alternate" type="application/rss+xml" href="/feed">',
+      'https://raca.blog/feed': GERAL,
+      'https://raca.blog/esportes/rss.xml': FUTEBOL,
+      'https://geralzao.com/': GERAL,
       'https://semfeed.com/': '<html><head></head></html>',
     };
     const deps = dependencias({
@@ -217,27 +230,27 @@ describe('descoberta de fontes', () => {
     });
 
     const resposta = await buscarNoticias(pedido({ modo: 'descobrir' }, { 'x-segredo': 'segredo' }), deps);
-    expect(await resposta.json()).toEqual({ ok: true, clubes: 2, sites: 2, conferidos: 2, novas: 1, interrompida: false });
+    expect(await resposta.json()).toEqual({ ok: true, clubes: 2, sites: 3, conferidos: 3, novas: 1, interrompida: false });
     expect(deps.iniciarDescoberta).toHaveBeenCalledWith(true);
-    expect(deps.registrarSugestoes).toHaveBeenCalledWith([
-      {
-        dominio: 'raca.blog',
-        achada_para: [10, 20],
-        aparicoes: 3,
-        ok: true,
-        feed: 'https://raca.blog/feed',
-        nome: 'Blog Raça',
-        site: 'https://raca.blog/',
-        itens: 1,
-        por_dia: 0.1,
-        exemplos: ['Reforço para o ataque'],
-        textos: ['Reforço para o ataque Centroavante chega por empréstimo.'],
-      },
+    const [sugestoes] = vi.mocked(deps.registrarSugestoes).mock.calls[0];
+    expect(sugestoes[0]).toMatchObject({
+      dominio: 'raca.blog',
+      achada_para: [10, 20],
+      aparicoes: 3,
+      ok: true,
+      feed: 'https://raca.blog/esportes/rss.xml',
+      nome: 'Raça Esportes',
+      itens: 5,
+      exemplos: ['Clube A vence o clássico', 'Técnico escala o time', 'Atacante marca dois gols'],
+    });
+    expect(sugestoes[0].textos).toHaveLength(5);
+    expect(sugestoes.slice(1)).toEqual([
       { dominio: 'semfeed.com', achada_para: [10], aparicoes: 1, ok: false, nome: 'semfeed.com', erro: 'Nenhum feed RSS encontrado nesse endereço' },
+      { dominio: 'geralzao.com', achada_para: [10], aparicoes: 1, ok: false, nome: 'geralzao.com', erro: 'O feed do site não é de futebol' },
     ]);
     // O site que já é fonte e a rede social nem são abertos.
-    expect(deps.baixar).not.toHaveBeenCalledWith('https://gazeta.com.br/');
-    expect(deps.baixar).not.toHaveBeenCalledWith('https://youtube.com/');
+    const abertos = vi.mocked(deps.baixar).mock.calls.map(([u]) => u);
+    expect(abertos.some((u) => u.includes('gazeta.com.br') || u.includes('youtube.com'))).toBe(false);
   });
 
   it('busca do Google que falha não derruba a rodada', async () => {
