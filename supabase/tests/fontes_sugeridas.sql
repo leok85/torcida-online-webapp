@@ -1,4 +1,4 @@
--- Roteiro de teste da migration 20261029100000_fontes_sugeridas (banco local, tudo numa transação desfeita no fim):
+-- Roteiro de teste da migration 20261029110000_fontes_sugeridas (banco local, tudo numa transação desfeita no fim):
 -- supabase start && psql "$DB_URL" -q -o /dev/null -f supabase/tests/fontes_sugeridas.sql
 -- Cada verificação imprime "ok ..."; a primeira que falhar interrompe com "FALHOU ...".
 \set ON_ERROR_STOP on
