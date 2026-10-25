@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buscarNoticias, feedNoHtml, lerFeed, porDia, textoPuro, type Baixado, type Dependencias } from './handler';
+import { buscaDoGoogleNews, buscarNoticias, dominioDe, feedNoHtml, lerFeed, origensDoGoogleNews, porDia, textoPuro, type Baixado, type Dependencias, type Sugestao } from './handler';
 
 const RSS = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
@@ -108,6 +108,9 @@ function dependencias(extra: Partial<Dependencias> = {}): Dependencias {
     fonte: vi.fn(async (id: string) => (id === 'f1' ? { id: 'f1', url: 'https://gazeta.com.br/rss', nome: 'Gazeta' } : null)),
     registrar: vi.fn(async (_fonte: string, itens: unknown[]) => itens.length),
     registrarErro: vi.fn(async () => {}),
+    contextoDaDescoberta: vi.fn(async () => ({ clubes: [], conhecidos: [] })),
+    registrarSugestoes: vi.fn(async (itens: Sugestao[]) => itens.filter((i) => i.ok).length),
+    iniciarDescoberta: vi.fn(async () => true),
     ...extra,
   };
 }
@@ -142,6 +145,19 @@ describe('buscarNoticias', () => {
     });
   });
 
+  it('verificar site que não anuncia o feed tenta os caminhos de costume', async () => {
+    const deps = dependencias({
+      baixar: vi.fn(async (url: string): Promise<Baixado> => {
+        if (url === 'https://portal.com.br/esportes') return { status: 200, tipo: 'text/html', texto: '<html><head></head></html>', url };
+        if (url === 'https://portal.com.br/rss') return { status: 200, tipo: 'text/xml', texto: RSS, url };
+        return { status: 404, tipo: '', texto: '', url };
+      }),
+    });
+    const resposta = await buscarNoticias(pedido({ modo: 'verificar', url: 'https://portal.com.br/esportes' }, { Authorization: 'Bearer token-editor' }), deps);
+    expect(await resposta.json()).toMatchObject({ ok: true, feed: 'https://portal.com.br/rss', nome: 'Gazeta Esportiva & Cia' });
+    expect(deps.baixar).toHaveBeenCalledWith('https://portal.com.br/feed', undefined);
+  });
+
   it('verificar endereço sem feed responde ok: false com o motivo', async () => {
     const resposta = await buscarNoticias(pedido({ modo: 'verificar', url: 'https://nada.com' }, { Authorization: 'Bearer token-editor' }), dependencias());
     expect(await resposta.json()).toEqual({ ok: false, erro: 'HTTP 404' });
@@ -153,5 +169,124 @@ describe('buscarNoticias', () => {
     expect(await uma.json()).toEqual({ ok: true, fonte: 'f1', novas: 2 });
     expect((await buscarNoticias(pedido({ modo: 'todas' }, { Authorization: 'Bearer token-editor' }), deps)).status).toBe(403);
     expect((await buscarNoticias(pedido({ modo: 'fonte', fonte: 'nao' }, { Authorization: 'Bearer token-editor' }), deps)).status).toBe(404);
+  });
+});
+
+// Busca do Google News: cada item traz o site de origem em <source url>.
+const noticiaDoGoogle = (site: string, titulo = 'Notícia') =>
+  `<item><title>${titulo}</title><link>https://news.google.com/rss/articles/x</link><source url="${site}">Site</source></item>`;
+const GOOGLE = (...sites: string[]) => `<rss version="2.0"><channel><title>Google News</title>${sites.map((s) => noticiaDoGoogle(s)).join('')}</channel></rss>`;
+
+describe('descoberta de fontes', () => {
+  it('dominioDe tira o www e recusa o que não é http', () => {
+    expect(dominioDe('https://www.Gazeta.com.br/futebol')).toBe('gazeta.com.br');
+    expect(dominioDe('ftp://x.com')).toBeNull();
+    expect(dominioDe('nada')).toBeNull();
+  });
+
+  it('busca no Google News no idioma do país do clube', () => {
+    expect(buscaDoGoogleNews({ id: 1, nome: 'Clube A', pais: 'BR' })).toBe('https://news.google.com/rss/search?q=Clube%20A%20futebol&hl=pt-BR&gl=BR&ceid=BR:pt-419');
+    expect(buscaDoGoogleNews({ id: 2, nome: 'Club B', pais: 'AR' })).toContain('q=Club%20B%20football&hl=en-US');
+  });
+
+  it('origensDoGoogleNews conta as notícias de cada site', () => {
+    const origens = origensDoGoogleNews(GOOGLE('https://gazeta.com.br', 'https://www.gazeta.com.br/', 'https://raca.blog'));
+    expect([...origens]).toEqual([
+      ['gazeta.com.br', { site: 'https://gazeta.com.br/', aparicoes: 2 }],
+      ['raca.blog', { site: 'https://raca.blog/', aparicoes: 1 }],
+    ]);
+  });
+
+  it('confere o feed só dos sites novos e registra o que tem e o que não tem feed', async () => {
+    const paginas: Record<string, string> = {
+      [buscaDoGoogleNews({ id: 10, nome: 'Clube A', pais: 'BR' })]: GOOGLE('https://raca.blog', 'https://gazeta.com.br', 'https://youtube.com', 'https://semfeed.com'),
+      [buscaDoGoogleNews({ id: 20, nome: 'Clube B', pais: 'BR' })]: GOOGLE('https://raca.blog', 'https://raca.blog'),
+      'https://raca.blog/': '<link rel="alternate" type="application/atom+xml" href="/feed">',
+      'https://raca.blog/feed': ATOM,
+      'https://semfeed.com/': '<html><head></head></html>',
+    };
+    const deps = dependencias({
+      baixar: vi.fn(async (url: string): Promise<Baixado> => (paginas[url] ? { status: 200, tipo: 'text/xml', texto: paginas[url], url } : { status: 404, tipo: '', texto: '', url })),
+      contextoDaDescoberta: vi.fn(async () => ({
+        clubes: [
+          { id: 10, nome: 'Clube A', pais: 'BR' },
+          { id: 20, nome: 'Clube B', pais: 'BR' },
+        ],
+        conhecidos: ['gazeta.com.br'],
+      })),
+    });
+
+    const resposta = await buscarNoticias(pedido({ modo: 'descobrir' }, { 'x-segredo': 'segredo' }), deps);
+    expect(await resposta.json()).toEqual({ ok: true, clubes: 2, sites: 2, conferidos: 2, novas: 1, interrompida: false });
+    expect(deps.iniciarDescoberta).toHaveBeenCalledWith(true);
+    expect(deps.registrarSugestoes).toHaveBeenCalledWith([
+      {
+        dominio: 'raca.blog',
+        achada_para: [10, 20],
+        aparicoes: 3,
+        ok: true,
+        feed: 'https://raca.blog/feed',
+        nome: 'Blog Raça',
+        site: 'https://raca.blog/',
+        itens: 1,
+        por_dia: 0.1,
+        exemplos: ['Reforço para o ataque'],
+        textos: ['Reforço para o ataque Centroavante chega por empréstimo.'],
+      },
+      { dominio: 'semfeed.com', achada_para: [10], aparicoes: 1, ok: false, nome: 'semfeed.com', erro: 'Nenhum feed RSS encontrado nesse endereço' },
+    ]);
+    // O site que já é fonte e a rede social nem são abertos.
+    expect(deps.baixar).not.toHaveBeenCalledWith('https://gazeta.com.br/');
+    expect(deps.baixar).not.toHaveBeenCalledWith('https://youtube.com/');
+  });
+
+  it('busca do Google que falha não derruba a rodada', async () => {
+    const deps = dependencias({
+      baixar: vi.fn(async () => {
+        throw new Error('timeout');
+      }),
+      contextoDaDescoberta: vi.fn(async () => ({ clubes: [{ id: 10, nome: 'Clube A', pais: 'BR' }], conhecidos: [] })),
+    });
+    const resposta = await buscarNoticias(pedido({ modo: 'descobrir' }, { Authorization: 'Bearer token-editor' }), deps);
+    expect(await resposta.json()).toEqual({ ok: true, clubes: 1, sites: 0, conferidos: 0, novas: 0, interrompida: false });
+    expect(deps.registrarSugestoes).not.toHaveBeenCalled();
+  });
+
+  it('erro passageiro não vira sem feed; feed vazio não vira sugestão', async () => {
+    const google = buscaDoGoogleNews({ id: 10, nome: 'Clube A', pais: 'BR' });
+    const deps = dependencias({
+      baixar: vi.fn(async (url: string): Promise<Baixado> => {
+        if (url === google) return { status: 200, tipo: 'text/xml', texto: GOOGLE('https://caiu.com', 'https://vazio.com'), url };
+        if (url === 'https://caiu.com/') return { status: 503, tipo: '', texto: '', url };
+        if (url === 'https://vazio.com/') return { status: 200, tipo: 'text/xml', texto: '<rss><channel><title>Vazio</title></channel></rss>', url };
+        throw new Error('timeout');
+      }),
+      contextoDaDescoberta: vi.fn(async () => ({ clubes: [{ id: 10, nome: 'Clube A', pais: 'BR' }], conhecidos: [] })),
+    });
+    const resposta = await buscarNoticias(pedido({ modo: 'descobrir' }, { 'x-segredo': 'segredo' }), deps);
+    expect(await resposta.json()).toMatchObject({ conferidos: 2, novas: 0 });
+    expect(deps.registrarSugestoes).toHaveBeenCalledWith([{ dominio: 'vazio.com', achada_para: [10], aparicoes: 1, ok: false, nome: 'vazio.com', erro: 'O feed não tem notícias' }]);
+  });
+
+  it('com o prazo vencido para e grava só o que já conferiu', async () => {
+    const deps = dependencias({
+      contextoDaDescoberta: vi.fn(async () => ({ clubes: [{ id: 10, nome: 'Clube A', pais: 'BR' }], conhecidos: [] })),
+      prazoDaDescoberta: -1,
+    });
+    const resposta = await buscarNoticias(pedido({ modo: 'descobrir' }, { 'x-segredo': 'segredo' }), deps);
+    expect(await resposta.json()).toMatchObject({ conferidos: 0, interrompida: true });
+    expect(deps.baixar).not.toHaveBeenCalled();
+  });
+
+  it('equipe que pede de novo em menos de 10 min recebe 429', async () => {
+    const deps = dependencias({ iniciarDescoberta: vi.fn(async (doCron: boolean) => doCron) });
+    const resposta = await buscarNoticias(pedido({ modo: 'descobrir' }, { Authorization: 'Bearer token-editor' }), deps);
+    expect(resposta.status).toBe(429);
+    expect(deps.iniciarDescoberta).toHaveBeenCalledWith(false);
+    expect(deps.contextoDaDescoberta).not.toHaveBeenCalled();
+  });
+
+  it('moderador não dispara a descoberta', async () => {
+    expect((await buscarNoticias(pedido({ modo: 'descobrir' }, { Authorization: 'Bearer token-moderador' }), dependencias())).status).toBe(401);
   });
 });
