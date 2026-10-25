@@ -342,12 +342,15 @@ export function montarCampeonatos(
 /** Quantas linhas a tabela da liga mostra no card; o resto fica em "Ver tabela completa". */
 export const LINHAS_DO_RESUMO = 8;
 
-/** As primeiras posições da tabela; se o clube ficou de fora, as primeiras menos uma e a linha do clube. */
+/**
+ * As linhas em volta do clube: ele e os vizinhos de cima e de baixo, para quem briga contra a queda ver o fim da tabela.
+ * A janela encosta no topo ou no fim; sem o clube na tabela, as primeiras posições.
+ */
 export function resumoDaTabela(linhas: LinhaDaTabela[], clubeId: number, limite = LINHAS_DO_RESUMO): LinhaDaTabela[] {
-  const topo = linhas.slice(0, limite);
-  if (linhas.length <= limite || topo.some((l) => l.clube_id === clubeId)) return topo;
-  const minha = linhas.find((l) => l.clube_id === clubeId);
-  return minha ? [...linhas.slice(0, limite - 1), minha] : topo;
+  const indice = linhas.findIndex((l) => l.clube_id === clubeId);
+  if (indice < 0) return linhas.slice(0, limite);
+  const inicio = Math.max(0, Math.min(indice - Math.floor((limite - 1) / 2), linhas.length - limite));
+  return linhas.slice(inicio, inicio + limite);
 }
 
 /** Últimos 5 da tabela: a forma da BSD (W, D, L) em V, E, D. */
