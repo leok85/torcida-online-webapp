@@ -1,6 +1,7 @@
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BUSCAR_NOVAS_MS } from '../../data/chat';
+import { BUSCAR_NOVAS_MS, TAMANHO_MAXIMO } from '../../data/chat';
+import { EMOJIS } from './ChatDaTorcida';
 import { partidaDeTeste } from '../../test/catalogoDeTeste';
 import { detalhesDeTeste } from '../../test/jogoDeTeste';
 import { renderApp } from '../../test/renderApp';
@@ -278,6 +279,36 @@ describe('chat da torcida', () => {
     expect(within(mensagens()).getAllByText('Que golaço do Barboza')).toHaveLength(1);
     expect(campo).toHaveValue('');
     expect(supabaseFalso.mensagensDoChat()[0]).toMatchObject({ autor_id: 'usuario-1', autor_apelido: 'Rafa_9', clube_id: 162, texto: 'Que golaço do Barboza' });
+  });
+
+  it('o botão de emoji insere o emoji onde está o cursor e a mensagem sai com ele', async () => {
+    const { user } = await abrirChat();
+    const campo = await within(chat()).findByRole('textbox', { name: 'Mensagem para a torcida' });
+    await user.type(campo, 'Que golaço');
+    (campo as HTMLInputElement).setSelectionRange(3, 3);
+    await user.click(within(chat()).getByRole('button', { name: 'Inserir emoji' }));
+    expect(within(chat()).getByRole('button', { name: 'Inserir emoji' })).toHaveAttribute('aria-expanded', 'true');
+    await user.click(within(chat()).getByRole('button', { name: '⚽' }));
+    expect(campo).toHaveValue('Que⚽ golaço');
+    // Escolher fecha a grade.
+    expect(within(chat()).queryByRole('group', { name: 'Emojis' })).not.toBeInTheDocument();
+    await user.click(within(chat()).getByRole('button', { name: 'Enviar' }));
+    expect(await within(mensagens()).findByText('Que⚽ golaço')).toBeInTheDocument();
+  });
+
+  it('a grade de emojis fecha com Esc e não passa do tamanho máximo da mensagem', async () => {
+    const { user } = await abrirChat();
+    const campo = await within(chat()).findByRole('textbox', { name: 'Mensagem para a torcida' });
+    await user.click(within(chat()).getByRole('button', { name: 'Inserir emoji' }));
+    expect(within(within(chat()).getByRole('group', { name: 'Emojis' })).getAllByRole('button')).toHaveLength(EMOJIS.length);
+    await user.keyboard('{Escape}');
+    expect(within(chat()).queryByRole('group', { name: 'Emojis' })).not.toBeInTheDocument();
+
+    fireEvent.change(campo, { target: { value: 'a'.repeat(TAMANHO_MAXIMO - 1) } });
+    await user.click(within(chat()).getByRole('button', { name: 'Inserir emoji' }));
+    await user.click(within(chat()).getByRole('button', { name: '🔥' }));
+    // O emoji ocupa duas posições e não cabe: o texto fica como estava.
+    expect(campo).toHaveValue('a'.repeat(TAMANHO_MAXIMO - 1));
   });
 
   it('mensagem nova de outro torcedor chega na hora', async () => {

@@ -1085,3 +1085,40 @@ a.aba:hover {
   color: var(--muted);
   text-align: center;
 }
+
+/* Seletor de emoji do chat: a grade abre acima do botão, alinhada à direita do composer. */
+.emojiCaixa {
+  position: relative;
+  flex: none;
+}
+
+.emojis {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 5;
+  width: 292px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+}
+
+.emoji {
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.emoji:hover,
+.emoji:focus-visible {
+  background: var(--soft);
+}
