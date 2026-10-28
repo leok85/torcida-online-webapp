@@ -300,7 +300,9 @@ describe('chat da torcida', () => {
     const { user } = await abrirChat();
     const campo = await within(chat()).findByRole('textbox', { name: 'Mensagem para a torcida' });
     await user.click(within(chat()).getByRole('button', { name: 'Inserir emoji' }));
-    expect(within(within(chat()).getByRole('group', { name: 'Emojis' })).getAllByRole('button')).toHaveLength(EMOJIS.length);
+    const grade = within(chat()).getByRole('group', { name: 'Emojis' });
+    expect(within(grade).getAllByRole('button')).toHaveLength(EMOJIS.length);
+    expect(within(grade).getAllByRole('group').map((g) => g.getAttribute('aria-label'))).toEqual(['Jogo', 'Torcida', 'Reações']);
     await user.keyboard('{Escape}');
     expect(within(chat()).queryByRole('group', { name: 'Emojis' })).not.toBeInTheDocument();
 

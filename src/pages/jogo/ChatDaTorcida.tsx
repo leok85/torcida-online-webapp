@@ -12,13 +12,13 @@ import { motivoParaNaoPublicar, useMinhasRestricoes } from '../../data/restricoe
 
 const NUMERO = new Intl.NumberFormat('pt-BR');
 
-/** Emojis do seletor do chat: os de jogo e de torcida primeiro. */
-export const EMOJIS = [
-  '⚽', '🥅', '🏆', '🔥', '👏', '🙌', '💪', '🚀',
-  '😂', '🤣', '😍', '🥳', '😎', '🤩', '😅', '😉',
-  '😱', '😤', '😡', '🤬', '😭', '🙏', '🤞', '🤦',
-  '👍', '👎', '❤️', '💔', '🟨', '🟥', '⏱️', '📣',
+/** Emojis do seletor do chat, em grupos; só os que aparecem bem em qualquer sistema. */
+export const GRUPOS_DE_EMOJI = [
+  { nome: 'Jogo', emojis: ['⚽', '🏆', '🥇', '🧤', '👟', '🏟️', '📣', '🎉'] },
+  { nome: 'Torcida', emojis: ['🔥', '👏', '🙌', '💪', '🚀', '❤️', '💔', '🙏'] },
+  { nome: 'Reações', emojis: ['😂', '🤣', '😍', '🥳', '😎', '🤩', '😅', '😉', '😱', '😤', '😡', '🤬', '😭', '🤦', '👍', '👎'] },
 ];
+export const EMOJIS = GRUPOS_DE_EMOJI.flatMap((g) => g.emojis);
 
 /** Botão do composer que abre a grade de emojis; escolher um insere no cursor e fecha a grade. */
 function SeletorDeEmoji({ onEscolher }: { onEscolher: (emoji: string) => void }) {
@@ -48,19 +48,28 @@ function SeletorDeEmoji({ onEscolher }: { onEscolher: (emoji: string) => void })
       </button>
       {aberto && (
         <div className={styles.emojis} role="group" aria-label="Emojis">
-          {EMOJIS.map((e) => (
-            <button
-              key={e}
-              type="button"
-              className={styles.emoji}
-              aria-label={e}
-              onClick={() => {
-                onEscolher(e);
-                setAberto(false);
-              }}
-            >
-              {e}
-            </button>
+          {GRUPOS_DE_EMOJI.map((g) => (
+            <div key={g.nome} role="group" aria-label={g.nome} className={styles.emojiGrupo}>
+              <span className={styles.emojiTitulo} aria-hidden="true">
+                {g.nome}
+              </span>
+              <div className={styles.emojiGrade}>
+                {g.emojis.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    className={styles.emoji}
+                    aria-label={e}
+                    onClick={() => {
+                      onEscolher(e);
+                      setAberto(false);
+                    }}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
