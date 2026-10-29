@@ -66,12 +66,17 @@ describe('pós-jogo e notas (W04)', () => {
     const enviar = await within(suasNotas()).findByRole('button', { name: /Enviar avaliações/ });
     expect(enviar).toBeDisabled();
 
-    // O primeiro sem nota já vem aberto.
-    await user.click(within(suasNotas()).getByRole('radio', { name: '8' }));
+    // Todos já vêm com a escala aberta, sem precisar tocar no jogador.
+    expect(within(suasNotas()).getAllByRole('radiogroup')).toHaveLength(12);
+    expect(within(suasNotas()).getByText('0 de 12 avaliados')).toBeInTheDocument();
+    const notaDe = (nome: string) => within(suasNotas()).getByRole('radiogroup', { name: `Nota de ${nome}` });
+    await user.click(within(notaDe('C. Miguel')).getByRole('radio', { name: '8' }));
     expect(within(suasNotas()).getByText('C. Miguel').nextSibling).toHaveTextContent('goleiro · 90 min · jogou bem');
-    await user.click(within(suasNotas()).getByRole('button', { name: 'Dar nota para A. Barboza' }));
-    await user.click(within(suasNotas()).getByRole('radio', { name: '4' }));
+    await user.click(within(notaDe('A. Barboza')).getByRole('radio', { name: '4' }));
     expect(within(suasNotas()).getByText('A. Barboza').nextSibling).toHaveTextContent('ficou devendo');
+    // Escolher a nota de um não fecha a do outro.
+    expect(within(notaDe('C. Miguel')).getByRole('radio', { name: '8' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(suasNotas()).getByText('2 de 12 avaliados')).toBeInTheDocument();
 
     await user.click(enviar);
     expect(await within(suasNotas()).findByRole('button', { name: 'Avaliações enviadas' })).toBeDisabled();
@@ -136,7 +141,8 @@ describe('pós-jogo e notas (W04)', () => {
     const partida = encerrada();
     const { user } = abrir({ partida });
     await screen.findByRole('region', { name: 'Suas notas' });
-    await user.click(await within(suasNotas()).findByRole('radio', { name: '7' }));
+    const notaDoGoleiro = await within(suasNotas()).findByRole('radiogroup', { name: 'Nota de C. Miguel' });
+    await user.click(within(notaDoGoleiro).getByRole('radio', { name: '7' }));
     partida.encerrada_em = '2026-10-11T20:00:00Z';
     await user.click(within(suasNotas()).getByRole('button', { name: /Enviar avaliações/ }));
     expect(await within(suasNotas()).findByRole('alert')).toHaveTextContent('As notas deste jogo já fecharam.');
