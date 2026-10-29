@@ -1085,3 +1085,84 @@ a.aba:hover {
   color: var(--muted);
   text-align: center;
 }
+
+/* Seletor de emoji do chat: a grade abre acima do botão, alinhada à direita do composer. */
+.emojiCaixa {
+  position: relative;
+  flex: none;
+}
+
+.emojis {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 5;
+  width: 320px;
+  padding: 12px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-pop);
+}
+
+.emojiGrupo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.emojiTitulo {
+  padding-left: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.emojiGrade {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+
+.emoji {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.emoji:hover,
+.emoji:focus-visible {
+  background: var(--soft);
+  transform: scale(1.15);
+}
+
+.emoji:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.emojiCaixa .iconBtn[aria-expanded='true'] {
+  border-color: var(--primary);
+  background: var(--blue-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emoji {
+    transition: none;
+  }
+
+  .emoji:hover,
+  .emoji:focus-visible {
+    transform: none;
+  }
+}

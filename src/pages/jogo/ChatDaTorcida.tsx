@@ -12,6 +12,71 @@ import { motivoParaNaoPublicar, useMinhasRestricoes } from '../../data/restricoe
 
 const NUMERO = new Intl.NumberFormat('pt-BR');
 
+/** Emojis do seletor do chat, em grupos; só os que aparecem bem em qualquer sistema. */
+export const GRUPOS_DE_EMOJI = [
+  { nome: 'Jogo', emojis: ['⚽', '🏆', '🥇', '🧤', '👟', '🏟️', '📣', '🎉'] },
+  { nome: 'Torcida', emojis: ['🔥', '👏', '🙌', '💪', '🚀', '❤️', '💔', '🙏'] },
+  { nome: 'Reações', emojis: ['😂', '🤣', '😍', '🥳', '😎', '🤩', '😅', '😉', '😱', '😤', '😡', '🤬', '😭', '🤦', '👍', '👎'] },
+];
+export const EMOJIS = GRUPOS_DE_EMOJI.flatMap((g) => g.emojis);
+
+/** Botão do composer que abre a grade de emojis; escolher um insere no cursor e fecha a grade. */
+function SeletorDeEmoji({ onEscolher }: { onEscolher: (emoji: string) => void }) {
+  const [aberto, setAberto] = useState(false);
+  const caixa = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: PointerEvent) => {
+      if (!caixa.current?.contains(e.target as Node)) setAberto(false);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAberto(false);
+    };
+    document.addEventListener('pointerdown', fora);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', fora);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [aberto]);
+
+  return (
+    <div ref={caixa} className={styles.emojiCaixa}>
+      <button type="button" className={styles.iconBtn} aria-label="Inserir emoji" aria-expanded={aberto} onClick={() => setAberto((a) => !a)}>
+        <Icon name="mood" size={21} />
+      </button>
+      {aberto && (
+        <div className={styles.emojis} role="group" aria-label="Emojis">
+          {GRUPOS_DE_EMOJI.map((g) => (
+            <div key={g.nome} role="group" aria-label={g.nome} className={styles.emojiGrupo}>
+              <span className={styles.emojiTitulo} aria-hidden="true">
+                {g.nome}
+              </span>
+              <div className={styles.emojiGrade}>
+                {g.emojis.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    className={styles.emoji}
+                    aria-label={e}
+                    onClick={() => {
+                      onEscolher(e);
+                      setAberto(false);
+                    }}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Coluna "Chat da torcida" (W02): só membros, e cada torcida no seu chat. */
 export function ChatDaTorcida({ partida }: { partida: Partida }) {
   const { assinante, perfil } = useAuth();
@@ -28,7 +93,23 @@ export function ChatDaTorcida({ partida }: { partida: Partida }) {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const lista = useRef<HTMLDivElement>(null);
+  const campo = useRef<HTMLInputElement>(null);
   const noFim = useRef(true);
+
+  // Entra onde está o cursor (ou no fim), sem passar do limite; o foco volta para o campo depois do emoji.
+  function inserirEmoji(emoji: string) {
+    const el = campo.current;
+    const inicio = el?.selectionStart ?? rascunho.length;
+    const fim = el?.selectionEnd ?? rascunho.length;
+    const novo = rascunho.slice(0, inicio) + emoji + rascunho.slice(fim);
+    if (novo.length > TAMANHO_MAXIMO) return;
+    setRascunho(novo);
+    setErro(null);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(inicio + emoji.length, inicio + emoji.length);
+    });
+  }
 
   // Desce para a mensagem nova só se a pessoa já estava no fim (não puxa quem está lendo o histórico).
   useEffect(() => {
@@ -111,6 +192,7 @@ export function ChatDaTorcida({ partida }: { partida: Partida }) {
             <form className={styles.composer} onSubmit={mandar}>
               <div className={styles.composerCampo}>
                 <input
+                  ref={campo}
                   className={styles.input}
                   value={rascunho}
                   onChange={(e) => {
@@ -127,6 +209,7 @@ export function ChatDaTorcida({ partida }: { partida: Partida }) {
                   </div>
                 )}
               </div>
+              <SeletorDeEmoji onEscolher={inserirEmoji} />
               <button type="submit" className={styles.sendBtn} aria-label="Enviar" disabled={!rascunho.trim() || enviando}>
                 <Icon name="send" size={21} />
               </button>
