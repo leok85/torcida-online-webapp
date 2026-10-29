@@ -21,9 +21,8 @@ test('pós-jogo: "Dar notas" do início, notas enviadas e a média da torcida de
   const notas = page.getByRole('region', { name: 'Suas notas' });
   await expect(notas.getByText(/fecha em (49|50) min/)).toBeVisible();
 
-  await notas.getByRole('radio', { name: '7' }).click();
-  await notas.getByRole('button', { name: 'Dar nota para A. Barboza' }).click();
-  await notas.getByRole('radio', { name: '10' }).click();
+  await notas.getByRole('radiogroup', { name: 'Nota de C. Miguel' }).getByRole('radio', { name: '7' }).click();
+  await notas.getByRole('radiogroup', { name: 'Nota de A. Barboza' }).getByRole('radio', { name: '10' }).click();
   await notas.getByRole('button', { name: /Enviar avaliações/ }).click();
   await expect(notas.getByRole('button', { name: 'Avaliações enviadas' })).toBeVisible();
   expect(backend.notasJogadores.filter((n) => n.usuario_id !== 'outro').map((n) => [n.jogador_id, n.nota])).toEqual([

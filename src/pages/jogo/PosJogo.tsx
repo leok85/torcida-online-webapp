@@ -194,19 +194,15 @@ function SuasNotas({
   const { regras } = useMeuXp();
   const salvas = useMemo(() => new Map((notas ?? []).filter((n) => n.minha).map((n) => [n.jogador_id, n.minha!])), [notas]);
   const [rascunho, setRascunho] = useState<Map<number, number>>(new Map());
-  const [aberto, setAberto] = useState<number | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
 
   const nota = (id: number) => rascunho.get(id) ?? salvas.get(id) ?? 0;
   const pendentes = [...rascunho].filter(([id, n]) => salvas.get(id) !== n);
-  // Abre no primeiro jogador ainda sem nota.
-  const expandido = aberto ?? jogadores.find((j) => !nota(j.id))?.id ?? null;
+  const avaliados = jogadores.filter((j) => nota(j.id)).length;
 
   function escolher(id: number, n: number) {
-    // Continua aberto para ajustar a nota; o próximo abre quando a pessoa tocar nele.
-    setAberto(id);
     setRascunho((r) => new Map(r).set(id, n));
     setEnviado(false);
     setErro(null);
@@ -228,7 +224,6 @@ function SuasNotas({
     await aoEnviar();
     setRascunho(new Map());
     setEnviado(true);
-    setAberto(null);
   }
 
   return (
@@ -249,7 +244,15 @@ function SuasNotas({
           </span>
         )}
       </div>
-      <p className={styles.dica}>Notas de 1 a 10. A janela fecha 1 h após o apito final.</p>
+      <p className={styles.dica}>
+        Notas de 1 a 10. A janela fecha 1 h após o apito final.
+        {abertas && jogadores.length > 0 && (
+          <span className={styles.progresso}>
+            {' '}
+            {avaliados} de {jogadores.length} avaliados
+          </span>
+        )}
+      </p>
 
       {jogadores.length === 0 ? (
         <p className={styles.vazio}>A escalação deste jogo não chegou; sem ela não dá para dar notas.</p>
@@ -259,7 +262,8 @@ function SuasNotas({
             const n = nota(j.id);
             const a = avaliacao(n);
             const meta = [j.posicao, `${j.minutos} min`].filter(Boolean).join(' · ');
-            if (abertas && expandido === j.id) {
+            // Com a janela aberta, todos já vêm com a escala: é só tocar na nota de cada um.
+            if (abertas) {
               return (
                 <li key={j.id} className={styles.jogadorAberto}>
                   <div className={styles.jogador}>
@@ -292,29 +296,20 @@ function SuasNotas({
                 </li>
               );
             }
-            const conteudo = (
-              <>
-                <span className={styles.camisa}>{j.numero ?? ''}</span>
-                <div className={styles.jogadorInfo}>
-                  <strong>{j.nome}</strong>
-                  <span>
-                    {meta} · {n ? 'avaliado' : 'sem nota'}
-                  </span>
-                </div>
-                <span className={styles.nota} style={{ color: a.cor }}>
-                  {n ? `${n},0` : '—'}
-                </span>
-              </>
-            );
             return (
               <li key={j.id}>
-                {abertas ? (
-                  <button type="button" className={styles.jogador} onClick={() => setAberto(j.id)} aria-label={`Dar nota para ${j.nome}`}>
-                    {conteudo}
-                  </button>
-                ) : (
-                  <div className={styles.jogador}>{conteudo}</div>
-                )}
+                <div className={styles.jogador}>
+                  <span className={styles.camisa}>{j.numero ?? ''}</span>
+                  <div className={styles.jogadorInfo}>
+                    <strong>{j.nome}</strong>
+                    <span>
+                      {meta} · {n ? 'avaliado' : 'sem nota'}
+                    </span>
+                  </div>
+                  <span className={styles.nota} style={{ color: a.cor }}>
+                    {n ? `${n},0` : '—'}
+                  </span>
+                </div>
               </li>
             );
           })}
